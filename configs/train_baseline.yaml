@@ -1,0 +1,8 @@
+model: yolo11n.pt
+imgsz: 640
+epochs: 20
+batch: 16
+device: 0
+workers: 4
+project: runs/train
+name: baseline_yolo11n

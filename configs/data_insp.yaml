@@ -1,0 +1,22 @@
+path: ""
+
+train: images/train
+val: images/val
+
+names:
+  0: Lighter
+  1: Matches
+  2: Scissors
+  3: Pliers
+  4: Knife
+  5: Shaver
+  6: Hammer
+  7: Cigarettes
+  8: Saw
+  9: Screwdriver
+  10: Wrench
+  11: Aerosol can
+  12: Battery
+  13: Alcohol
+  14: Mobile phone
+  15: Laptop
