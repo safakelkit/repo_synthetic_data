@@ -19,7 +19,8 @@ def main():
         workers=train_cfg["workers"],
         project=train_cfg["project"],
         name=train_cfg["name"],
-    )
+        save_period=train_cfg["save_period"],
+    )   
 
 if __name__ == "__main__":
     main()

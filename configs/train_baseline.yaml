@@ -1,18 +1,9 @@
-#model: yolo11n.pt
-#imgsz: 640
-#epochs: 20
-#batch: 16
-#device: 0
-#workers: 4
-#project: runs/train
-#name: baseline_yolo11n
-
 model: yolo11n.pt
 imgsz: 640
-epochs: 1
-batch: 2
+epochs: 30
+batch: 4
 device: 0
 workers: 2
 project: runs/train
-name: smoke_test_gpu
+name: initial_yolo11n
 save_period: 1
