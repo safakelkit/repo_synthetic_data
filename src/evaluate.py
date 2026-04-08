@@ -132,9 +132,10 @@ def evaluate_dataset(model: YOLO, dataset_name: str, dataset_yaml: str, imgsz: i
         split="val",
         imgsz=imgsz,
         device=device,
-        plots=False,
-        save_json=False,
-        verbose=True,
+        plots=True,
+        project="runs/evaluation/val",
+        name=dataset_name,
+        exist_ok=True,
     )
 
     class_names = extract_class_names(model)
