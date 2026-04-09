@@ -1,0 +1,1 @@
+#will keep track of current cycle, current epoch, current synthetic count, latest weights, latest evaluation file path

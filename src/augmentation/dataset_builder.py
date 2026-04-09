@@ -1,0 +1,1 @@
+#will merge readl and synthetic data, create or update YOLO train folder, optionally keep validation and test untouched
