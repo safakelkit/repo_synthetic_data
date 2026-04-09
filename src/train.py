@@ -1,26 +1,72 @@
-from ultralytics import YOLO
-import yaml
+from __future__ import annotations
 
-def load_yaml(path):
+from pathlib import Path
+from typing import Any
+
+import yaml
+from ultralytics import YOLO
+
+
+def load_yaml(path: str) -> dict[str, Any]:
     with open(path, "r") as f:
         return yaml.safe_load(f)
 
-def main():
-    train_cfg = load_yaml("configs/train_baseline.yaml")
 
-    model = YOLO(train_cfg["model"])
+def train_yolo(
+    model_path: str,
+    data_yaml: str,
+    train_cfg_path: str,
+    epochs: int,
+    run_name: str,
+    resume: bool = False,
+) -> dict[str, str]:
+    """
+    Train YOLO for a given number of epochs and return important output paths.
+    """
+    train_cfg = load_yaml(train_cfg_path)
 
-    model.train(
-        data="configs/data_insp.yaml",
+    model = YOLO(model_path)
+
+    results = model.train(
+        data=data_yaml,
         imgsz=train_cfg["imgsz"],
-        epochs=train_cfg["epochs"],
+        epochs=epochs,
         batch=train_cfg["batch"],
         device=train_cfg["device"],
         workers=train_cfg["workers"],
         project=train_cfg["project"],
-        name=train_cfg["name"],
-        save_period=train_cfg["save_period"],
-    )   
+        name=run_name,
+        save_period=train_cfg.get("save_period", -1),
+        resume=resume,
+    )
+
+    save_dir = Path(results.save_dir)
+    weights_dir = save_dir / "weights"
+
+    return {
+        "save_dir": str(save_dir),
+        "best_model": str(weights_dir / "best.pt"),
+        "last_model": str(weights_dir / "last.pt"),
+    }
+
+
+def main() -> None:
+    cfg_path = "configs/train_baseline.yaml"
+    data_yaml = "configs/data_insp.yaml"
+    train_cfg = load_yaml(cfg_path)
+
+    output = train_yolo(
+        model_path=train_cfg["model"],
+        data_yaml=data_yaml,
+        train_cfg_path=cfg_path,
+        epochs=train_cfg["epochs"],
+        run_name=train_cfg["name"],
+        resume=False,
+    )
+
+    print("Training finished.")
+    print(output)
+
 
 if __name__ == "__main__":
     main()
