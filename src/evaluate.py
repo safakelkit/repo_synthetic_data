@@ -42,25 +42,86 @@ def extract_overall_metrics(results: Any) -> dict[str, float | None]:
 
 def extract_per_class_metrics(results: Any, class_names: list[str]) -> list[dict[str, Any]]:
     box = results.box
+
     ap50_list = getattr(box, "ap50", None)
     maps_list = getattr(box, "maps", None)
     precision_list = getattr(box, "p", None)
     recall_list = getattr(box, "r", None)
+    ap_class_index = getattr(box, "ap_class_index", None)
 
     num_classes = len(class_names)
-    rows = []
 
-    for idx in range(num_classes):
-        rows.append(
-            {
-                "class_id": idx,
-                "class_name": class_names[idx],
-                "precision": safe_float(precision_list[idx]) if precision_list is not None else None,
-                "recall": safe_float(recall_list[idx]) if recall_list is not None else None,
-                "ap50": safe_float(ap50_list[idx]) if ap50_list is not None else None,
-                "map50_95": safe_float(maps_list[idx]) if maps_list is not None else None,
-            }
+    rows = [
+        {
+            "class_id": idx,
+            "class_name": class_names[idx],
+            "precision": None,
+            "recall": None,
+            "ap50": None,
+            "map50_95": None,
+        }
+        for idx in range(num_classes)
+    ]
+
+    # Fallback if no mapping is available
+    if ap_class_index is None:
+        usable_len = min(
+            [
+                len(x)
+                for x in [precision_list, recall_list, ap50_list]
+                if x is not None
+            ],
+            default=0,
         )
+
+        for idx in range(min(num_classes, usable_len)):
+            rows[idx]["precision"] = (
+                safe_float(precision_list[idx]) if precision_list is not None else None
+            )
+            rows[idx]["recall"] = (
+                safe_float(recall_list[idx]) if recall_list is not None else None
+            )
+            rows[idx]["ap50"] = (
+                safe_float(ap50_list[idx]) if ap50_list is not None else None
+            )
+            rows[idx]["map50_95"] = (
+                safe_float(maps_list[idx])
+                if maps_list is not None and idx < len(maps_list)
+                else None
+            )
+
+        return rows
+
+    # Preferred path
+    for metric_idx, class_id_raw in enumerate(ap_class_index):
+        class_id = int(class_id_raw)
+
+        if class_id < 0 or class_id >= num_classes:
+            continue
+
+        rows[class_id]["precision"] = (
+            safe_float(precision_list[metric_idx])
+            if precision_list is not None and metric_idx < len(precision_list)
+            else None
+        )
+        rows[class_id]["recall"] = (
+            safe_float(recall_list[metric_idx])
+            if recall_list is not None and metric_idx < len(recall_list)
+            else None
+        )
+        rows[class_id]["ap50"] = (
+            safe_float(ap50_list[metric_idx])
+            if ap50_list is not None and metric_idx < len(ap50_list)
+            else None
+        )
+
+        # IMPORTANT: maps is indexed by class_id
+        rows[class_id]["map50_95"] = (
+            safe_float(maps_list[class_id])
+            if maps_list is not None and class_id < len(maps_list)
+            else None
+        )
+
     return rows
 
 

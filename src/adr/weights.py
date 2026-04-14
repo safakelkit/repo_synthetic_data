@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from difficulty import compute_difficulty_scores, rank_difficulties
+from .difficulty import compute_difficulty_scores, rank_difficulties
 
 
 def normalize_weights(difficulty_scores: dict[str, float]) -> dict[str, float]:
