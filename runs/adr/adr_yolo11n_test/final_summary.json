@@ -1,0 +1,9 @@
+{
+  "base_run_name": "adr_yolo11n_test",
+  "total_epochs": 2,
+  "cycle_epochs": 1,
+  "num_cycles": 2,
+  "final_model_path": "/data/skelkit/repo_synthetic_data/runs/detect/runs/train/adr_yolo11n_test_cycle_02/weights/last.pt",
+  "history_file": "runs/adr/adr_yolo11n_test/adr_history.json",
+  "root_output_dir": "runs/adr/adr_yolo11n_test"
+}
