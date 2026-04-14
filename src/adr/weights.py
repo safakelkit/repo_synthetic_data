@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +61,11 @@ def load_evaluation_results(json_path: str | Path) -> dict[str, Any]:
     """
     Load evaluation JSON file.
     """
+    json_path = Path(json_path)
+
+    if not json_path.exists():
+        raise FileNotFoundError(f"Evaluation JSON not found: {json_path}")
+
     with open(json_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -77,10 +83,10 @@ def save_weights_json(weights: dict[str, float], output_path: str | Path) -> Non
 
 def build_sampling_weights(
     evaluation_results: dict[str, Any],
-    alpha: float = 0.4,
+    alpha: float = 0.5,
     beta: float = 0.3,
-    gamma: float = 0.3,
-    metric_key: str = "ap50",
+    gamma: float = 0.2,
+    metric_key: str = "map50_95",
     weighting_method: str = "softmax",
     temperature: float = 0.7,
 ) -> tuple[dict[str, float], dict[str, float]]:
@@ -112,17 +118,26 @@ def build_sampling_weights(
 
 
 def main() -> None:
-    input_json = "evaluation_results_01.json"
-    output_json = "sampling_weights.json"
+    if len(sys.argv) < 2:
+        raise ValueError(
+            "Usage: python weights.py <evaluation_json_path> [output_json_path]"
+        )
+
+    input_json = Path(sys.argv[1])
+
+    if len(sys.argv) >= 3:
+        output_json = Path(sys.argv[2])
+    else:
+        output_json = input_json.parent / "sampling_weights.json"
 
     evaluation_results = load_evaluation_results(input_json)
 
     difficulty_scores, sampling_weights = build_sampling_weights(
         evaluation_results=evaluation_results,
-        alpha=0.4,
+        alpha=0.5,
         beta=0.3,
-        gamma=0.3,
-        metric_key="ap50",
+        gamma=0.2,
+        metric_key="map50_95",
         weighting_method="softmax",
         temperature=0.7,
     )

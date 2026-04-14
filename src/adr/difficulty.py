@@ -59,3 +59,21 @@ def compute_difficulty_scores(
 
 def rank_difficulties(difficulty_scores: dict[str, float]) -> list[tuple[str, float]]:
     return sorted(difficulty_scores.items(), key=lambda x: x[1], reverse=True)
+
+if __name__ == "__main__":
+    import json
+    import sys
+
+    if len(sys.argv) < 2:
+        raise ValueError("Usage: python difficulty.py <evaluation_json_path>")
+
+    input_path = sys.argv[1]
+
+    with open(input_path, "r") as f:
+        data = json.load(f)
+
+    scores = compute_difficulty_scores(data)
+
+    print("\n=== Difficulty Scores ===")
+    for k, v in scores.items():
+        print(f"{k}: {v:.4f}")
