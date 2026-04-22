@@ -15,7 +15,6 @@ from PIL import Image
 from tqdm import tqdm
 from transformers import Sam3Model, Sam3Processor
 
-torch.set_float32_matmul_precision("high")
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
@@ -164,7 +163,7 @@ def extract_sam3_object_bank(
     split: str = "train",
     model_name: str = "facebook/sam3",
     output_dir: str = "data/processed/object_bank_sam3_test",
-    image_limit: int | None = 500,
+    image_limit: int | None = 100,
     score_threshold: float = 0.30,
     mask_threshold: float = 0.50,
     min_mask_area_ratio: float = 0.01,
@@ -187,13 +186,7 @@ def extract_sam3_object_bank(
     ensure_dir_structure(output_root, class_names)
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        print(f"Loading SAM3 model from: {model_name}")
-        print(f"Using device: {device}")
-
-    if device == "cuda":
-        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        device = "cpu"
 
     print(f"Loading SAM3 model from: {model_name}")
     print(f"Using device: {device}")
@@ -305,12 +298,7 @@ def extract_sam3_object_bank(
                 continue
 
             # best_mask is expected at original image resolution after post-processing
-            if isinstance(best_mask, torch.Tensor):
-                mask_np = best_mask.detach().cpu().numpy()
-            else:
-                mask_np = np.array(best_mask)
-
-            mask_uint8 = (mask_np > 0).astype(np.uint8) * 255
+            mask_uint8 = (np.array(best_mask) > 0).astype(np.uint8) * 255
 
             # Restrict to bbox neighborhood to prevent unrelated spillover
             constrained_mask = np.zeros_like(mask_uint8)
@@ -415,7 +403,7 @@ def main() -> None:
         split="train",
         model_name="facebook/sam3",
         output_dir="data/processed/object_bank_sam3_test",
-        image_limit=500,
+        image_limit=100,
         score_threshold=0.30,
         mask_threshold=0.50,
         min_mask_area_ratio=0.01,
