@@ -15,6 +15,7 @@ from PIL import Image
 from tqdm import tqdm
 from transformers import Sam3Model, Sam3Processor
 
+torch.set_float32_matmul_precision("high")
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
@@ -165,6 +166,7 @@ def extract_sam3_object_bank(
     output_dir: str = "data/processed/object_bank_sam3_test",
     image_limit: int | None = 100,
     score_threshold: float = 0.30,
+    start_index: int = 0,
     mask_threshold: float = 0.50,
     min_mask_area_ratio: float = 0.01,
     save_metadata: bool = True,
@@ -186,7 +188,13 @@ def extract_sam3_object_bank(
     ensure_dir_structure(output_root, class_names)
 
     if device is None:
-        device = "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    print(f"Loading SAM3 model from: {model_name}")
+    print(f"Using device: {device}")
+
+    if device == "cuda":
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
 
     print(f"Loading SAM3 model from: {model_name}")
     print(f"Using device: {device}")
@@ -197,8 +205,11 @@ def extract_sam3_object_bank(
 
     label_files = sorted(labels_dir.glob("*.txt"))
     total_available = len(label_files)
+
     if image_limit is not None:
-        label_files = label_files[:image_limit]
+        label_files = label_files[start_index:start_index + image_limit]
+    else:
+        label_files = label_files[start_index:]
 
     summary: dict[str, Any] = {
         "data_yaml": str(data_yaml),
@@ -220,6 +231,7 @@ def extract_sam3_object_bank(
         "skipped_missing_images": 0,
         "skipped_empty_masks": 0,
         "skipped_small_masks": 0,
+        "start_index": start_index,
         "skipped_low_score": 0,
         "per_class_saved": {
             str(class_id): {
@@ -297,8 +309,12 @@ def extract_sam3_object_bank(
                 summary["skipped_low_score"] += 1
                 continue
 
-            # best_mask is expected at original image resolution after post-processing
-            mask_uint8 = (np.array(best_mask) > 0).astype(np.uint8) * 255
+            if isinstance(best_mask, torch.Tensor):
+                mask_np = best_mask.detach().cpu().numpy()
+            else:
+                mask_np = np.array(best_mask)
+
+            mask_uint8 = (mask_np > 0).astype(np.uint8) * 255
 
             # Restrict to bbox neighborhood to prevent unrelated spillover
             constrained_mask = np.zeros_like(mask_uint8)
@@ -403,14 +419,14 @@ def main() -> None:
         split="train",
         model_name="facebook/sam3",
         output_dir="data/processed/object_bank_sam3_test",
-        image_limit=100,
+        image_limit=None,
+        start_index=500,
         score_threshold=0.30,
         mask_threshold=0.50,
         min_mask_area_ratio=0.01,
         save_metadata=True,
         device=None,
     )
-
 
 if __name__ == "__main__":
     main()
