@@ -1,9 +1,15 @@
-model: yolo11n.pt
+model: yolo11s.pt
 imgsz: 640
-epochs: 30
-batch: 4
+epochs: 50
+batch: 16
 device: 0
-workers: 2
+workers: 8
 project: runs/train
-name: initial_yolo11n
-save_period: 1
+name: initial_yolo11s
+save_period: 5
+
+bgr: 0.0
+fliplr: 0.5 #flip left to right
+flipud: 0.0 #flip up&down
+hsv_v: 0.4 #brightness
+hsv_h: 0.015 #hue

@@ -1,4 +1,4 @@
-# will compute the difficulty score -> difficulty(c) = α * (1 - S_hard(c) + β * (S_clean(c) - S_hard(c)) + γ * (S_clean(c) - S_easy(c))
+# will compute the difficulty score -> difficulty(c) = α * (1 - S_hard(c)) + β * (S_clean(c) - S_hard(c)) + γ * (S_clean(c) - S_easy(c))
 
 from __future__ import annotations
 
