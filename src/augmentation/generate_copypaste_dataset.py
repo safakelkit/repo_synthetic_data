@@ -89,13 +89,13 @@ def sample_scale(class_id: str) -> float:
 
     # Thin / small objects can be slightly larger.
     if cid in [1, 2, 4, 9, 10, 12]:
-        return random.uniform(0.030, 0.095)
+        return random.uniform(0.015, 0.050)
 
     # Naturally larger objects.
     if cid in [14, 15]:
-        return random.uniform(0.025, 0.070)
+        return random.uniform(0.012, 0.035)
 
-    return random.uniform(0.03, 0.085)
+    return random.uniform(0.015, 0.040)
 
 
 def resize_rgba(rgba: np.ndarray, scale: float) -> np.ndarray:
@@ -362,7 +362,7 @@ def create_subsets(full_root: Path, base_root: Path) -> None:
         print(f"Created subset: {dst}")
 
 def main() -> None:
-    FULL_OUTPUT = "data/synthetic/copypaste_v2_full_2215"
+    FULL_OUTPUT = "data/synthetic/copypaste_v3_full_2215"
 
     # 1. Generate FULL dataset
     generate_dataset(
@@ -370,7 +370,7 @@ def main() -> None:
         background_root="data/backgrounds/places365_subset",
         output_root=FULL_OUTPUT,
         num_images=2215,
-        seed=42,
+        seed=42, #43
     )
 
     # 2. Create subsets

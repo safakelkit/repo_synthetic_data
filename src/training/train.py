@@ -41,7 +41,7 @@ def train_yolo(
         plots=True,
 
         # augmentation settings from YAML
-        bgr=train_cfg.get("bgr", 0.0),
+        bgr=train_cfg.get("bgr", 0.2),
         fliplr=train_cfg.get("fliplr", 0.5),
         flipud=train_cfg.get("flipud", 0.0),
         hsv_v=train_cfg.get("hsv_v", 0.4),
@@ -60,7 +60,7 @@ def train_yolo(
 
 def main() -> None:
     cfg_path = "configs/train_baseline.yaml"
-    data_yaml = "configs/data_insp_cp_500.yaml"
+    data_yaml = "configs/data_insp.yaml"
     train_cfg = load_yaml(cfg_path)
 
     output = train_yolo(

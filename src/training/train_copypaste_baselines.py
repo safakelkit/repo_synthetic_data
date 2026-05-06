@@ -6,10 +6,10 @@ def main() -> None:
     train_cfg = load_yaml(cfg_path)
 
     experiments = [
-        ("configs/data_insp_cp_500.yaml", "yolo11s_real_cp_500"),
-        ("configs/data_insp_cp_1000.yaml", "yolo11s_real_cp_1000"),
-        ("configs/data_insp_cp_1500.yaml", "yolo11s_real_cp_1500"),
-        ("configs/data_insp_cp_2215.yaml", "yolo11s_real_cp_2215"),
+        ("configs/data_insp_cp_500.yaml", "yolo11s_third_cp_500"),
+        ("configs/data_insp_cp_1000.yaml", "yolo11s_third_cp_1000"),
+        ("configs/data_insp_cp_1500.yaml", "yolo11s_third_cp_1500"),
+        ("configs/data_insp_cp_2215.yaml", "yolo11s_third_cp_2215"),
     ]
 
     for data_yaml, run_name in experiments:

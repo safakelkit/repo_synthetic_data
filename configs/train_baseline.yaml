@@ -8,7 +8,7 @@ project: runs/train
 name: initial_yolo11s
 save_period: 5
 
-bgr: 0.0
+bgr: 0.2
 fliplr: 0.5 #flip left to right
 flipud: 0.0 #flip up&down
 hsv_v: 0.4 #brightness

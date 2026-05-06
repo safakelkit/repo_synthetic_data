@@ -2,7 +2,7 @@ path: /data/skelkit/repo_synthetic_data
 
 train:
   - data/raw/insp-det/train/images
-  - data/synthetic/copypaste_v3_1500/images
+  - data/synthetic/copypaste_v2_1500/images
 
 val: data/raw/insp-det/val/images
 test: data/raw/insp-det/test/images
