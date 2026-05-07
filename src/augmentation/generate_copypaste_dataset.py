@@ -89,13 +89,13 @@ def sample_scale(class_id: str) -> float:
 
     # Thin / small objects can be slightly larger.
     if cid in [1, 2, 4, 9, 10, 12]:
-        return random.uniform(0.015, 0.050)
+        return random.uniform(0.025, 0.080)
 
     # Naturally larger objects.
     if cid in [14, 15]:
-        return random.uniform(0.012, 0.035)
+        return random.uniform(0.020, 0.055)
 
-    return random.uniform(0.015, 0.040)
+    return random.uniform(0.025, 0.070)
 
 
 def resize_rgba(rgba: np.ndarray, scale: float) -> np.ndarray:
