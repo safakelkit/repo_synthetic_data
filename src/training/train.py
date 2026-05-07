@@ -41,11 +41,11 @@ def train_yolo(
         plots=True,
 
         # augmentation settings from YAML
-        bgr=train_cfg.get("bgr", 0.2),
-        fliplr=train_cfg.get("fliplr", 0.5),
-        flipud=train_cfg.get("flipud", 0.0),
-        hsv_v=train_cfg.get("hsv_v", 0.4),
-        hsv_h=train_cfg.get("hsv_h", 0.015),
+        # bgr=train_cfg.get("bgr", 0.2),
+        # fliplr=train_cfg.get("fliplr", 0.5),
+        # flipud=train_cfg.get("flipud", 0.0),
+        # hsv_v=train_cfg.get("hsv_v", 0.4),
+        # hsv_h=train_cfg.get("hsv_h", 0.015), 
     )
 
     save_dir = Path(results.save_dir)

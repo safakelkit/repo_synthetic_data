@@ -5,11 +5,11 @@ batch: 16
 device: 0
 workers: 8
 project: runs/train
-name: initial_yolo11s
+name: initial_yolo11s_wo_ultralytics
 save_period: 5
 
-bgr: 0.0
-fliplr: 0.5 #flip left to right
-flipud: 0.0 #flip up&down
-hsv_v: 0.4 #brightness
-hsv_h: 0.015 #hue
+# bgr: 0.0
+# fliplr: 0.5 #flip left to right
+# flipud: 0.0 #flip up&down
+# hsv_v: 0.4 #brightness
+# hsv_h: 0.015 #hue
