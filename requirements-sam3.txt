@@ -1,0 +1,4 @@
+-r requirements.txt
+# Install the CUDA build appropriate for the host; audited environment: 2.7.1+cu118.
+torch==2.7.1
+transformers==5.5.4

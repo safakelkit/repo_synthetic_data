@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -16,9 +17,15 @@ from tqdm import tqdm
 from transformers import Sam3Model, Sam3Processor
 
 torch.set_float32_matmul_precision("high")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def repo_path(path: str | Path) -> Path:
+    path = Path(path).expanduser()
+    return path.resolve() if path.is_absolute() else (REPO_ROOT / path).resolve()
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(repo_path(path), "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -175,16 +182,17 @@ def extract_sam3_object_bank(
     data = load_yaml(data_yaml)
     class_names = get_class_names(data_yaml)
 
-    dataset_root = Path(data["path"])
-    images_dir = dataset_root / data[split]
-    labels_dir = dataset_root / data[split].replace("images", "labels")
+    data_yaml_path = repo_path(data_yaml)
+    dataset_root = repo_path(data["path"]) if data.get("path") else data_yaml_path.parent
+    images_dir = (dataset_root / data[split]).resolve()
+    labels_dir = Path(str(images_dir).replace(f"{os.sep}images", f"{os.sep}labels"))
 
     if not images_dir.exists():
         raise FileNotFoundError(f"Images directory not found: {images_dir}")
     if not labels_dir.exists():
         raise FileNotFoundError(f"Labels directory not found: {labels_dir}")
 
-    output_root = Path(output_dir)
+    output_root = repo_path(output_dir)
     ensure_dir_structure(output_root, class_names)
 
     if device is None:

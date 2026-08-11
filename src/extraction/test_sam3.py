@@ -8,9 +8,7 @@ import torch
 from PIL import Image
 from transformers import Sam3Model, Sam3Processor
 
-
 MODEL_NAME = "facebook/sam3"
-
 
 def yolo_to_xyxy(
     x_center: float,
@@ -31,7 +29,6 @@ def yolo_to_xyxy(
     y2 = max(0, min(y2, img_h - 1))
 
     return x1, y1, x2, y2
-
 
 def parse_first_yolo_box(label_path: str | Path) -> tuple[int, float, float, float, float]:
     with open(label_path, "r", encoding="utf-8") as f:

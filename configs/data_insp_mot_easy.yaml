@@ -1,8 +1,6 @@
-path: /data/skelkit/repo_synthetic_data/data/raw/insp-mot-det-easy
-
-train: images/test
-val: images/test
-test: images/test
+train: ../data/raw/insp-mot-det-easy/images/test
+val: ../data/raw/insp-mot-det-easy/images/test
+test: ../data/raw/insp-mot-det-easy/images/test
 
 names:
   0: Lighter

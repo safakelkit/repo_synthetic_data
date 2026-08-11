@@ -225,7 +225,7 @@ def plot_domain_gap(results: dict[str, Any], output_dir: Path, metric_key: str =
     plt.close(fig)
 
 
-def plot_adr_difficulty_ranking(results: dict[str, Any], output_dir: Path, metric_key: str = "map50_95") -> None:
+def plot_hard_domain_drop_ranking(results: dict[str, Any], output_dir: Path, metric_key: str = "map50_95") -> None:
     class_names, _, drop_hard = compute_domain_drops(results, metric_key=metric_key)
 
     valid_items = [
@@ -246,13 +246,13 @@ def plot_adr_difficulty_ranking(results: dict[str, Any], output_dir: Path, metri
     ax.set_yticks(y)
     ax.set_yticklabels(ranked_names)
     ax.invert_yaxis()
-    ax.set_title(f"ADR Difficulty Ranking (Clean → Hard {metric_key} Drop)")
-    ax.set_xlabel("Difficulty Score")
+    ax.set_title(f"Clean → Hard Per-Class Drop Ranking ({metric_key})")
+    ax.set_xlabel("Performance Drop")
     ax.set_ylabel("Class")
     ax.grid(axis="x", alpha=0.3)
 
     fig.tight_layout()
-    fig.savefig(output_dir / f"adr_difficulty_ranking_{metric_key}.png", dpi=300, bbox_inches="tight")
+    fig.savefig(output_dir / f"hard_domain_drop_ranking_{metric_key}.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -298,7 +298,7 @@ def main() -> None:
         metric_key="map50_95",
     )
 
-    plot_adr_difficulty_ranking(
+    plot_hard_domain_drop_ranking(
         results=results,
         output_dir=OUTPUT_DIR,
         metric_key="map50_95",

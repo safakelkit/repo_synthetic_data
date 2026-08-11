@@ -1,0 +1,47 @@
+version: support_masks_sam3_v1
+status: pilot_candidate_not_approved_for_production
+seed: 42
+
+model:
+  id: facebook/sam3
+  revision: resolve_exact_sha_at_pilot_start
+  license: SAM License
+  interface: transformers.Sam3Model_and_Sam3Processor
+  score_threshold: 0.30
+  mask_threshold: 0.50
+  minimum_mask_area_ratio: 0.001
+
+inputs:
+  background_root: data/backgrounds/places365_subset
+  categories:
+    bedroom:
+      - floor
+      - bed
+      - tabletop
+      - desk surface
+      - nightstand top
+    dining_room:
+      - floor
+      - tabletop
+      - countertop
+    hotel_room:
+      - floor
+      - bed
+      - tabletop
+      - desk surface
+      - nightstand top
+
+pilot:
+  images_per_category: 10
+  sampling: deterministic_without_replacement_sorted_pool
+  output_root: data/processed/background_support_masks/sam3_v1/pilot
+
+full:
+  approved: false
+  output_root: data/processed/background_support_masks/sam3_v1/full
+
+review:
+  initial_status: pending
+  allowed_statuses: [pending, accepted, rejected]
+  human_reviews_proposed_regions: true
+  human_does_not_select_per_composite_coordinates: true

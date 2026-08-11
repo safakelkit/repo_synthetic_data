@@ -1,8 +1,6 @@
-path: /data/skelkit/repo_synthetic_data/data/raw/insp-det
-
-train: train/images
-val: val/images
-test: test/images
+train: ../data/raw/insp-det/train/images
+val: ../data/raw/insp-det/val/images
+test: ../data/raw/insp-det/test/images
 
 names:
   0: Lighter

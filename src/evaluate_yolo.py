@@ -9,10 +9,16 @@ from ultralytics import YOLO
 
 
 DATASETS = {
-    "insp_det": "configs/data_insp.yaml",
-    "insp_mot_det_easy": "configs/data_insp_mot_easy.yaml",
-    "insp_mot_det_hard": "configs/data_insp_mot_hard.yaml",
+    "insp_det": ("configs/data_insp.yaml", "test"),
+    "insp_mot_det_easy": ("configs/data_insp_mot_easy.yaml", "test"),
+    "insp_mot_det_hard": ("configs/data_insp_mot_hard.yaml", "test"),
 }
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def repo_path(path: str | Path) -> Path:
+    path = Path(path).expanduser()
+    return path.resolve() if path.is_absolute() else (REPO_ROOT / path).resolve()
 
 
 def safe_float(value: Any) -> float | None:
@@ -127,18 +133,27 @@ def evaluate_single_dataset(
     model: YOLO,
     dataset_name: str,
     dataset_yaml: str,
+    split: str,
     imgsz: int = 640,
     device: int | str = 0,
     plots: bool = True,
     project: str = "runs/evaluation/default",
+    conf: float = 0.001,
+    iou: float = 0.7,
+    max_det: int = 300,
 ) -> dict[str, Any]:
     results = model.val(
-        data=dataset_yaml,
-        split="val",
+        data=str(repo_path(dataset_yaml)),
+        split=split,
         imgsz=imgsz,
         device=device,
         plots=plots,
-        project=project,
+        conf=conf,
+        iou=iou,
+        max_det=max_det,
+        # Keep output rooted in this repository, independent of cwd and the
+        # Ultralytics global runs_dir setting.
+        project=str(repo_path(project)),
         name=dataset_name,
         exist_ok=True,
         verbose=True,
@@ -149,6 +164,14 @@ def evaluate_single_dataset(
     return {
         "dataset_name": dataset_name,
         "dataset_yaml": dataset_yaml,
+        "split": split,
+        "evaluation_settings": {
+            "imgsz": imgsz,
+            "conf": conf,
+            "iou": iou,
+            "max_det": max_det,
+            "device": device,
+        },
         "overall": extract_overall_metrics(results),
         "per_class": extract_per_class_metrics(results, class_names),
     }
@@ -162,24 +185,28 @@ def evaluate_model(
     save_json_path: str | None = None,
     eval_project: str | None = None,
 ) -> dict[str, Any]:
-    model = YOLO(model_path)
+    resolved_model_path = repo_path(model_path)
+    model = YOLO(str(resolved_model_path))
 
-    model_name = Path(model_path).parent.parent.name
+    model_name = resolved_model_path.parent.parent.name
 
     if eval_project is None:
-        eval_project = f"runs/evaluation/{model_name}"
+        eval_project = str(repo_path(f"runs/evaluation/{model_name}"))
+    else:
+        eval_project = str(repo_path(eval_project))
 
     all_results: dict[str, Any] = {
-        "model_path": model_path,
+        "model_path": str(resolved_model_path),
         "eval_project": eval_project,
         "datasets": {},
     }
 
-    for dataset_name, dataset_yaml in DATASETS.items():
+    for dataset_name, (dataset_yaml, split) in DATASETS.items():
         dataset_result = evaluate_single_dataset(
             model=model,
             dataset_name=dataset_name,
             dataset_yaml=dataset_yaml,
+            split=split,
             imgsz=imgsz,
             device=device,
             plots=plots,
@@ -188,7 +215,7 @@ def evaluate_model(
         all_results["datasets"][dataset_name] = dataset_result
 
     if save_json_path is not None:
-        save_path = Path(save_json_path)
+        save_path = repo_path(save_json_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(save_path, "w", encoding="utf-8") as f:
             json.dump(all_results, f, indent=2, ensure_ascii=False)
@@ -198,7 +225,7 @@ def evaluate_model(
 
 def main() -> None:
     if len(sys.argv) < 2:
-        raise ValueError("Usage: python src/evaluate.py <model_path> [output_json_path]")
+        raise ValueError("Usage: python src/evaluate_yolo.py <model_path> [output_json_path]")
 
     model_path = sys.argv[1]
     model_name = Path(model_path).parent.parent.name
@@ -208,7 +235,7 @@ def main() -> None:
     else:
         save_path = f"runs/evaluation/{model_name}_results.json"
 
-    eval_project = f"runs/evaluation/{model_name}"
+    eval_project = str(repo_path(f"runs/evaluation/{model_name}"))
 
     results = evaluate_model(
         model_path=model_path,

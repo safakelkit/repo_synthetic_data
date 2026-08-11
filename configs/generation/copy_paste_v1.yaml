@@ -1,0 +1,100 @@
+version: cp_v1
+method: copy_paste
+seed: 42
+
+inputs:
+  object_bank_root: data/processed/object_bank_sam3
+  object_audit_manifest: data/processed/object_bank_sam3/asset_audit_manifest.csv
+  eligible_assets: all_2750_researcher_cleaned_assets
+  background_root: data/backgrounds/places365_subset
+  background_source_code_default: ljnlonoljpiljm/places365-256px
+  background_download_target_per_category: 500
+  available_background_categories:
+    bedroom: 382
+    dining_room: 387
+    hotel_room: 397
+  total_backgrounds: 1166
+  background_target_class_audit_status: pending
+
+production:
+  output_root: data/synthetic/cp_v1_seed42
+  num_images: 2048
+  images_per_class: 128
+  nested_prefixes: [512, 1024, 1536, 2048]
+
+allocation:
+  classes: 16
+  rule: one_each_class_per_deterministically_shuffled_block
+  block_size: 16
+  objects_per_image: 1
+  object_asset_sampling: deterministic_shuffled_cycles_without_reuse_until_exhausted
+  object_asset_schedule_seed_offset: 1
+
+sizing:
+  templates_path: data/processed/object_size_analysis/train_box_templates.csv
+  source_split: INSP-DET_train_only
+  metric: normalized_bbox_area
+  sampling: observed_template_within_class_p10_p90
+  lower_quantile: 0.10
+  upper_quantile: 0.90
+  maximum_object_dimension_ratio: 0.90
+  preserve_aspect_ratio: true
+  alpha_visibility_threshold: 20
+  minimum_visible_pixels: 40
+  minimum_crop_dimension_pixels: 8
+  minimum_visible_crop_ratio: 0.04
+
+placement:
+  status: accepted_not_implemented
+  strategy: semantic_support_masks_with_human_verification
+  proposal_model: facebook/sam3
+  proposal_model_status: pilot_v2_frontend_promising_raw_masks_not_approved
+  proposal_model_revision: resolved_exact_sha_from_approved_support_manifest
+  proposal_model_license: SAM License
+  support_label_mapping: pending_geometry_postprocessing_and_anchor_review
+  class_orientation_support_policy: TBD
+  support_mask_root: data/processed/background_support_masks/sam3_v2/full
+  support_manifest: data/processed/background_support_masks/sam3_v2/full/support_region_proposals.csv
+  pilot_config: configs/placement/support_masks_sam3_v2.yaml
+  pilot_script: src/placement/propose_support_masks_sam3.py
+  pilot_sampling: deterministic_category_stratified
+  human_review: accept_or_reject_proposed_regions
+  lying_object_rule: transformed_alpha_footprint_inside_support_region
+  upright_object_rule: bottom_alpha_contact_on_support_anchor
+  table_like_surface_rule: use_support_top_boundary_not_full_semantic_mask
+  attempts_per_object: 50
+
+degradation:
+  status: mixture_accepted_operations_unresolved
+  apply_to_complete_composite: true
+  operations: []
+  severity_distribution:
+    clean: 0.25
+    light: 0.375
+    medium: 0.25
+    heavy: 0.125
+  per_class_per_32_images:
+    clean: 8
+    light: 12
+    medium: 8
+    heavy: 4
+  note: Probabilities and ranges must be frozen before canonical generation.
+
+quality_control:
+  status: partially_implemented_thresholds_unresolved
+  require_readable_image: true
+  require_valid_yolo_label: true
+  require_nonempty_visible_object: true
+  require_successful_image_write: true
+  reject_exact_duplicate_composites: true
+  generation_attempts_per_image: 50
+  manual_review: canonical_dataset_before_training
+
+release_gate:
+  approved: false
+  require_clean_git_worktree: true
+  blockers:
+    - semantic_support_pilot_model_policy_and_implementation_not_approved
+    - degradation_probabilities_and_ranges_not_frozen
+    - manual_and_automated_qc_thresholds_not_frozen
+    - background_target_class_leakage_not_audited

@@ -1,2 +1,26 @@
+# Local datasets and generated experiment artifacts
 data/
 runs/
+
+# Downloaded model weights
+*.pt
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Local logs
+*.log
+
+# Private working notes for paper preparation
+docs/TECHNICAL_DECISIONS_PRIVATE.md
