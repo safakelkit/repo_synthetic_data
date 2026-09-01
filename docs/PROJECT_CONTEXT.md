@@ -7,7 +7,7 @@
 - **Researcher:** Safa Kelkit
 - **Supervisor:** Prof. Martin Kampel
 - **Detector:** pretrained YOLO11s for the complete experiment matrix
-- **Current status:** non-ADR baseline reproduction and generation
+- **Current status:** ready to begin the real-only and accepted cut-paste baseline training matrix
 
 ## Problem
 
@@ -90,10 +90,8 @@ Use the existing cut-paste pipeline to create four class-balanced datasets:
 - `CP-B1536`: 2,215 real + 1,536 cut-paste images;
 - `CP-B2048`: 2,215 real + 2,048 cut-paste images.
 
-Reuse verified parts of the working pipeline. The earlier generator did not
-actually implement the required hard-domain degradation distribution; its
-probabilities and ranges remain a release blocker and must not be described as
-existing methodology.
+The generated baseline implements the frozen hard-domain degradation
+distribution and records every sampled operation in per-image metadata.
 
 The production placement method is context-aware rather than fixed-band random
 placement. Automatically infer candidate support surfaces for each background,
@@ -117,7 +115,7 @@ geometry-v2 full review retained 527 production-eligible
 regions (306 bed tops and 221 table tops) across 527 backgrounds. Floor
 placement is disabled because 2D masks cannot resolve foreground occlusion or
 scene depth. The accepted manifest is now the generator's placement source.
-No copy-paste training image was created.
+The generated `cp_v1_seed42` images are the accepted simple cut-paste baseline.
 
 The frozen cut-paste degradation-v1 distribution keeps 25% of each class clean
 and assigns 37.5% light, 25% medium, and 12.5% heavy corruption. Blur,
@@ -127,9 +125,17 @@ sampled after compositing from the versioned ranges in
 easy or hard test results.
 
 QC-v1 validates every generated image, label, metadata record, hash, subset
-manifest, class allocation, and severity allocation. Before training, a
-deterministic 256-image sample (four per class×severity cell) must also receive
-explicit manual pass/reject decisions.
+manifest, class allocation, and severity allocation. A deterministic 256-image
+sample (four per class×severity cell) also receives a documented visual review
+and explicit dataset-level research disposition before training.
+
+`cp_v1_seed42` contains 2,048 traceable images and passed all automatic QC-v1
+checks. Its stratified review found that many objects do not conform to
+support-plane perspective and that upright objects/laptops can have implausible
+support-relative scale or contact. Before observing detector results, the
+researcher accepted these artifacts as limitations of the simple cut-paste
+baseline. The dataset may be used for the fixed experiment matrix; the target
+test results may not be used to revise this generator and rerun the comparison.
 
 Copy-paste production uses only the 527 geometry-v2-reviewed backgrounds. This
 pool combines the researcher's earlier background inspection with the complete
@@ -190,6 +196,7 @@ This is 13 active configurations per seed.
 ## Evaluation protocol
 
 - Official checkpoint: Ultralytics `best.pt`, selected only by INSP-DET validation.
+- Training environment: Ultralytics 8.4.46, checked by the training preflight before every run.
 - Primary metric: mAP50-95.
 - Supporting metrics: mAP50, precision, recall, and class-wise AP.
 - Evaluate official checkpoints on INSP-DET test, INSP-MOT-DET easy test, and INSP-MOT-DET hard test.

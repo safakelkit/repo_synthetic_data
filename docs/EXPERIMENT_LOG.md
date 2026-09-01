@@ -7,10 +7,10 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 | ID | Generator | Synthetic count | Status |
 |---|---|---:|---|
 | E000 | None | 0 | Planned |
-| CP-B0512 | Cut-paste | 512 | Planned |
-| CP-B1024 | Cut-paste | 1,024 | Planned |
-| CP-B1536 | Cut-paste | 1,536 | Planned |
-| CP-B2048 | Cut-paste | 2,048 | Planned |
+| CP-B0512 | Cut-paste | 512 | Ready for training |
+| CP-B1024 | Cut-paste | 1,024 | Ready for training |
+| CP-B1536 | Cut-paste | 1,536 | Ready for training |
+| CP-B2048 | Cut-paste | 2,048 | Ready for training |
 | SD-B0512 | Stable Diffusion + ControlNet | 512 | Planned |
 | SD-B1024 | Stable Diffusion + ControlNet | 1,024 | Planned |
 | SD-B1536 | Stable Diffusion + ControlNet | 1,536 | Planned |
@@ -168,23 +168,26 @@ Do not add ADR runs to the active registry until all baseline experiments are co
 
 ## CP-DEG-V1 - Frozen cut-paste degradation implementation
 
-- **Status:** Implemented and deterministically tested; no dataset generated
+- **Status:** Implemented and evidenced in accepted `cp_v1_seed42`
 - **Date:** 2026-09-01
 - **Distribution per class/32:** 8 clean, 12 light, 8 medium, 4 heavy
 - **Operations:** Gaussian/motion blur, downscale-upscale resolution loss, brightness/contrast, JPEG compression, and Gaussian sensor noise
 - **Application:** Complete composite, after placement and before image encoding
 - **Seed:** 44 (generator seed 42 + offset 2)
 - **Verification:** Exact severity counts passed at every 32/64/96/128 per-class prefix; repeated calls with the same seed produced identical pixels and metadata
-- **Safety:** Canonical generation remains blocked by QC and background-leakage gates
+- **Evidence boundary:** Scheduling and transforms behaved as specified; visual compositing limitations are reported separately
 
-## CP-QC-V1 - Canonical dataset validation protocol
+## CP-QC-V1 - First canonical-candidate validation
 
-- **Status:** Implemented; execution awaits canonical generation
+- **Status:** Automatic pass; visual limitations reviewed and accepted for baseline use
 - **Date:** 2026-09-01
 - **Automatic coverage:** All 2,048 images plus labels, metadata, hashes, duplicates, geometry consistency, manifests, and class×severity prefix balance
 - **Manual coverage:** 256 deterministic images, four per class×severity cell
-- **Release rule:** Automatic pass plus an explicit decision for every manual-review row before training
-- **Safety:** No dataset or detector run was created
+- **Release rule:** Automatic pass plus complete stratified review and an explicit dataset-level researcher disposition before training
+- **Candidate:** `data/synthetic/cp_v1_seed42`; generated from commit `6c14f12012f3c6c46be89b91dd87095f5730b08e`
+- **Automatic result:** Pass; 2,048 unique images, 128 per class, exact `32/48/32/16` severity allocation per class
+- **Manual finding:** Labels and degradation scheduling are generally sound; orientation/perspective, support-depth scale, and contact integration remain visible limitations, especially for long tools, aerosol/alcohol, and laptops.
+- **Disposition:** Researcher accepted the dataset as a simple cut-paste baseline before detector results; approved for the fixed CP matrix without generator retuning
 
 ## CP-BG-V1 - Reviewed production-background eligibility
 

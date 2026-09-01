@@ -1,15 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-
-INPUT_JSON = Path("runs/evaluation/evaluation_results.json")
-OUTPUT_DIR = Path("runs/evaluation/plots")
 
 
 DATASET_DISPLAY_NAMES = {
@@ -270,15 +267,26 @@ def save_domain_gap_csv(results: dict[str, Any], output_dir: Path, metric_key: s
 
 
 def main() -> None:
-    ensure_output_dir(OUTPUT_DIR)
+    parser = argparse.ArgumentParser(description="Plot one saved three-domain evaluation result")
+    parser.add_argument("results_json", type=Path)
+    parser.add_argument("--output-dir", type=Path)
+    args = parser.parse_args()
 
-    results = load_results(INPUT_JSON)
+    input_json = args.results_json.resolve()
+    output_dir = (
+        args.output_dir.resolve()
+        if args.output_dir is not None
+        else input_json.parent / f"{input_json.stem}_plots"
+    )
+    ensure_output_dir(output_dir)
 
-    plot_overall_metrics(results, OUTPUT_DIR)
+    results = load_results(input_json)
+
+    plot_overall_metrics(results, output_dir)
 
     plot_per_class_metric(
         results=results,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
         metric_key="ap50",
         filename="per_class_ap50_comparison.png",
         title="Per-Class AP50 Comparison Across Datasets",
@@ -286,7 +294,7 @@ def main() -> None:
 
     plot_per_class_metric(
         results=results,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
         metric_key="map50_95",
         filename="per_class_map50_95_comparison.png",
         title="Per-Class mAP50-95 Comparison Across Datasets",
@@ -294,23 +302,23 @@ def main() -> None:
 
     plot_domain_gap(
         results=results,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
         metric_key="map50_95",
     )
 
     plot_hard_domain_drop_ranking(
         results=results,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
         metric_key="map50_95",
     )
 
     save_domain_gap_csv(
         results=results,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
         metric_key="map50_95",
     )
 
-    print(f"Plots saved to: {OUTPUT_DIR.resolve()}")
+    print(f"Plots saved to: {output_dir}")
 
 
 if __name__ == "__main__":

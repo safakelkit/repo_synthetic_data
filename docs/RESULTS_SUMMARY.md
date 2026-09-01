@@ -7,9 +7,10 @@ accepted 45 regions. Full geometry-v2 review later retained 527
 production-eligible regions across 527 of the 1,166 backgrounds. None of these
 steps created training images.
 
-Degradation-v1 implementation is also preprocessing, not an experimental
-result. Its exact schedules and deterministic image-transform tests passed, but
-no degraded training image has yet been released.
+`cp_v1_seed42` is a dataset artifact, not a detector result. It contains 2,048
+unique images, passed automatic integrity/QC, and was accepted before training
+as a deliberately simple cut-paste baseline with documented placement,
+perspective, scale, and contact limitations.
 
 ## Preliminary report figures
 

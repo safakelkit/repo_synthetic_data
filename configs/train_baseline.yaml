@@ -1,4 +1,5 @@
 model: yolo11s.pt
+ultralytics_version: 8.4.46
 imgsz: 640
 epochs: 60
 batch: 16

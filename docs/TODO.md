@@ -29,7 +29,7 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Replace crop-relative resizing with background-relative class-specific p10--p90 sizing.
 - [x] Add a versioned cut-paste config and remove the unused 160-image pilot stage.
 - [x] Block full 2,048-image generation until placement, degradation, and QC release gates are approved.
-- [x] Freeze critical Ultralytics 8.4.41 training and evaluation values explicitly.
+- [x] Freeze critical Ultralytics 8.4.46 training and evaluation values explicitly.
 - [x] Add a paper-facing methodology-to-code traceability record.
 - [x] Implement per-image and dataset-level metadata, input/config hashes, code revision, software versions, and manifest checksums.
 - [x] Restrict production to the 527 full-review-accepted backgrounds and record the researcher/contact-sheet target-leakage review with hashes and limitations.
@@ -56,19 +56,22 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Derive 1,870 full-pool support regions and verify every output/checksum.
 - [x] Human-review all 608 full-pool bed/table candidate regions, reject the automatic risk groups and floor placement, and freeze 527 accepted regions.
 - [x] Replace `sample_surface_position` with sampling from accepted support regions and test every class against the pilot manifest.
-- [ ] Add per-attempt placement rejection-reason logging before canonical generation.
+- [ ] Add per-attempt placement rejection-reason logging only if a future generator version is created.
 - [x] Freeze and implement deterministic degradation-v1 operations, severity probabilities, ranges, and exact per-class schedules.
 - [x] Freeze and implement QC-v1 for complete automatic validation and a deterministic 256-image class×severity manual review.
 - [x] Approve the canonical cut-paste release switch after all pre-generation methodology gates passed.
-- [ ] Execute QC-v1 after canonical generation and complete every manual pass/reject decision before training.
-- [ ] Generate and validate the canonical 2,048-image cut-paste dataset after all release gates are resolved.
+- [x] Generate the first 2,048-image `cp_v1_seed42` canonical candidate and its four nested manifests.
+- [x] Execute complete automatic QC-v1 and generate/review the deterministic 256-image class-by-severity sample.
+- [x] Record the manual review's orientation, perspective, support-depth-scale, and contact-integration limitations.
+- [x] Accept `cp_v1_seed42` as the simple cut-paste baseline before detector results are observed; defer realism improvements rather than expanding the current method.
 
 ## Phase 1 - reproduce the real-only and cut-paste baselines
 
 - [ ] Reproduce E000 on the original 2,215 real training images if no traceable result exists.
 - [ ] Verify the revised, versioned cut-paste pipeline after the remaining generation specifications are frozen.
-- [ ] Generate the canonical balanced cut-paste dataset and nested CP-B0512, CP-B1024, CP-B1536, and CP-B2048 manifests.
-- [ ] Validate image counts, class allocation, annotations, provenance, duplicates, and dataset manifests.
+- [x] Generate the balanced canonical dataset and nested CP-B0512, CP-B1024, CP-B1536, and CP-B2048 manifests.
+- [x] Validate its image counts, class allocation, annotations, provenance, duplicates, and manifests automatically.
+- [x] Complete stratified visual review and approve the current dataset with documented baseline limitations.
 - [ ] Train each configuration using the frozen training protocol.
 - [ ] Evaluate source-validation `best.pt` on INSP-DET test, easy test, and hard test.
 - [ ] Record all results and artifacts in `EXPERIMENT_LOG.md` and `RESULTS_SUMMARY.md`.
@@ -121,7 +124,9 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 - [x] Confirm from the researcher's host terminal that CUDA is available and three GPUs are visible; Codex's isolated execution session has no GPU passthrough.
 - [x] Require the researcher to launch every expensive preprocessing, generation, and training command manually after Codex reports the command and preflight status.
-- [ ] Align `env_sam3` Ultralytics 8.4.46 with the frozen 8.4.41 detector protocol before detector training; the mismatch does not block the mask-only SAM3 pilot.
+- [x] Align the detector protocol with the verified `env_sam3` Ultralytics 8.4.46 installation before any detector run.
+- [x] Add training preflight checks for package version, CUDA/device visibility, dataset/model paths, clean Git state, and output collision.
+- [x] Add explicit single-quantity selection to the copy-paste runner for safe parallel scheduling.
 - [ ] Confirm the live availability and ownership of all three RTX 3090 GPUs; one GPU may be occupied by an unrelated workload.
 - [ ] Define a reproducible GPU allocation plan before expensive runs: independent detector experiments/seeds per GPU and parallel GenAI generation workers where model memory permits.
 - [ ] Record the exact GPU model, GPU ID, software/CUDA environment, run assignment, and wall-clock time for every paper experiment.

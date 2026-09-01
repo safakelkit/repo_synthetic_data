@@ -102,14 +102,14 @@ difficulty(c) = alpha * (1 - S_hard(c))
 ## D013 - Explicit training and evaluation parameters
 
 - **Status:** Accepted and implemented
-- **Decision:** Pin Ultralytics 8.4.41 and write the critical optimizer, augmentation, reproducibility, and evaluation thresholds explicitly rather than relying on changeable library defaults.
+- **Decision:** Pin Ultralytics 8.4.46, matching the verified training environment before any frozen-protocol run, and write the critical optimizer, augmentation, reproducibility, and evaluation thresholds explicitly rather than relying on changeable library defaults.
 - **Source:** `requirements.txt`, `configs/train_baseline.yaml`, `src/training/train.py`, and `src/evaluate_yolo.py`.
 - **Paper record:** Exact values and code mappings are maintained in `METHODOLOGY_TRACEABILITY.md`.
 
 ## D014 - Freeze the effective optimizer
 
 - **Status:** Accepted and implemented
-- **Decision:** Replace `optimizer=auto` with the effective Ultralytics 8.4.41 choice for this matrix: AdamW, initial learning rate 0.0005, beta1 0.9, and warmup bias learning rate 0.0.
+- **Decision:** Replace `optimizer=auto` with the verified effective choice for this matrix: AdamW, initial learning rate 0.0005, beta1 0.9, and warmup bias learning rate 0.0. These explicit values were revalidated under Ultralytics 8.4.46.
 - **Reason:** `auto` ignores the YAML `lr0` and `momentum` values and derives them internally. Making the effective values explicit preserves the current behavior while preventing a library or experiment-size change from silently changing optimization.
 
 ## D015 - Detector architecture is YOLO11s
@@ -162,11 +162,11 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D019 - Canonical cut-paste release requires automatic and stratified manual QC
 
-- **Status:** Accepted and implemented; awaits generated-dataset execution
+- **Status:** Accepted, implemented, and executed
 - **Date:** 2026-09-01
 - **Automatic scope:** Validate all 2,048 images, labels, metadata links, dimensions, SHA-256 values, exact duplicates, normalized boxes, realized-vs-labelled area (maximum 5% relative difference), nested manifests, and exact class×severity counts at every experiment prefix.
 - **Manual scope:** Deterministically sample four images from every class×severity cell, totaling 256 images. Review class identity, scale, support placement, alpha/blending, box alignment, degradation plausibility, and unlabeled target objects.
-- **Release rule:** Automatic QC must pass and every sampled row must receive an explicit human pass/reject decision before detector training.
+- **Release rule:** Automatic QC must pass; the complete stratified sample must be reviewed; and the researcher must record an explicit dataset-level accept/reject disposition before detector training.
 - **Implementation:** `configs/quality/copy_paste_qc_v1.yaml` and `src/validation/validate_copypaste_dataset.py`.
 
 ## D020 - Production backgrounds are restricted to the reviewed support pool
@@ -178,6 +178,17 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Manifest:** `data/processed/background_support_masks/sam3_v2/full_geometry_v2/eligible_backgrounds.csv`, SHA-256 `c15243e14a888d284c84e0bce66d46998f14437ac8a3eb573c712bb3e8161f09`.
 - **Interpretation:** No visible target-class instance was confirmed in the accepted pool. This is a human-review result, not an exhaustive object-detector guarantee; very small or occluded instances may escape visual review.
 - **Enforcement:** The generator can only select backgrounds appearing through accepted support rows in the reviewed geometry manifest.
+
+## D021 - cp_v1 is accepted as a simple baseline with visual limitations
+
+- **Status:** Accepted
+- **Date:** 2026-09-01
+- **Evidence:** The candidate generated from commit `6c14f12` contains 2,048 unique images and passed QC-v1 automatic checks. The complete deterministic 256-image class-by-severity visual sample was inspected.
+- **Decision:** Accept `cp_v1_seed42` for the fixed CP-B0512--CP-B2048 matrix. This decision was made before observing detector results.
+- **Limitations:** Lying assets can retain unsuitable 2D orientation, object scale is not conditioned on support depth, upright/laptop contact can be implausible, and no perspective/contact-shadow treatment integrates objects with the surface.
+- **Rationale:** These limitations are intrinsic to the deliberately simple cut-paste baseline; solving them would substantially expand the method without guaranteed detector benefit. Automatic label/integrity checks passed, objects remain recognizable, and four nested quantities can measure whether artifacts help or harm detection.
+- **Future work:** Any realism-enhanced generator must use a new version and repeat QC; do not overwrite `cp_v1_seed42`.
+- **Restriction:** Do not use easy/hard test performance to tune these corrections.
 
 ## Open decisions
 

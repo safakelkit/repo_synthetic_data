@@ -9,13 +9,16 @@ configuration, implementation, and evidence. A value marked **planned** or
 - **Implemented and verified:** dataset inventory, class order, SAM3 asset
   audit, source-only object-size analysis, balanced class schedule, manifest
   design, rooted outputs, and explicit training settings.
-- **Implemented but awaiting generated-dataset evidence:** cut-paste size sampling,
-  annotation writing, duplicate rejection, and provenance.
+- **Implemented and evidenced:** cut-paste size sampling, annotation writing,
+  duplicate rejection, provenance, degradation scheduling, and automatic QC on
+  the 2,048-image `cp_v1_seed42` candidate.
 - **Implemented and full-pool reviewed:** SAM3 v2 proposals and geometry-v2
   processed all 1,166 backgrounds. The generator consumes only 527 accepted
   bed/table regions; floor placement is disabled.
-- **Implemented but awaiting generated-dataset evidence:** QC-v1 validator and its 256-image manual-review protocol. Degradation-v1 is frozen and implemented.
-- **Not generated:** the canonical 2,048-image dataset.
+- **Generated and accepted with limitations:** QC-v1 automatic checks passed;
+  the 256-image review documented systemic realism artifacts, which the
+  researcher accepted as limitations of the simple cut-paste baseline before
+  observing detector results.
 - **Not run under the frozen protocol:** E000 and all 12 synthetic baselines.
 
 ## Dataset and evaluation values
@@ -39,8 +42,8 @@ statistics, generation tuning, or run acceptance.
 
 ## Detector training values
 
-The environment is pinned to Ultralytics 8.4.41 in `requirements.txt`. These
-values were checked against that installed version and are now explicit in
+The environment is pinned to Ultralytics 8.4.46 in `requirements.txt`. These
+values were checked against that installed version before the first run and are explicit in
 `configs/train_baseline.yaml`; `src/training/train.py::train_yolo` passes them.
 
 | Group | Values |
@@ -58,7 +61,7 @@ values were checked against that installed version and are now explicit in
 Albumentations is not installed in the main environment; optional
 Albumentations blur or grayscale transforms must not be claimed.
 
-Ultralytics 8.4.41 `optimizer=auto` would ignore configured `lr0` and
+Ultralytics `optimizer=auto` would ignore configured `lr0` and
 `momentum`. For this 16-class, 60-epoch matrix it resolves to AdamW with
 lr0 0.0005, beta1 0.9, and warmup bias LR 0.0. Those effective values are now
 explicit, preventing dataset quantity or future library changes from silently
@@ -157,9 +160,20 @@ for 1,186 was reconstructed and class-verified. A deterministic 160-asset
 visual sample produced 146 passes and 14 observations. Per the researcher's
 manual cleaning decision, observations do not exclude assets.
 
-## Remaining evidence gaps and later-phase decisions
+## Generated candidate evidence and remaining decisions
 
-- Placement realism, degradation quality, and annotation accuracy lack generated-dataset evidence; QC-v1 can only execute after generation.
+- `cp_v1_seed42` was generated from clean commit `6c14f12` with 2,048 unique
+  images, 128 per class, and exact per-class `32/48/32/16`
+  clean/light/medium/heavy counts. Automatic QC passed.
+- The deterministic 256-image review found generally aligned labels and visibly
+  distinct degradation tiers. Lying assets preserve
+  their original 2D pose rather than conforming to the support plane; upright
+  objects and laptops frequently show implausible scale or contact; perspective
+  and contact shadows are absent. These are documented baseline limitations,
+  not object-bank exclusions or automatic-integrity failures.
+- The candidate used 497 unique backgrounds; 1,532/2,048 placements used
+  `bed_top` and 516 used `dining_table_top`. This concentration and the lack of
+  support-depth-conditioned scale are reported as methodological limitations.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
 - Stable Diffusion, Qwen, and ControlNet models/protocols remain `TBD`.
@@ -174,14 +188,13 @@ manual cleaning decision, observations do not exclude assets.
   SHA-256 of each background actually used.
 - A paper run must record a committed code revision, environment/hardware,
   manifest checksums, checkpoint path, and evaluation JSON.
-- The current `env_sam3` inspection found Ultralytics 8.4.46 while the frozen
-  detector protocol requires 8.4.41. This does not block the SAM3 mask pilot,
-  but the environment must be aligned before any detector experiment.
+- The verified training environment uses Ultralytics 8.4.46 and has no broken
+  package requirements. Training preflight enforces this exact version.
 
-The cut-paste methodological gates and explicit release switch are approved.
-CP-B0512 through CP-B2048 may be generated only from a committed clean revision
-through a researcher-launched command; they must not be reported as
-experimental evidence until QC-v1 passes.
+`cp_v1_seed42` is accepted for CP-B0512--CP-B2048 as a simple cut-paste
+baseline. No realism-driven regeneration will be performed in this matrix. Any
+future improved generator must receive a new version and cannot be selected or
+tuned using easy/hard test results from the current matrix.
 
 ### Placement literature context
 
