@@ -105,28 +105,37 @@ a support/top boundary rather than arbitrary pixels in the full semantic mask.
 The exact segmentation model/revision and class-to-orientation/support mapping
 must be frozen before generation and may not be tuned on either target test set.
 
-The first support-mask pilot candidate is `facebook/sam3` using its
-Transformers text-prompt interface. The pilot samples 10 backgrounds per scene
-category deterministically with seed 42, resolves and records the immutable
-model commit SHA, and emits proposal masks, checksums, overlays, contact sheets,
-and review fields. This pilot is preprocessing evidence only and creates no
-copy-paste training images. Full-pool preprocessing stays blocked until the
-researcher reviews the pilot.
+The frozen placement front-end is `facebook/sam3` at immutable commit
+`3c879f39826c281e95690f02c7821c4de09afae7`. A deterministic 30-background
+pilot validated v2 proposal deduplication and conservative floor, bed-top, and
+dining-table-top geometry. Review accepted 45 regions across 28 backgrounds and
+rejected invalid or semantically unsafe regions. The 16-class lying/upright/
+asset-preserved policy is versioned, and the generator now reads only accepted
+regions. Full-pool SAM3 preprocessing subsequently retained 8,969 proposals
+across all 1,166 backgrounds. Geometry-v1 was a superseded development pass;
+geometry-v2 full review retained 527 production-eligible
+regions (306 bed tops and 221 table tops) across 527 backgrounds. Floor
+placement is disabled because 2D masks cannot resolve foreground occlusion or
+scene depth. The accepted manifest is now the generator's placement source.
+No copy-paste training image was created.
 
-Pilot v1 completed on 2026-08-11 with immutable model revision
-`3c879f39826c281e95690f02c7821c4de09afae7`. Structural integrity passed, but
-technical review did not approve full-pool preprocessing. A revised pilot must
-remove overlapping proposals and improve explicit support-plane prompts,
-especially for beds, desks, and nightstands. Dining-room tabletops and floors
-were promising; full bed silhouettes must not be treated as top surfaces.
+The frozen cut-paste degradation-v1 distribution keeps 25% of each class clean
+and assigns 37.5% light, 25% medium, and 12.5% heavy corruption. Blur,
+downscale-upscale, brightness/contrast, JPEG, and Gaussian sensor noise are
+sampled after compositing from the versioned ranges in
+`configs/generation/copy_paste_v1.yaml`. These values may not be tuned using
+easy or hard test results.
 
-The researcher elected to delete the local v1 pilot artifacts after these
-findings and hashes were recorded. Pilot v2 reuses the same 30 backgrounds and
-model revision, adds within-prompt duplicate suppression, and tests explicit
-surface-oriented prompts. V2 completed successfully. It supports using SAM3 to
-locate candidate support objects/regions, but raw masks are not final anchors.
-The next stage derives conservative floor, mattress-top, and dining-table-top
-regions and visualizes valid anchors on the same pilot backgrounds.
+QC-v1 validates every generated image, label, metadata record, hash, subset
+manifest, class allocation, and severity allocation. Before training, a
+deterministic 256-image sample (four per class×severity cell) must also receive
+explicit manual pass/reject decisions.
+
+Copy-paste production uses only the 527 geometry-v2-reviewed backgrounds. This
+pool combines the researcher's earlier background inspection with the complete
+608-candidate contact-sheet review. No target-class instance was confirmed in
+the accepted pool; very small or occluded instances remain a documented visual-
+review limitation and are checked again during QC-v1.
 
 ### Stage 2 - Stable Diffusion + ControlNet without ADR
 

@@ -96,7 +96,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 - **Status:** Accepted and implemented as an execution safeguard
 - **Decision:** Do not create a separate 160-image cut-paste pilot. Once the methodology is frozen, the default command creates the canonical 2,048-image dataset and its nested manifests.
-- **Decision:** Generation remains blocked in the versioned config until placement, degradation, background-audit, and QC values are approved. The generated canonical set must be validated before detector training.
+- **Decision:** Generation remains blocked until placement, degradation, background eligibility, and QC are approved. Those methodological gates and the explicit release switch are now approved; the clean committed-worktree check and researcher-only manual launch still prevent accidental execution. The generated canonical set must be validated before detector training.
 - **Source:** `configs/generation/copy_paste_v1.yaml` and `src/augmentation/generate_copypaste_dataset.py`.
 
 ## D013 - Explicit training and evaluation parameters
@@ -120,40 +120,67 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D016 - Preserve clean synthetic images across nested cut-paste budgets
 
-- **Status:** Accepted; operation ranges unresolved
+- **Status:** Accepted and implemented; exact operations/ranges frozen by D018
 - **Decision:** Assign each class and every nested 32-image allocation block to 25% clean composite, 37.5% light degradation, 25% medium degradation, and 12.5% heavy degradation.
 - **Exact per-class allocation per 32 images:** 8 clean, 12 light, 8 medium, and 4 heavy.
 - **Reason:** The allocation is exact and nested for CP-B0512 through CP-B2048, preserves a substantial clean synthetic component, and limits the heavy-degradation share.
-- **Restriction:** Freeze generic degradation operations and ranges before generation. Do not tune them using easy/hard test performance.
+- **Restriction:** Do not tune the frozen operations or ranges using easy/hard test performance.
 
 ## D017 - Context-aware cut-paste placement uses verified semantic support surfaces
 
-- **Status:** Accepted; implementation and model validation pending
+- **Status:** Accepted and implemented; full-pool review complete
 - **Date:** 2026-08-11
 - **Decision:** Replace the provisional fixed normalized placement bands with automatically proposed semantic support-surface masks followed by human verification. The fixed-band implementation is not an approved production method.
 - **Precomputation:** Infer support masks once for the background pool, store the masks and a versioned manifest, and reuse the accepted regions during deterministic generation. Record the segmentation model, exact revision, software environment, input/background checksum, mask checksum, accepted support classes, and reviewer status.
-- **Pilot gate:** Before processing all backgrounds, evaluate the selected segmentation model on a deterministic, category-stratified background sample. Approve full preprocessing only if the proposed bed, floor, table/desk/counter, and other allowed support regions are sufficiently reliable for placement.
+- **Pilot gate:** The deterministic 30-background pilot is complete and approves full-pool proposal preprocessing with the frozen v2 configuration.
 - **Placement geometry:** For objects intended to lie on a surface, require the transformed object footprint to fit inside an accepted support region. For upright objects, align the bottom alpha-contact region with a valid support anchor. Table-like objects require a top/support boundary rather than arbitrary pixels from the full table mask.
 - **Human role:** Human review validates or rejects automatically proposed support regions; it does not manually choose every generated object coordinate. Generation samples deterministic anchors only from accepted regions.
 - **Validity boundary:** Semantic masks constrain plausible 2D location but do not recover full 3D geometry, lighting, shadows, or physical interaction. These limitations must remain part of QC and paper reporting.
-- **Restriction:** Select and record the exact segmentation model/revision and freeze the class-to-orientation/support policy before production. Do not tune either decision using INSP-MOT-DET easy or hard test performance.
+- **Frozen proposal model:** `facebook/sam3`, SAM License, commit `3c879f39826c281e95690f02c7821c4de09afae7`; score 0.30, mask 0.50, minimum mask-area ratio 0.001, within-prompt mask-IoU suppression 0.85.
+- **Frozen geometry:** Geometry-v2 keeps only the largest connected component for each derived region. Production supports `bed_top` and `dining_table_top`; `floor` is disabled because a 2D floor mask cannot prevent pasted objects from appearing over foreground furniture or at implausible depth. Lying objects must fit inside the region, upright objects use bottom-alpha contact, and laptop uses asset-preserved bottom contact. Rotation is disabled. Exact class mapping is in `configs/placement/class_orientation_support_v2.yaml`.
+- **Restriction:** Do not tune model, prompts, geometry, or orientation policy using INSP-MOT-DET easy or hard results.
 - **Methodological context:** Random copy-paste is supported by *Simple Copy-Paste is a Strong Data Augmentation Method for Instance Segmentation* (CVPR 2021), while context-aware placement is supported by *Modeling Visual Context is Key to Augmenting Object Detection Datasets* (ECCV 2018). The semantic support-mask workflow is this project's reproducible implementation choice, not a mandatory standardized stage from either paper.
 - **References:** https://openaccess.thecvf.com/content/CVPR2021/html/Ghiasi_Simple_Copy-Paste_Is_a_Strong_Data_Augmentation_Method_for_Instance_CVPR_2021_paper.html ; https://arxiv.org/abs/1807.07428
-- **First pilot candidate:** Evaluate `facebook/sam3` through the Transformers text-prompt interface on 10 deterministically selected images from each of the three background categories. Resolve `main` to an immutable Hugging Face commit SHA before loading and record that SHA; never report mutable `main` as the model revision.
-- **Candidate prompts:** bedroom/hotel room: `floor`, `bed`, `tabletop`, `desk surface`, `nightstand top`; dining room: `floor`, `tabletop`, `countertop`. These prompts and thresholds are pilot candidates, not frozen production values.
-- **Pilot outputs:** Store each proposal mask, its score/box/checksum, no-proposal rows, combined overlays, category contact sheets, environment/model metadata, and a human `pending/accepted/rejected` field. Full background preprocessing remains code-blocked until pilot approval.
 - **Model sources/license:** Official model card: https://huggingface.co/facebook/sam3 ; license: https://huggingface.co/facebook/sam3/blob/main/LICENSE
-- **Pilot v1 evidence, 2026-08-11:** The run used immutable model revision `3c879f39826c281e95690f02c7821c4de09afae7` on an RTX 3090 and produced 178 masks plus 39 no-proposal rows across 30 backgrounds. File and manifest integrity checks passed.
-- **Pilot v1 disposition:** Revision required; full-pool preprocessing remains unapproved. Floor and dining-room tabletop proposals were promising, but bedroom/hotel `tabletop` returned 0/20 coverage, `countertop` was semantically ambiguous, desk/nightstand prompts were inconsistent, bed masks represented complete bed silhouettes rather than verified support planes, and duplicate proposals require suppression.
-- **Pilot v1 retention:** At the researcher's request, the Git-ignored v1 masks, manifest, overlays, contact sheets, and summaries were deleted after their hashes and findings were recorded. The versioned v1 config and documentary evidence remain; v1 is not an active dataset artifact.
-- **Pilot v2 design:** Reuse the same deterministic 30 backgrounds and immutable SAM3 revision. Add score-ordered, within-prompt mask-IoU suppression at provisional threshold 0.85. Replace ambiguous prompts with `bed surface`, `top of bed`, `table surface`, `top of desk`, and `top of nightstand`; retain `floor` and dining-room `tabletop` as controls. These are pilot values, not production-approved values.
-- **Pilot v2 evidence, 2026-08-11:** The run retained 259 of 275 area-filtered proposals after removing 16 within-prompt duplicates; no retained within-prompt pair exceeded mask IoU 0.85. All manifest/config/script and mask integrity checks passed.
-- **Pilot v2 disposition:** Accept SAM3 as a promising semantic proposal front-end, but reject raw SAM3 masks as final anchor regions. Floors and dining-table regions were consistent; bed prompts found beds but not a reliable horizontal mattress plane, table masks could include non-support pixels, and desk/nightstand coverage remained low.
-- **Next placement gate:** Do not run SAM3 again yet. Derive deterministic conservative support regions from the existing v2 proposals, visualize candidate anchors/footprints on the same 30 backgrounds, and obtain researcher approval before full-pool preprocessing.
+- **Pilot evidence:** V2 retained 259 of 275 area-filtered proposals after removing 16 duplicates. Geometry-v1 produced 24 floor, 17 bed-top, and 9 dining-table-top candidates. Review accepted 24 floor, 12 bed-top, and 9 table-top regions (45 total across 28 backgrounds) and rejected invalid or unsafe regions.
+- **Implementation:** `propose_support_masks_sam3.py` -> `derive_support_geometry.py` -> `finalize_support_geometry_review.py` -> reviewed manifest consumed by `generate_copypaste_dataset.py`.
+- **Full-pool evidence, 2026-08-29:** SAM3 processed 1,166 backgrounds and retained 8,969 masks. Geometry-v2 derived 904 floor, 622 bed-top, and 331 table-top regions after largest-component filtering. Conservative triage plus complete review of all 608 automatic bed/table candidates retained 306 bed-top and 221 table-top regions across 527 backgrounds. The reviewed manifest SHA-256 is `758ed5959fcd40fd838e98be6c1b8beeb0a173bd56b7e47aee0fa1d7bfd0c702`.
+- **Review evidence:** Within the automatic candidate group, 75/381 bed regions (19.7%) and 6/227 table regions (2.6%) failed visual review, 81/608 combined (13.3%). All automatic risk-group rows and every floor row were rejected conservatively.
+
+## D018 - Cut-paste degradation-v1 uses a fixed clean-to-heavy mixture
+
+- **Status:** Accepted and implemented
+- **Date:** 2026-09-01
+- **Allocation:** Within every class-specific block of 32 synthetic images: 8 clean, 12 light, 8 medium, and 4 heavy. This remains exact at every 512-image experiment boundary.
+- **Operations:** Blur (Gaussian or motion), downscale-upscale resolution loss, brightness/contrast, JPEG compression, and Gaussian sensor noise are applied after compositing so object and background share the same camera-like corruption.
+- **Ranges:** The complete probabilities and numeric ranges are frozen in `configs/generation/copy_paste_v1.yaml`; every sampled operation and value is written to per-image metadata.
+- **Determinism:** Degradation seed is generator seed + 2 (`44`). Non-clean severity always applies at least one operation.
+- **Rationale:** Preserve 25% clean synthetic data while exposing the detector to varied common corruptions. The full CP-B2048 training set still contains 2,215 real images plus 512 clean synthetic images, so degraded samples are approximately 36% of all training images.
+- **Restriction:** Do not alter the distribution or ranges based on INSP-MOT-DET easy/hard test results.
+- **Context:** The chosen corruption families follow common-corruption robustness literature, including ImageNet-C and AugMix; their use here is a fixed project-specific distribution, not a reproduction of either benchmark.
+- **References:** https://openreview.net/forum?id=Bygh9j09KX ; https://openreview.net/forum?id=S1gmrxHFvB
+
+## D019 - Canonical cut-paste release requires automatic and stratified manual QC
+
+- **Status:** Accepted and implemented; awaits generated-dataset execution
+- **Date:** 2026-09-01
+- **Automatic scope:** Validate all 2,048 images, labels, metadata links, dimensions, SHA-256 values, exact duplicates, normalized boxes, realized-vs-labelled area (maximum 5% relative difference), nested manifests, and exact class×severity counts at every experiment prefix.
+- **Manual scope:** Deterministically sample four images from every class×severity cell, totaling 256 images. Review class identity, scale, support placement, alpha/blending, box alignment, degradation plausibility, and unlabeled target objects.
+- **Release rule:** Automatic QC must pass and every sampled row must receive an explicit human pass/reject decision before detector training.
+- **Implementation:** `configs/quality/copy_paste_qc_v1.yaml` and `src/validation/validate_copypaste_dataset.py`.
+
+## D020 - Production backgrounds are restricted to the reviewed support pool
+
+- **Status:** Accepted and implemented
+- **Date:** 2026-09-01
+- **Eligible pool:** 527 backgrounds, each with exactly one accepted geometry-v2 support region (306 bed-top, 221 dining-table-top).
+- **Evidence:** The researcher's prior background inspection plus complete contact-sheet review of all 608 automatic bed/table candidates. The visibly confirmed laptop-containing background was rejected during that review.
+- **Manifest:** `data/processed/background_support_masks/sam3_v2/full_geometry_v2/eligible_backgrounds.csv`, SHA-256 `c15243e14a888d284c84e0bce66d46998f14437ac8a3eb573c712bb3e8161f09`.
+- **Interpretation:** No visible target-class instance was confirmed in the accepted pool. This is a human-review result, not an exhaustive object-detector guarantee; very small or occluded instances may escape visual review.
+- **Enforcement:** The generator can only select backgrounds appearing through accepted support rows in the reviewed geometry manifest.
 
 ## Open decisions
 
-- Researcher acceptance of the v2 review; deterministic floor/bed/dining-table support-region postprocessing and anchor-overlay validation; then freeze the final support policy and class-to-orientation mapping.
 - Exact Stable Diffusion, Qwen, and ControlNet models and versions.
 - GenAI prompting, conditioning, placement, annotation, and quality-control procedures.
 - Seed count and compute budget.

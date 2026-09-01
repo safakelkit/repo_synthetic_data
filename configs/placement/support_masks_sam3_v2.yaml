@@ -1,5 +1,5 @@
 version: support_masks_sam3_v2
-status: revised_pilot_candidate_not_approved_for_production
+status: pilot_approved_for_full_background_proposals
 seed: 42
 
 model:
@@ -45,7 +45,7 @@ pilot:
   output_root: data/processed/background_support_masks/sam3_v2/pilot
 
 full:
-  approved: false
+  approved: true
   output_root: data/processed/background_support_masks/sam3_v2/full
 
 review:

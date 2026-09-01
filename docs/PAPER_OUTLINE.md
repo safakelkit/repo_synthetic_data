@@ -44,11 +44,12 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 
 - SAM3 object assets and class-specific source-derived sizing.
 - Automatically proposed, human-verified semantic support masks (**accepted;
-  SAM3 v2 semantic proposals validated technically; final support geometry and
-  researcher approval pending**).
+  SAM3 v2 and geometry-v2 full-pool reviewed; 527 support regions accepted
+  across 527 backgrounds, with floor placement excluded**).
 - Exact mask-model revision, prompts, thresholds, pilot sampling, license, and
   human-review protocol.
 - Footprint/contact-anchor placement rules and their 2D-geometry limitations.
+- Fixed degradation-v1 clean/light/medium/heavy mixture, operation ranges, and post-composite application.
 - Target-domain degradation design (**not yet frozen or implemented**).
 - Annotation and provenance.
 

@@ -361,60 +361,193 @@ def bbox_to_yolo(
     return xc / img_w, yc / img_h, bw / img_w, bh / img_h
 
 
-def sample_surface_position(
-    bg_w: int,
-    bg_h: int,
-    obj_w: int,
-    obj_h: int,
-    zones: list[tuple[float, float, float, float]] | None = None,
-    max_attempts: int = 50,
-) -> tuple[int, int] | None:
-    """
-    Controlled random placement.
+def load_orientation_policy(path: str | Path) -> dict[int, dict[str, Any]]:
+    policy_path = repo_path(path)
+    with policy_path.open("r", encoding="utf-8") as handle:
+        config = yaml.safe_load(handle)
+    policies = {int(class_id): value for class_id, value in config["policies"].items()}
+    if sorted(policies) != list(range(16)):
+        raise ValueError("Orientation policy must define class IDs 0 through 15")
+    valid_modes = {"lying", "upright", "asset_preserved_bottom_contact"}
+    for class_id, policy in policies.items():
+        if policy["mode"] not in valid_modes:
+            raise ValueError(f"Invalid placement mode for class {class_id}: {policy['mode']}")
+        if not policy["allowed_supports"]:
+            raise ValueError(f"Class {class_id} has no allowed support type")
+    return policies
 
-    Instead of placing objects anywhere, this samples from likely lower/middle
-    surface regions. It is still not semantic segmentation, but it greatly
-    reduces ceiling/wall/floating placements.
-    """
-    zones = zones or [
-        # lower central surface / floor / bed / table region
-        (0.15, 0.72, 0.85, 0.93),
 
-        # middle-lower area, useful for bed/table surfaces
-        (0.25, 0.62, 0.75, 0.84),
-
-        # slightly wider lower band
-        (0.10, 0.78, 0.90, 0.94),
-    ]
-
-    for _ in range(max_attempts):
-        x1r, y1r, x2r, y2r = random.choice(zones)
-
-        x_min = int(x1r * bg_w)
-        x_max = int(x2r * bg_w) - obj_w
-
-        bottom_min = int(y1r * bg_h)
-        bottom_max = int(y2r * bg_h)
-
-        if x_max <= x_min:
+def load_accepted_support_regions(
+    manifest_path: str | Path,
+) -> dict[Path, list[dict[str, Any]]]:
+    resolved_manifest = repo_path(manifest_path)
+    if not resolved_manifest.is_file():
+        raise FileNotFoundError(f"Support-region manifest not found: {resolved_manifest}")
+    with resolved_manifest.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    regions: dict[Path, list[dict[str, Any]]] = {}
+    for row in rows:
+        if row["derivation_status"] != "derived" or row["review_status"] != "accepted":
             continue
+        background_path = repo_path(row["background_path"])
+        region_path = repo_path(row["region_path"])
+        if not background_path.is_file() or not region_path.is_file():
+            raise FileNotFoundError(f"Missing accepted support input: {background_path} / {region_path}")
+        if file_sha256(background_path) != row["background_sha256"]:
+            raise ValueError(f"Background checksum mismatch: {background_path}")
+        if file_sha256(region_path) != row["region_sha256"]:
+            raise ValueError(f"Support-region checksum mismatch: {region_path}")
+        regions.setdefault(background_path, []).append(
+            {
+                "support_type": row["support_type"],
+                "region_path": region_path,
+                "region_sha256": row["region_sha256"],
+            }
+        )
+    if not regions:
+        raise ValueError("Support-region manifest contains no accepted regions")
+    return regions
 
-        if bottom_max <= bottom_min:
-            continue
 
-        object_bottom_y = random.randint(bottom_min, bottom_max)
-        y = object_bottom_y - obj_h
-        x = random.randint(x_min, x_max)
+def sample_position_from_support_region(
+    rgba: np.ndarray,
+    region_mask: np.ndarray,
+    mode: str,
+    rng: random.Random,
+    alpha_threshold: int = 20,
+) -> tuple[int, int, tuple[int, int]] | None:
+    local_bbox = visible_bbox(rgba, alpha_threshold=alpha_threshold)
+    if local_bbox is None:
+        return None
+    vx1, vy1, vx2, vy2 = local_bbox
+    visible_width = vx2 - vx1
+    visible_height = vy2 - vy1
+    height, width = region_mask.shape
 
-        if y < 0 or y + obj_h > bg_h:
-            continue
+    if mode == "lying":
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT,
+            (max(1, visible_width), max(1, visible_height)),
+        )
+        valid = cv2.erode((region_mask > 0).astype(np.uint8), kernel) > 0
+        ys, xs = np.nonzero(valid)
+        if len(xs) == 0:
+            return None
+        index = rng.randrange(len(xs))
+        center_x, center_y = int(xs[index]), int(ys[index])
+        x = center_x - visible_width // 2 - vx1
+        y = center_y - visible_height // 2 - vy1
+        anchor = (center_x, center_y)
+    else:
+        ys, xs = np.nonzero(region_mask > 0)
+        if len(xs) == 0:
+            return None
+        index = rng.randrange(len(xs))
+        anchor_x, anchor_y = int(xs[index]), int(ys[index])
+        contact_x = (vx1 + vx2) // 2
+        contact_y = vy2 - 1
+        x = anchor_x - contact_x
+        y = anchor_y - contact_y
+        anchor = (anchor_x, anchor_y)
 
-        if x < 0 or x + obj_w > bg_w:
-            continue
+    object_height, object_width = rgba.shape[:2]
+    if x < 0 or y < 0 or x + object_width > width or y + object_height > height:
+        return None
+    return x, y, anchor
 
-        return x, y
 
-    return None
+def build_degradation_schedule(
+    images_per_class: int,
+    per_32: dict[str, int],
+    seed: int,
+) -> list[str]:
+    if sum(per_32.values()) != 32 or images_per_class % 32:
+        raise ValueError("Degradation allocation must total 32 and divide images per class")
+    schedule: list[str] = []
+    rng = random.Random(seed)
+    block = [severity for severity, count in per_32.items() for _ in range(int(count))]
+    for _ in range(images_per_class // 32):
+        current = block.copy()
+        rng.shuffle(current)
+        schedule.extend(current)
+    return schedule
+
+
+def motion_blur(image: np.ndarray, kernel_size: int, angle: float) -> np.ndarray:
+    kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
+    center = (kernel_size - 1) / 2.0
+    radius = center
+    radians = np.deg2rad(angle)
+    dx, dy = radius * np.cos(radians), radius * np.sin(radians)
+    start = (int(round(center - dx)), int(round(center - dy)))
+    end = (int(round(center + dx)), int(round(center + dy)))
+    cv2.line(kernel, start, end, 1.0, 1)
+    kernel /= max(float(kernel.sum()), 1.0)
+    return cv2.filter2D(image, -1, kernel)
+
+
+def apply_degradations(
+    image: np.ndarray,
+    severity: str,
+    config: dict[str, Any],
+    rng: random.Random,
+) -> tuple[np.ndarray, list[dict[str, Any]]]:
+    if severity == "clean":
+        return image, []
+    level = config["levels"][severity]
+    probabilities = level["probabilities"]
+    selected = [name for name, probability in probabilities.items() if rng.random() < float(probability)]
+    if not selected:
+        selected = [max(probabilities, key=lambda name: float(probabilities[name]))]
+    output = image.copy()
+    applied: list[dict[str, Any]] = []
+
+    if "blur" in selected:
+        blur_type = rng.choice(["gaussian", "motion"])
+        if blur_type == "gaussian":
+            sigma = rng.uniform(*map(float, level["gaussian_sigma"]))
+            kernel = int(level["gaussian_kernel"])
+            output = cv2.GaussianBlur(output, (kernel, kernel), sigmaX=sigma, sigmaY=sigma)
+            applied.append({"operation": "gaussian_blur", "kernel": kernel, "sigma": sigma})
+        else:
+            kernel = rng.choice([int(value) for value in level["motion_kernel_choices"]])
+            angle = rng.uniform(-180.0, 180.0)
+            output = motion_blur(output, kernel, angle)
+            applied.append({"operation": "motion_blur", "kernel": kernel, "angle_degrees": angle})
+
+    if "resolution" in selected:
+        scale = rng.uniform(*map(float, level["resolution_scale"]))
+        height, width = output.shape[:2]
+        small_width, small_height = max(1, round(width * scale)), max(1, round(height * scale))
+        output = cv2.resize(output, (small_width, small_height), interpolation=cv2.INTER_AREA)
+        output = cv2.resize(output, (width, height), interpolation=cv2.INTER_LINEAR)
+        applied.append({"operation": "downscale_upscale", "scale": scale})
+
+    if "photometric" in selected:
+        contrast = rng.uniform(*map(float, level["contrast_multiplier"]))
+        brightness = rng.uniform(*map(float, level["brightness_offset"]))
+        output = np.clip(output.astype(np.float32) * contrast + brightness, 0, 255).astype(np.uint8)
+        applied.append({"operation": "brightness_contrast", "contrast": contrast, "brightness": brightness})
+
+    if "noise" in selected:
+        sigma = rng.uniform(*map(float, level["noise_sigma"]))
+        np_rng = np.random.default_rng(rng.getrandbits(64))
+        noise = np_rng.normal(0.0, sigma, output.shape).astype(np.float32)
+        output = np.clip(output.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+        applied.append({"operation": "gaussian_sensor_noise", "sigma": sigma})
+
+    if "jpeg" in selected:
+        quality = rng.randint(*map(int, level["jpeg_quality"]))
+        ok, encoded = cv2.imencode(".jpg", output, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        if not ok:
+            raise RuntimeError("In-memory JPEG degradation failed")
+        decoded = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+        if decoded is None:
+            raise RuntimeError("In-memory JPEG degradation decode failed")
+        output = decoded
+        applied.append({"operation": "jpeg_compression", "quality": quality})
+
+    return output, applied
 
 
 def generate_dataset(
@@ -430,14 +563,15 @@ def generate_dataset(
     lower_size_quantile: float = 0.10,
     upper_size_quantile: float = 0.90,
     maximum_object_dimension_ratio: float = 0.90,
-    placement_zones: list[tuple[float, float, float, float]] | None = None,
-    placement_attempts: int = 50,
+    support_manifest_path: str | Path | None = None,
+    orientation_policy_path: str | Path | None = None,
     generation_attempts_per_image: int = 50,
     asset_schedule_seed: int | None = None,
     alpha_threshold: int = 20,
     minimum_visible_pixels: int = 40,
     minimum_crop_dimension_pixels: int = 8,
     minimum_visible_crop_ratio: float = 0.04,
+    degradation_config: dict[str, Any] | None = None,
 ) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -458,13 +592,18 @@ def generate_dataset(
     images_out.mkdir(parents=True, exist_ok=True)
     labels_out.mkdir(parents=True, exist_ok=True)
 
-    backgrounds = collect_backgrounds(background_root)
     object_bank = collect_object_bank(object_bank_root)
     size_templates = load_size_templates(
         size_templates_path,
         lower_quantile=lower_size_quantile,
         upper_quantile=upper_size_quantile,
     )
+
+    if support_manifest_path is None or orientation_policy_path is None:
+        raise ValueError("Accepted support manifest and orientation policy are required")
+    support_regions = load_accepted_support_regions(support_manifest_path)
+    orientation_policies = load_orientation_policy(orientation_policy_path)
+    backgrounds = sorted(support_regions)
 
     if not backgrounds:
         raise ValueError(f"No backgrounds found in {background_root}")
@@ -499,6 +638,18 @@ def generate_dataset(
         for class_id in expected_class_ids
     }
     saved_per_class = {class_id: 0 for class_id in expected_class_ids}
+    if degradation_config is None:
+        raise ValueError("A frozen degradation configuration is required")
+    degradation_seed = seed + int(degradation_config["seed_offset"])
+    degradation_schedules = {
+        class_id: build_degradation_schedule(
+            images_per_class,
+            degradation_config["per_class_per_32_images"],
+            degradation_seed + class_id,
+        )
+        for class_id in expected_class_ids
+    }
+    degradation_rng = random.Random(degradation_seed)
 
     print(f"Object classes found: {len(object_bank)}")
 
@@ -515,7 +666,16 @@ def generate_dataset(
     while saved_count < num_images and attempt_count < max_attempts:
         attempt_count += 1
 
-        bg_path = random.choice(backgrounds)
+        class_id = class_schedule[saved_count]
+        class_policy = orientation_policies[class_id]
+        allowed_supports = set(class_policy["allowed_supports"])
+        eligible_backgrounds = [
+            path for path in backgrounds
+            if any(region["support_type"] in allowed_supports for region in support_regions[path])
+        ]
+        if not eligible_backgrounds:
+            raise RuntimeError(f"No accepted support region is eligible for class {class_id}")
+        bg_path = random.choice(eligible_backgrounds)
         bg = cv2.imread(str(bg_path), cv2.IMREAD_COLOR)
 
         if bg is None:
@@ -524,7 +684,6 @@ def generate_dataset(
         bg_h, bg_w = bg.shape[:2]
 
         # Retries retain the scheduled class, guaranteeing exact quotas.
-        class_id = class_schedule[saved_count]
         class_sequence_index = saved_per_class[class_id]
         obj_path = asset_schedules[class_id][class_sequence_index]
         rgba = read_rgba(obj_path)
@@ -568,19 +727,26 @@ def generate_dataset(
         if obj_w >= bg_w or obj_h >= bg_h:
             continue
 
-        position = sample_surface_position(
-            bg_w=bg_w,
-            bg_h=bg_h,
-            obj_w=obj_w,
-            obj_h=obj_h,
-            zones=placement_zones,
-            max_attempts=placement_attempts,
+        eligible_regions = [
+            region for region in support_regions[bg_path]
+            if region["support_type"] in allowed_supports
+        ]
+        selected_region = random.choice(eligible_regions)
+        region_mask = cv2.imread(str(selected_region["region_path"]), cv2.IMREAD_GRAYSCALE)
+        if region_mask is None or region_mask.shape != (bg_h, bg_w):
+            continue
+        position = sample_position_from_support_region(
+            rgba=rgba,
+            region_mask=region_mask,
+            mode=class_policy["mode"],
+            rng=random,
+            alpha_threshold=alpha_threshold,
         )
 
         if position is None:
             continue
 
-        x, y = position
+        x, y, anchor_xy = position
 
         bg_pasted, pasted_crop_bbox = paste_rgba(bg, rgba, x, y)
 
@@ -603,6 +769,11 @@ def generate_dataset(
             continue
 
         label_line = f"{class_id} {x_c:.6f} {y_c:.6f} {w:.6f} {h:.6f}"
+
+        severity = degradation_schedules[class_id][class_sequence_index]
+        bg_pasted, applied_degradations = apply_degradations(
+            bg_pasted, severity, degradation_config, degradation_rng
+        )
 
         image_name = f"copypaste_{saved_count:06d}.jpg"
         label_name = f"copypaste_{saved_count:06d}.txt"
@@ -634,7 +805,13 @@ def generate_dataset(
                 "background_width": bg_w,
                 "background_height": bg_h,
                 "placement_xy": [x, y],
-                "degradations": [],
+                "placement_mode": class_policy["mode"],
+                "support_type": selected_region["support_type"],
+                "support_region": repository_relative(selected_region["region_path"]),
+                "support_region_sha256": selected_region["region_sha256"],
+                "support_anchor_xy": list(anchor_xy),
+                "degradation_severity": severity,
+                "degradations": applied_degradations,
                 "qc_status": "automated_checks_passed_pending_dataset_review",
                 "object": {
                     "class_id": class_id,
@@ -691,11 +868,14 @@ def generate_dataset(
         "images_per_class": num_images // len(expected_class_ids),
         "class_block_size": len(expected_class_ids),
         "objects_per_image": 1,
-        "placement": "predefined_lower_surface_zones",
-        "placement_zones_xyxy_normalized": placement_zones,
-        "placement_attempts": placement_attempts,
+        "placement": "human_reviewed_semantic_support_regions",
+        "support_manifest": repository_relative(repo_path(support_manifest_path)),
+        "support_manifest_sha256": file_sha256(repo_path(support_manifest_path)),
+        "orientation_policy": repository_relative(repo_path(orientation_policy_path)),
+        "orientation_policy_sha256": file_sha256(repo_path(orientation_policy_path)),
         "generation_attempts_per_image": generation_attempts_per_image,
-        "degradations": [],
+        "degradation_seed": degradation_seed,
+        "degradation_config": degradation_config,
         "release_status": "generated_candidate_pending_dataset_qc",
     }
     if source_config_path is not None:
@@ -809,7 +989,6 @@ def main() -> None:
             )
 
     output_root = repo_path(production_config["output_root"])
-    placement_zones = [tuple(map(float, zone)) for zone in config["placement"]["zones_xyxy_normalized"]]
     asset_schedule_seed = int(config["seed"]) + int(
         config["allocation"]["object_asset_schedule_seed_offset"]
     )
@@ -826,14 +1005,15 @@ def main() -> None:
         lower_size_quantile=float(config["sizing"]["lower_quantile"]),
         upper_size_quantile=float(config["sizing"]["upper_quantile"]),
         maximum_object_dimension_ratio=float(config["sizing"]["maximum_object_dimension_ratio"]),
-        placement_zones=placement_zones,
-        placement_attempts=int(config["placement"]["attempts_per_object"]),
+        support_manifest_path=config["placement"]["support_manifest"],
+        orientation_policy_path=config["placement"]["orientation_policy"],
         generation_attempts_per_image=int(config["quality_control"]["generation_attempts_per_image"]),
         asset_schedule_seed=asset_schedule_seed,
         alpha_threshold=int(config["sizing"]["alpha_visibility_threshold"]),
         minimum_visible_pixels=int(config["sizing"]["minimum_visible_pixels"]),
         minimum_crop_dimension_pixels=int(config["sizing"]["minimum_crop_dimension_pixels"]),
         minimum_visible_crop_ratio=float(config["sizing"]["minimum_visible_crop_ratio"]),
+        degradation_config=config["degradation"],
     )
 
     create_subset_manifests(

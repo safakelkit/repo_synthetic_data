@@ -1,0 +1,54 @@
+version: support_geometry_v2
+status: conservative_largest_component_candidate
+seed: 42
+
+inputs:
+  proposal_manifest: data/processed/background_support_masks/sam3_v2/pilot/support_region_proposals.csv
+  proposal_run_summary: data/processed/background_support_masks/sam3_v2/pilot/run_summary.json
+  full_proposal_manifest: data/processed/background_support_masks/sam3_v2/full/support_region_proposals.csv
+  full_proposal_run_summary: data/processed/background_support_masks/sam3_v2/full/run_summary.json
+
+output:
+  root: data/processed/background_support_masks/sam3_v2/geometry_v2
+  full_root: data/processed/background_support_masks/sam3_v2/full_geometry_v2
+
+proposal_selection:
+  minimum_score: 0.30
+  maximum_instances_per_prompt: 3
+
+geometry:
+  component_selection: largest_only
+  minimum_region_area_ratio: 0.003
+  minimum_component_area_ratio: 0.0015
+  boundary_margin_ratio: 0.012
+  floor:
+    prompts: [floor]
+    minimum_consensus: 1
+    vertical_keep: [0.35, 0.97]
+    erosion_ratio: 0.018
+  bed_top:
+    categories: [bedroom, hotel_room]
+    prompts: [bed surface, top of bed]
+    minimum_consensus: 2
+    component_vertical_keep: [0.18, 0.68]
+    erosion_ratio: 0.012
+  dining_table_top:
+    categories: [dining_room]
+    prompts: [tabletop, table surface]
+    minimum_consensus: 2
+    component_vertical_keep: [0.00, 0.34]
+    band_height_ratio: 0.10
+    horizontal_erosion_ratio: 0.018
+
+anchors:
+  maximum_per_region: 5
+  minimum_spacing_ratio: 0.10
+  footprint_sizes:
+    - {name: small, width_ratio: 0.08, height_ratio: 0.05}
+    - {name: medium, width_ratio: 0.16, height_ratio: 0.10}
+    - {name: large, width_ratio: 0.28, height_ratio: 0.16}
+
+review:
+  initial_status: pending
+  allowed_statuses: [pending, accepted, rejected]
+  full_pool_approved: false

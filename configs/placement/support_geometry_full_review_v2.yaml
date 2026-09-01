@@ -1,0 +1,35 @@
+version: support_geometry_full_review_v2
+status: conservative_largest_component_triage
+seed: 42
+
+input_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/support_regions.csv
+input_run_summary: data/processed/background_support_masks/sam3_v2/full_geometry_v2/run_summary.json
+output_root: data/processed/background_support_masks/sam3_v2/full_geometry_v2/review_v2
+
+triage:
+  floor:
+    minimum_area_ratio: 0.006
+    maximum_area_ratio: 0.30
+    minimum_anchors: 2
+  bed_top:
+    minimum_area_ratio: 0.020
+    maximum_area_ratio: 0.20
+    minimum_anchors: 4
+  dining_table_top:
+    minimum_area_ratio: 0.008
+    maximum_area_ratio: 0.10
+    minimum_anchors: 2
+
+visual_sample:
+  per_support_per_group: 30
+  groups: [candidate_accept, needs_review]
+  sampling: deterministic_area_quantile_stratified
+  tile_size: 256
+  columns: 5
+  full_sheet_supports: [bed_top, dining_table_top]
+  full_sheet_chunk_size: 30
+
+production_use:
+  approved: false
+  floor_enabled: false
+  requirement: bed_and_table_visual_review_must_pass_before_final_manifest

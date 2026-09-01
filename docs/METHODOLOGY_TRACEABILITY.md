@@ -11,12 +11,10 @@ configuration, implementation, and evidence. A value marked **planned** or
   design, rooted outputs, and explicit training settings.
 - **Implemented but awaiting generated-dataset evidence:** cut-paste size sampling,
   annotation writing, duplicate rejection, and provenance.
-- **Partially implemented, not validated:** SAM3 pilot v1 was reviewed and its
-  local outputs removed; revised pilot v2 completed technical review. Support-
-  geometry postprocessing, researcher approval, full-pool preprocessing, and
-  generator-side placement remain pending.
-- **Not implemented/frozen:** exact hard-domain degradation operations/ranges
-  and final QC thresholds.
+- **Implemented and full-pool reviewed:** SAM3 v2 proposals and geometry-v2
+  processed all 1,166 backgrounds. The generator consumes only 527 accepted
+  bed/table regions; floor placement is disabled.
+- **Implemented but awaiting generated-dataset evidence:** QC-v1 validator and its 256-image manual-review protocol. Degradation-v1 is frozen and implemented.
 - **Not generated:** the canonical 2,048-image dataset.
 - **Not run under the frozen protocol:** E000 and all 12 synthetic baselines.
 
@@ -93,30 +91,37 @@ worktree so the recorded revision identifies the exact source used.
 | Placement family | automatic semantic support masks with human verification | Decision D017; generation config |
 | First mask-model candidate | `facebook/sam3`; SAM License; HF commit `3c879f39826c281e95690f02c7821c4de09afae7` | run summary; support-mask config/script |
 | Placement pilot sample | 10 deterministic backgrounds from each of bedroom, dining room, and hotel room; seed 42 | completed 2026-08-11; 30 backgrounds |
-| Candidate inference thresholds | score 0.30; mask 0.50; minimum mask-area ratio 0.001 | support-mask config; provisional until pilot review |
-| Placement geometry | footprint containment for lying objects; bottom alpha-contact alignment for upright objects; support-boundary anchors for table-like surfaces | Decision D017; implementation pending |
+| Mask inference thresholds | score 0.30; mask 0.50; minimum area ratio 0.001; within-prompt IoU suppression 0.85 | `configs/placement/support_masks_sam3_v2.yaml`; pilot-approved for full proposals |
+| Placement geometry | largest-component bed-top/table-top regions; floor disabled; footprint containment for lying objects; bottom contact for upright/asset-preserved objects | `support_geometry_v2.yaml`, full decisions v2, orientation policy v2; full-pool reviewed and generator-integrated |
 | Annotation | visible alpha box converted to normalized YOLO xywh | `visible_bbox`, `bbox_to_yolo` |
 | Output safety | nonempty output rejected; successful write required; exact composite duplicates rejected | `generate_dataset` |
 | Provenance | asset/background paths, class, size template, realized area, placement, bbox, SHA-256, seed, QC status | output `metadata.json` |
 | Dataset provenance | code revision/dirty state, package versions, input counts and hashes, source config hash | output `generation_config.json` |
 | Manifest provenance | path, image count, and SHA-256 for each nested subset | output `manifest_checksums.json` |
 | Degradation mixture | 25% clean, 37.5% light, 25% medium, 12.5% heavy in every per-class 32-image block | generation config `degradation` |
+| Degradation operations | Gaussian/motion blur, downscale-upscale, brightness/contrast, JPEG, Gaussian noise; severity-specific probabilities/ranges | `apply_degradations`; generation config `degradation.levels` |
+| Degradation seed | generator seed + 2 = 44 | `build_degradation_schedule`; generation config `seed_offset` |
+| Automatic dataset QC | all 2,048 images; paths/hashes/dimensions/labels/duplicates/area/prefix balance | `copy_paste_qc_v1.yaml`; `validate_copypaste_dataset.py` |
+| Manual dataset QC | 4 images per class×severity cell = 256; explicit pass/reject | QC config and generated `manual_review_sample.csv` |
+| Eligible background pool | 527 reviewed backgrounds; 306 bed-top and 221 table-top supports | background eligibility v1; reviewed geometry-v2 manifest |
 
 The three available background categories contain 1,166 images: bedroom 382,
 dining room 387, and hotel room 397. The former three-band geometric heuristic
 was rejected after qualitative inspection and is not approved for production.
-The accepted replacement is a precomputed semantic support-mask manifest with
-human verification. The first candidate is `facebook/sam3`, using text-prompted
-mask proposals. Pilot v1 ran on 30 backgrounds and passed artifact-integrity
-checks, but technical review requires a revised prompt set and within-prompt
-mask deduplication. Final model acceptance, prompt/threshold mapping,
-class-to-orientation policy, and researcher approval remain pending.
+The accepted replacement is a precomputed semantic support-region manifest with
+review. The frozen proposal model is `facebook/sam3` at commit
+`3c879f39826c281e95690f02c7821c4de09afae7`. The reviewed pilot accepted 45
+regions across 28 backgrounds, froze the 16-class orientation policy, and
+validated generator-side placement. Full-pool geometry-v2 review retained 306
+bed-top and 221 table-top regions across 527 backgrounds. All floor regions are
+disabled because 2D support masks cannot resolve foreground occlusion or depth.
 
-The background pool has not yet been audited for pre-existing instances of the
-16 target classes. Such an instance would be an unlabeled positive because the
-current generator annotates only the pasted object. Full production therefore
-requires either excluding those backgrounds or adding verified annotations for
-every visible target object.
+Production is restricted to 527 backgrounds accepted by the complete support-
+candidate review. The researcher had previously inspected the background pool;
+the full contact-sheet pass provided a second visual screen and rejected the
+confirmed laptop-containing example. This does not guarantee that tiny or
+occluded target instances are absent, so that residual limitation must be
+reported and checked again in the generated-dataset QC sample.
 
 ### Class-specific source area statistics
 
@@ -152,28 +157,9 @@ for 1,186 was reconstructed and class-verified. A deterministic 160-asset
 visual sample produced 146 passes and 14 observations. Per the researcher's
 manual cleaning decision, observations do not exclude assets.
 
-## Unresolved values and release blockers
+## Remaining evidence gaps and later-phase decisions
 
-- Hard-domain degradation operations, probabilities, and severity ranges are
-  not implemented or frozen; only the clean/light/medium/heavy mixture is
-  accepted. YOLO training augmentation does not satisfy this.
-- SAM3 pilot v1 ran with immutable revision
-  `3c879f39826c281e95690f02c7821c4de09afae7`. It produced 217 manifest rows:
-  178 proposed masks and 39 no-proposal records. All mask files and checksums
-  passed. Technical review found useful floor/dining-table signals but rejected
-  full-pool approval pending prompt revision, duplicate suppression, valid bed
-  support-plane handling, and researcher review. Full preprocessing remains
-  blocked.
-- Per the researcher's cleanup decision, v1's Git-ignored generated artifacts
-  were deleted after the model/manifest hashes and review findings were recorded.
-  Revised v2 reused the same seed, sample, and model revision, added mask-IoU
-  suppression at 0.85, and tested explicit support-plane prompts. It removed 16
-  of 275 proposals and retained 259 without any remaining within-prompt pair
-  above IoU 0.85. Technical review accepts the semantic front-end but not raw
-  masks as final anchor regions; geometry postprocessing remains pending.
-- Placement realism and annotation accuracy lack generated-dataset evidence.
-- Formal automatic/manual QC thresholds are not frozen.
-- The 1,166-background pool lacks a complete target-class leakage audit.
+- Placement realism, degradation quality, and annotation accuracy lack generated-dataset evidence; QC-v1 can only execute after generation.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
 - Stable Diffusion, Qwen, and ControlNet models/protocols remain `TBD`.
@@ -192,8 +178,10 @@ manual cleaning decision, observations do not exclude assets.
   detector protocol requires 8.4.41. This does not block the SAM3 mask pilot,
   but the environment must be aligned before any detector experiment.
 
-Until all cut-paste release blockers are resolved, CP-B0512 through
-CP-B2048 must not be generated or reported as experimental evidence.
+The cut-paste methodological gates and explicit release switch are approved.
+CP-B0512 through CP-B2048 may be generated only from a committed clean revision
+through a researcher-launched command; they must not be reported as
+experimental evidence until QC-v1 passes.
 
 ### Placement literature context
 

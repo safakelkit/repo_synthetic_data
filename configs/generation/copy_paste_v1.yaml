@@ -14,7 +14,9 @@ inputs:
     dining_room: 387
     hotel_room: 397
   total_backgrounds: 1166
-  background_target_class_audit_status: pending
+  background_target_class_audit_status: complete
+  background_eligibility_config: configs/placement/background_eligibility_v1.yaml
+  background_eligibility_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/eligible_backgrounds.csv
 
 production:
   output_root: data/synthetic/cp_v1_seed42
@@ -45,29 +47,36 @@ sizing:
   minimum_visible_crop_ratio: 0.04
 
 placement:
-  status: accepted_not_implemented
+  status: approved_before_generation
   strategy: semantic_support_masks_with_human_verification
   proposal_model: facebook/sam3
-  proposal_model_status: pilot_v2_frontend_promising_raw_masks_not_approved
-  proposal_model_revision: resolved_exact_sha_from_approved_support_manifest
+  proposal_model_status: frozen_for_full_background_proposals
+  proposal_model_revision: 3c879f39826c281e95690f02c7821c4de09afae7
   proposal_model_license: SAM License
-  support_label_mapping: pending_geometry_postprocessing_and_anchor_review
-  class_orientation_support_policy: TBD
+  support_label_mapping: frozen_bed_top_dining_table_top_v2
+  class_orientation_support_policy: class_orientation_support_v2
   support_mask_root: data/processed/background_support_masks/sam3_v2/full
-  support_manifest: data/processed/background_support_masks/sam3_v2/full/support_region_proposals.csv
   pilot_config: configs/placement/support_masks_sam3_v2.yaml
   pilot_script: src/placement/propose_support_masks_sam3.py
+  geometry_config: configs/placement/support_geometry_v2.yaml
+  geometry_script: src/placement/derive_support_geometry.py
+  geometry_full_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/support_regions.csv
+  geometry_review_config: configs/placement/support_geometry_full_decisions_v2.yaml
+  orientation_policy: configs/placement/class_orientation_support_v2.yaml
+  support_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/reviewed_support_regions.csv
   pilot_sampling: deterministic_category_stratified
   human_review: accept_or_reject_proposed_regions
   lying_object_rule: transformed_alpha_footprint_inside_support_region
   upright_object_rule: bottom_alpha_contact_on_support_anchor
   table_like_surface_rule: use_support_top_boundary_not_full_semantic_mask
-  attempts_per_object: 50
+  floor_enabled: false
+  floor_exclusion_reason: 2d_floor_masks_do_not_model_foreground_occlusion_or_scene_depth
 
 degradation:
-  status: mixture_accepted_operations_unresolved
+  status: frozen_implemented
   apply_to_complete_composite: true
-  operations: []
+  seed_offset: 2
+  operations: [blur, resolution, photometric, jpeg, noise]
   severity_distribution:
     clean: 0.25
     light: 0.375
@@ -78,23 +87,54 @@ degradation:
     light: 12
     medium: 8
     heavy: 4
-  note: Probabilities and ranges must be frozen before canonical generation.
+  levels:
+    light:
+      probabilities: {blur: 0.25, resolution: 0.35, photometric: 0.55, jpeg: 0.30, noise: 0.15}
+      gaussian_kernel: 3
+      gaussian_sigma: [0.3, 0.8]
+      motion_kernel_choices: [3, 5]
+      resolution_scale: [0.75, 0.90]
+      contrast_multiplier: [0.90, 1.10]
+      brightness_offset: [-12, 10]
+      jpeg_quality: [75, 92]
+      noise_sigma: [1.0, 4.0]
+    medium:
+      probabilities: {blur: 0.50, resolution: 0.60, photometric: 0.70, jpeg: 0.50, noise: 0.30}
+      gaussian_kernel: 5
+      gaussian_sigma: [0.8, 1.5]
+      motion_kernel_choices: [5, 7]
+      resolution_scale: [0.55, 0.75]
+      contrast_multiplier: [0.75, 1.20]
+      brightness_offset: [-25, 18]
+      jpeg_quality: [50, 75]
+      noise_sigma: [4.0, 9.0]
+    heavy:
+      probabilities: {blur: 0.75, resolution: 0.85, photometric: 0.85, jpeg: 0.75, noise: 0.50}
+      gaussian_kernel: 7
+      gaussian_sigma: [1.5, 2.5]
+      motion_kernel_choices: [7, 9, 11, 13]
+      resolution_scale: [0.35, 0.55]
+      contrast_multiplier: [0.60, 1.25]
+      brightness_offset: [-40, 25]
+      jpeg_quality: [30, 55]
+      noise_sigma: [8.0, 15.0]
+  composition_rule: independent_operations_with_at_least_one_for_nonclean_severity
+  tuning_restriction: do_not_modify_using_easy_or_hard_test_results
 
 quality_control:
-  status: partially_implemented_thresholds_unresolved
+  status: frozen_implemented
+  config: configs/quality/copy_paste_qc_v1.yaml
+  validator: src/validation/validate_copypaste_dataset.py
   require_readable_image: true
   require_valid_yolo_label: true
   require_nonempty_visible_object: true
   require_successful_image_write: true
   reject_exact_duplicate_composites: true
   generation_attempts_per_image: 50
-  manual_review: canonical_dataset_before_training
+  maximum_target_area_relative_error: 0.05
+  manual_review: 4_images_per_class_per_severity_256_total_before_training
 
 release_gate:
-  approved: false
+  approved: true
   require_clean_git_worktree: true
-  blockers:
-    - semantic_support_pilot_model_policy_and_implementation_not_approved
-    - degradation_probabilities_and_ranges_not_frozen
-    - manual_and_automated_qc_thresholds_not_frozen
-    - background_target_class_leakage_not_audited
+  blockers: []

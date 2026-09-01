@@ -117,4 +117,81 @@ Do not add ADR runs to the active registry until all baseline experiments are co
 - **Deduplication:** 275 raw area-filtered proposals; 16 removed; no retained within-prompt pair above mask IoU 0.85
 - **Manifest:** `data/processed/background_support_masks/sam3_v2/pilot/support_region_proposals.csv`; SHA-256 `ff1c3db49b87898f85f29f21cf576c9dd38117a95c1d54a13201d4c9ae94e8ad`
 - **Technical review:** Use SAM3 proposals as input to deterministic support-plane geometry; do not use raw masks directly for anchors
-- **Researcher decision:** Pending
+- **Researcher decision:** Accepted geometry-postprocessing plan; geometry-v1 executed
+
+## SP-GEOM-P01 - Support-geometry postprocessing pilot
+
+- **Status:** Complete and reviewed; full-pool preprocessing approved
+- **Date:** 2026-08-28
+- **Input:** Retained SAM3 v2 proposals on the same deterministic 30 backgrounds
+- **Config:** `configs/placement/support_geometry_v1.yaml`
+- **Implementation:** `src/placement/derive_support_geometry.py`
+- **Outputs:** 60 manifest rows; 24 floor, 17 bed-top, and 9 dining-table-top candidate regions
+- **Traceability:** raw geometry manifest SHA-256 `9111b3124e1bb16e7d21fe2b91d6db445ea3a350dc0c3f601f646a5607de4331`; reviewed manifest SHA-256 `883d666b97e826c50fe6df9d6915bedc100605e8c86128978fbfe1d18033b4ce`
+- **Artifacts:** `data/processed/background_support_masks/sam3_v2/geometry_v1/` (Git-ignored)
+- **Safety:** No SAM3 inference, copy-paste image, synthetic dataset, or detector training was produced
+- **Review:** Accepted 24 floor, 12 bed-top, and 9 dining-table-top regions; rejected every no-valid-region row and five unsafe bed-top candidates
+- **Next action:** Run the frozen proposal and geometry pipeline on all 1,166 backgrounds, then review the full manifest
+
+## SP-SAM3-F01 - Full-background support proposals
+
+- **Status:** Complete; integrity verified
+- **Date:** 2026-08-29
+- **Backgrounds:** 382 bedroom, 387 dining room, 397 hotel room; 1,166 total
+- **Model:** `facebook/sam3` commit `3c879f39826c281e95690f02c7821c4de09afae7`; RTX 3090
+- **Outputs:** 9,296 area-filtered proposals, 327 duplicates removed, 8,969 retained; 10,298 manifest rows
+- **Manifest SHA-256:** `bcb346c5d74741dc7c6c16b521149d334d7849431d4af3c1645d61b09a5bba01`
+- **Validity:** No copy-paste image or detector run was produced; all mask files and checksums passed
+
+## SP-GEOM-F01 - Full-background geometry derivation (superseded)
+
+- **Status:** Complete; superseded by largest-component geometry-v2
+- **Date:** 2026-08-29
+- **Input:** Verified SP-SAM3-F01 manifest
+- **Outputs:** 2,332 decision rows; 911 floor, 625 bed-top, and 334 dining-table-top regions derived (1,870 total)
+- **Manifest SHA-256:** `3751f84e27e428b61845c20d8f4884cf71a0f31669d1067b36cb33bea5ab0979`
+- **Integrity:** Every generated region file, pixel count, and checksum passed
+- **Visual finding:** Stratified overlays are generally useful; occasional false bed/bench/side-furniture regions require rejection
+- **Disposition:** Preserved as development evidence; not used by the generator
+
+## SP-GEOM-F02 - Full-background geometry-v2 review
+
+- **Status:** Complete; accepted for cut-paste placement
+- **Date:** 2026-09-01
+- **Change:** Keep only the largest connected component and disable floor placement because 2D masks do not model foreground occlusion/depth
+- **Derived regions:** 904 floor, 622 bed-top, 331 dining-table-top
+- **Review protocol:** Conservative numeric triage; reject all risk-group rows; inspect every one of the 608 automatic bed/table candidates; reject explicit visual failures
+- **Visual candidate failures:** bed 75/381 (19.7%), table 6/227 (2.6%), combined 81/608 (13.3%)
+- **Accepted production pool:** 306 bed-top and 221 table-top regions across 527 backgrounds
+- **Reviewed manifest SHA-256:** `758ed5959fcd40fd838e98be6c1b8beeb0a173bd56b7e47aee0fa1d7bfd0c702`
+- **Safety:** No copy-paste image or detector training was produced
+
+## CP-DEG-V1 - Frozen cut-paste degradation implementation
+
+- **Status:** Implemented and deterministically tested; no dataset generated
+- **Date:** 2026-09-01
+- **Distribution per class/32:** 8 clean, 12 light, 8 medium, 4 heavy
+- **Operations:** Gaussian/motion blur, downscale-upscale resolution loss, brightness/contrast, JPEG compression, and Gaussian sensor noise
+- **Application:** Complete composite, after placement and before image encoding
+- **Seed:** 44 (generator seed 42 + offset 2)
+- **Verification:** Exact severity counts passed at every 32/64/96/128 per-class prefix; repeated calls with the same seed produced identical pixels and metadata
+- **Safety:** Canonical generation remains blocked by QC and background-leakage gates
+
+## CP-QC-V1 - Canonical dataset validation protocol
+
+- **Status:** Implemented; execution awaits canonical generation
+- **Date:** 2026-09-01
+- **Automatic coverage:** All 2,048 images plus labels, metadata, hashes, duplicates, geometry consistency, manifests, and class×severity prefix balance
+- **Manual coverage:** 256 deterministic images, four per class×severity cell
+- **Release rule:** Automatic pass plus an explicit decision for every manual-review row before training
+- **Safety:** No dataset or detector run was created
+
+## CP-BG-V1 - Reviewed production-background eligibility
+
+- **Status:** Complete
+- **Date:** 2026-09-01
+- **Input:** Full geometry-v2 candidate review plus prior researcher inspection
+- **Eligible:** 527 backgrounds (306 bed-top, 221 table-top)
+- **Manifest SHA-256:** `c15243e14a888d284c84e0bce66d46998f14437ac8a3eb573c712bb3e8161f09`
+- **Finding:** No visible target instance confirmed in accepted backgrounds; small/occluded-instance risk remains a stated limitation
+- **Safety:** No synthetic image or detector run was produced

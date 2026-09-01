@@ -2,6 +2,15 @@
 
 Only add results produced by a verified run with a traceable configuration and artifact path. Keep preliminary report figures separate from reproducible project results. ADR results are not part of the current phase.
 
+Placement preprocessing is not a detector result. The pilot geometry review
+accepted 45 regions. Full geometry-v2 review later retained 527
+production-eligible regions across 527 of the 1,166 backgrounds. None of these
+steps created training images.
+
+Degradation-v1 implementation is also preprocessing, not an experimental
+result. Its exact schedules and deterministic image-transform tests passed, but
+no degraded training image has yet been released.
+
 ## Preliminary report figures
 
 The preliminary report states:

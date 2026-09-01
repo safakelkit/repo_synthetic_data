@@ -1,0 +1,21 @@
+version: support_geometry_review_v1
+status: pilot_review_complete
+review_type: researcher_authorized_ai_assisted_visual_review
+review_date: 2026-08-29
+
+input_manifest: data/processed/background_support_masks/sam3_v2/geometry_v1/support_regions.csv
+output_manifest: data/processed/background_support_masks/sam3_v2/geometry_v1/reviewed_support_regions.csv
+
+policy:
+  no_valid_region: rejected
+  derived_default: accepted
+  rejected_regions:
+    - {background_stem: bedroom_00172, support_type: bed_top, reason: semantic_region_on_furniture_not_reliable_bed_plane}
+    - {background_stem: bedroom_00497, support_type: bed_top, reason: region_too_small_and_not_reliable_bed_plane}
+    - {background_stem: hotel_room_00110, support_type: bed_top, reason: false_region_on_bedside_object}
+    - {background_stem: hotel_room_00230, support_type: bed_top, reason: headboard_or_bedside_region_not_mattress_plane}
+    - {background_stem: hotel_room_00250, support_type: bed_top, reason: mixed_ottoman_or_bedside_components}
+
+production_use:
+  approved: false
+  reason: pilot_policy_requires_full_pool_preprocessing_and_review

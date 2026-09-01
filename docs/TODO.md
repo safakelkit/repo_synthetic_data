@@ -32,10 +32,10 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Freeze critical Ultralytics 8.4.41 training and evaluation values explicitly.
 - [x] Add a paper-facing methodology-to-code traceability record.
 - [x] Implement per-image and dataset-level metadata, input/config hashes, code revision, software versions, and manifest checksums.
-- [ ] Audit all 1,166 backgrounds for pre-existing unlabeled instances of the 16 target classes.
+- [x] Restrict production to the 527 full-review-accepted backgrounds and record the researcher/contact-sheet target-leakage review with hashes and limitations.
 - [x] Choose context-aware support-surface placement; reject the provisional fixed normalized bands for production.
 - [x] Choose automatically proposed semantic support masks with human verification rather than manually selecting every anchor.
-- [ ] Select and record the exact semantic segmentation model, revision, license, environment, and accepted support-label mapping.
+- [x] Select and record the exact semantic segmentation model, revision, license, environment, and accepted support-label mapping.
 - [x] Select `facebook/sam3` as the first support-mask pilot candidate and record its SAM License and official source.
 - [x] Implement the deterministic 10-images-per-category SAM3 proposal pilot, immutable revision capture, mask manifest, overlays, and contact sheets.
 - [x] Manually launch SAM3 pilot v1 from the GPU-visible `env_sam3` terminal and record model SHA `3c879f39826c281e95690f02c7821c4de09afae7` and RTX 3090 metadata.
@@ -45,15 +45,22 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Add provisional score-ordered mask-IoU deduplication (0.85) and revise bed/desk/nightstand/table prompt wording for v2.
 - [x] Run SAM3 pilot v2 on the same deterministic 30 backgrounds; verify checksums, coverage, and mask-IoU deduplication.
 - [x] Complete AI-assisted technical/visual review of v2; accept SAM3 as a proposal front-end but reject raw masks as final anchor regions.
-- [ ] Obtain the researcher's acceptance of the v2 review and geometry-postprocessing plan.
-- [ ] Implement conservative floor, bed-top, and dining-table-top support-region derivation from retained v2 masks.
-- [ ] Generate and review anchor/footprint overlays on the same 30 backgrounds without creating training images.
-- [ ] Freeze the 16-class orientation/support policy (lying, upright, or asset-preserved orientation) and contact/footprint rules.
-- [ ] Implement deterministic support-mask preprocessing and a versioned per-background support-region manifest with checksums and reviewer status.
-- [ ] Validate automatic masks on a deterministic category-stratified background sample before processing all 1,166 backgrounds.
-- [ ] Human-review the full proposed support-region manifest and exclude rejected regions from generation.
-- [ ] Replace `sample_surface_position` with deterministic sampling from accepted support regions and add placement rejection logging/tests.
-- [ ] Finalize degradation and automated/manual QC specifications.
+- [x] Obtain the researcher's acceptance of the v2 review and geometry-postprocessing plan.
+- [x] Implement conservative floor, bed-top, and dining-table-top support-region derivation from retained v2 masks.
+- [x] Generate anchor/footprint overlays on the same 30 backgrounds without creating training images.
+- [x] Complete researcher-authorized review of geometry-v1 regions/overlays and accept/reject pilot regions.
+- [x] Freeze the 16-class orientation/support policy (lying, upright, or asset-preserved orientation) and contact/footprint rules.
+- [x] Implement deterministic support-mask preprocessing and versioned manifests with checksums and reviewer status.
+- [x] Validate automatic masks and geometry on a deterministic category-stratified sample before processing all 1,166 backgrounds.
+- [x] Run frozen SAM3 v2 proposal preprocessing on all 1,166 backgrounds; verify 8,969 masks and manifest integrity.
+- [x] Derive 1,870 full-pool support regions and verify every output/checksum.
+- [x] Human-review all 608 full-pool bed/table candidate regions, reject the automatic risk groups and floor placement, and freeze 527 accepted regions.
+- [x] Replace `sample_surface_position` with sampling from accepted support regions and test every class against the pilot manifest.
+- [ ] Add per-attempt placement rejection-reason logging before canonical generation.
+- [x] Freeze and implement deterministic degradation-v1 operations, severity probabilities, ranges, and exact per-class schedules.
+- [x] Freeze and implement QC-v1 for complete automatic validation and a deterministic 256-image class×severity manual review.
+- [x] Approve the canonical cut-paste release switch after all pre-generation methodology gates passed.
+- [ ] Execute QC-v1 after canonical generation and complete every manual pass/reject decision before training.
 - [ ] Generate and validate the canonical 2,048-image cut-paste dataset after all release gates are resolved.
 
 ## Phase 1 - reproduce the real-only and cut-paste baselines

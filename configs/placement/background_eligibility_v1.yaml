@@ -1,0 +1,11 @@
+version: background_eligibility_v1
+status: complete
+source_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/reviewed_support_regions.csv
+output_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/eligible_backgrounds.csv
+eligibility:
+  require_accepted_support_region: true
+  evidence:
+    - prior_researcher_background_review
+    - complete_608_candidate_contact_sheet_review
+  interpretation: no_confirmed_visible_target_class_in_accepted_backgrounds
+  limitation: small_or_occluded_target_instances_may_escape_visual_review

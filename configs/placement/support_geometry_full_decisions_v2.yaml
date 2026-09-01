@@ -1,0 +1,117 @@
+version: support_geometry_full_decisions_v2
+status: full_geometry_review_complete
+
+input_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/review_v2/triaged_support_regions.csv
+output_manifest: data/processed/background_support_masks/sam3_v2/full_geometry_v2/reviewed_support_regions.csv
+
+policy:
+  no_valid_region: rejected
+  derived_default: accepted
+  disabled_support_types: [floor]
+  reject_needs_review: true
+  accepted_note: accepted_after_complete_candidate_sheet_review
+  rejected_regions:
+    # Bed candidates whose derived region is visibly not a safe bed-top surface.
+    - {background_stem: bedroom_00023, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00035, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00048, support_type: bed_top, reason: non_bed_furniture}
+    - {background_stem: bedroom_00063, support_type: bed_top, reason: chair_or_bench_not_bed_surface}
+    - {background_stem: bedroom_00067, support_type: bed_top, reason: table_or_bench_not_bed_surface}
+    - {background_stem: bedroom_00089, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00097, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00101, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00108, support_type: bed_top, reason: mixed_or_ambiguous_bed_region}
+    - {background_stem: bedroom_00120, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00121, support_type: bed_top, reason: footboard_or_mixed_region}
+    - {background_stem: bedroom_00143, support_type: bed_top, reason: headboard_mixed_with_bed_surface}
+    - {background_stem: bedroom_00170, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00178, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00185, support_type: bed_top, reason: table_not_bed_surface}
+    - {background_stem: bedroom_00193, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00225, support_type: bed_top, reason: door_or_headboard_not_bed_surface}
+    - {background_stem: bedroom_00258, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00276, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00303, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00310, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00313, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00399, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00414, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00431, support_type: bed_top, reason: game_table_not_bed_surface}
+    - {background_stem: bedroom_00432, support_type: bed_top, reason: ironing_board_not_bed_surface}
+    - {background_stem: bedroom_00443, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: bedroom_00463, support_type: bed_top, reason: pillows_not_stable_surface}
+    - {background_stem: hotel_room_00017, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00058, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00060, support_type: bed_top, reason: pillows_or_headboard_not_surface}
+    - {background_stem: hotel_room_00073, support_type: bed_top, reason: pillows_or_headboard_not_surface}
+    - {background_stem: hotel_room_00088, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00091, support_type: bed_top, reason: existing_laptop_and_ambiguous_surface}
+    - {background_stem: hotel_room_00094, support_type: bed_top, reason: chair_or_ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00098, support_type: bed_top, reason: floor_cushions_not_bed_surface}
+    - {background_stem: hotel_room_00109, support_type: bed_top, reason: non_bed_furniture}
+    - {background_stem: hotel_room_00123, support_type: bed_top, reason: bathtub_or_bench_not_bed_surface}
+    - {background_stem: hotel_room_00129, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00150, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00179, support_type: bed_top, reason: nightstand_not_bed_surface}
+    - {background_stem: hotel_room_00185, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00188, support_type: bed_top, reason: sofa_or_table_not_bed_surface}
+    - {background_stem: hotel_room_00200, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00201, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00207, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00229, support_type: bed_top, reason: sofa_or_ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00234, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00242, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00243, support_type: bed_top, reason: ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00246, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00251, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00281, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00284, support_type: bed_top, reason: occluded_distant_or_non_bed_region}
+    - {background_stem: hotel_room_00292, support_type: bed_top, reason: sofa_or_ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00296, support_type: bed_top, reason: distant_ambiguous_region}
+    - {background_stem: hotel_room_00305, support_type: bed_top, reason: foreground_non_bed_surface}
+    - {background_stem: hotel_room_00314, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00331, support_type: bed_top, reason: sofa_not_bed_surface}
+    - {background_stem: hotel_room_00333, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00352, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00365, support_type: bed_top, reason: sofa_or_ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00379, support_type: bed_top, reason: non_bed_furniture}
+    - {background_stem: hotel_room_00388, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00392, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00393, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00407, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00413, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00416, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00419, support_type: bed_top, reason: sofa_or_ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00447, support_type: bed_top, reason: ottoman_not_bed_surface}
+    - {background_stem: hotel_room_00454, support_type: bed_top, reason: headboard_not_bed_surface}
+    - {background_stem: hotel_room_00463, support_type: bed_top, reason: ottoman_or_table_not_bed_surface}
+    - {background_stem: hotel_room_00465, support_type: bed_top, reason: pillows_not_stable_surface}
+    - {background_stem: hotel_room_00490, support_type: bed_top, reason: vertical_furniture_not_bed_surface}
+
+    # Table candidates with visibly incorrect or unsuitable support regions.
+    - {background_stem: dining_room_00037, support_type: dining_table_top, reason: plant_stand_not_dining_surface}
+    - {background_stem: dining_room_00039, support_type: dining_table_top, reason: non_photographic_background}
+    - {background_stem: dining_room_00066, support_type: dining_table_top, reason: person_occlusion_and_ambiguous_surface}
+    - {background_stem: dining_room_00212, support_type: dining_table_top, reason: stool_or_cabinet_not_table_surface}
+    - {background_stem: dining_room_00238, support_type: dining_table_top, reason: chair_or_edge_not_table_surface}
+    - {background_stem: dining_room_00446, support_type: dining_table_top, reason: floor_false_positive}
+
+production_use:
+  approved: true
+  approved_support_types: [bed_top, dining_table_top]
+  floor_enabled: false
+  review_scope: all_candidate_accept_sheets_reviewed; all_needs_review_rejected
+
+review_evidence:
+  candidate_regions_reviewed: 608
+  bed_top_candidates: 381
+  bed_top_visual_rejections: 75
+  bed_top_visual_rejection_rate: 0.1968503937
+  dining_table_top_candidates: 227
+  dining_table_top_visual_rejections: 6
+  dining_table_top_visual_rejection_rate: 0.0264317181
+  combined_visual_rejections: 81
+  combined_visual_rejection_rate: 0.1332236842
+  accepted_bed_top_regions: 306
+  accepted_dining_table_top_regions: 221
+  accepted_backgrounds: 527

@@ -1,0 +1,33 @@
+version: class_orientation_support_v1
+status: accepted_for_cut_paste_baseline_implementation
+
+support_types: [floor, bed_top, dining_table_top]
+
+policies:
+  0: {class_name: Lighter, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  1: {class_name: Matches, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  2: {class_name: Scissors, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  3: {class_name: Pliers, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  4: {class_name: Knife, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  5: {class_name: Shaver, mode: lying, allowed_supports: [bed_top, dining_table_top]}
+  6: {class_name: Hammer, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  7: {class_name: Cigarettes, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  8: {class_name: Saw, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  9: {class_name: Screwdriver, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  10: {class_name: Wrench, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  11: {class_name: Aerosol can, mode: upright, allowed_supports: [floor, dining_table_top]}
+  12: {class_name: Battery, mode: lying, allowed_supports: [bed_top, dining_table_top, floor]}
+  13: {class_name: Alcohol, mode: upright, allowed_supports: [floor, dining_table_top]}
+  14: {class_name: Mobile phone, mode: lying, allowed_supports: [bed_top, dining_table_top]}
+  15: {class_name: Laptop, mode: asset_preserved_bottom_contact, allowed_supports: [bed_top, dining_table_top, floor]}
+
+geometry_rules:
+  lying: transformed_visible_bbox_must_fit_inside_support_region
+  upright: bottom_alpha_contact_must_lie_inside_support_region
+  asset_preserved_bottom_contact: preserve_asset_orientation_and_align_bottom_alpha_contact
+  rotation: disabled_in_v1
+
+limitations:
+  - 2d_support_constraints_do_not_recover_scene_depth_or_perspective
+  - lying_mode_preserves_source_crop_orientation_without_3d_pose_synthesis
+  - lighting_and_contact_shadows_are_not_inferred
