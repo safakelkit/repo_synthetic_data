@@ -1,0 +1,42 @@
+version: copy_paste_qc_v1_1
+status: executed_accepted_with_documented_visual_limitations
+seed: 42
+
+dataset_root: data/synthetic/cp_v1_seed42
+expected_images: 2048
+classes: 16
+expected_images_per_class: 128
+expected_prefixes: [512, 1024, 1536, 2048]
+severity_per_class_per_32: {clean: 8, light: 12, medium: 8, heavy: 4}
+
+automatic:
+  require_exactly_one_label_per_image: true
+  require_readable_unchanged_dimensions: true
+  require_valid_normalized_yolo_box: true
+  require_metadata_image_and_label_match: true
+  require_image_sha256_match: true
+  require_no_exact_image_duplicates: true
+  require_exact_class_and_severity_prefix_balance: true
+  require_all_manifest_paths_and_labels: true
+  maximum_target_area_relative_error: 0.05
+
+manual_review:
+  sampling: deterministic_class_x_severity
+  images_per_class_per_severity: 4
+  total_images: 256
+  criteria:
+    - class_identity
+    - plausible_scale
+    - support_surface_placement
+    - alpha_edge_and_blending
+    - bounding_box_alignment
+    - degradation_plausibility
+    - no_unlabelled_target_object
+  release_rule: complete_stratified_review_plus_explicit_dataset_level_researcher_disposition
+  disposition: accepted_as_simple_baseline_with_documented_visual_limitations
+  decision_timing: before_detector_results
+
+provenance_note: >-
+  QC-v1 automatic validation and deterministic sampling were executed first.
+  QC-v1.1 versions the later researcher-approved dataset-level disposition
+  without altering generated images or automatic thresholds.

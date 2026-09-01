@@ -105,8 +105,8 @@ worktree so the recorded revision identifies the exact source used.
 | Degradation mixture | 25% clean, 37.5% light, 25% medium, 12.5% heavy in every per-class 32-image block | generation config `degradation` |
 | Degradation operations | Gaussian/motion blur, downscale-upscale, brightness/contrast, JPEG, Gaussian noise; severity-specific probabilities/ranges | `apply_degradations`; generation config `degradation.levels` |
 | Degradation seed | generator seed + 2 = 44 | `build_degradation_schedule`; generation config `seed_offset` |
-| Automatic dataset QC | all 2,048 images; paths/hashes/dimensions/labels/duplicates/area/prefix balance | `copy_paste_qc_v1.yaml`; `validate_copypaste_dataset.py` |
-| Manual dataset QC | 4 images per class×severity cell = 256; explicit pass/reject | QC config and generated `manual_review_sample.csv` |
+| Automatic dataset QC | all 2,048 images; paths/hashes/dimensions/labels/duplicates/area/prefix balance | executed `copy_paste_qc_v1.yaml`, active disposition `copy_paste_qc_v1_1.yaml`; `validate_copypaste_dataset.py` |
+| Manual dataset QC | 4 images per class×severity cell = 256; complete review plus pre-results dataset-level researcher disposition | QC-v1.1 and generated `manual_review_sample.csv`/`manual_review_summary.json` |
 | Eligible background pool | 527 reviewed backgrounds; 306 bed-top and 221 table-top supports | background eligibility v1; reviewed geometry-v2 manifest |
 
 The three available background categories contain 1,166 images: bedroom 382,
@@ -196,6 +196,12 @@ manual cleaning decision, observations do not exclude assets.
 baseline. No realism-driven regeneration will be performed in this matrix. Any
 future improved generator must receive a new version and cannot be selected or
 tuned using easy/hard test results from the current matrix.
+
+The four CP runs are launched in fixed ascending order by
+`train_copypaste_baselines.py --experiment all --evaluate`. Each run is trained,
+evaluated, and plotted before the next begins. The orchestration is fail-fast
+and writes an ignored progress record; it never branches or changes parameters
+based on observed metrics.
 
 ### Placement literature context
 

@@ -61,9 +61,14 @@ python src/validation/validate_copypaste_dataset.py
 python src/training/train.py --preflight-only
 python src/training/train.py
 
-# Copy-paste runs are launched individually (example: 512 images)
+# One copy-paste run (example: 512 images)
 python src/training/train_copypaste_baselines.py --experiment 512 --preflight-only
 python src/training/train_copypaste_baselines.py --experiment 512
+
+# Full sequential overnight matrix: train 512 -> 1024 -> 1536 -> 2048;
+# evaluate best.pt and render plots after each run.
+python src/training/train_copypaste_baselines.py --experiment all --evaluate --preflight-only
+python src/training/train_copypaste_baselines.py --experiment all --evaluate
 
 # Evaluate a selected source-validation checkpoint on all test domains
 python src/evaluate_yolo.py runs/train/<run-name>/weights/best.pt
@@ -79,6 +84,10 @@ Every training entry point verifies the pinned Ultralytics version, model and
 dataset paths, CUDA visibility, selected device, clean Git revision, and unused
 run directory before starting. With `CUDA_VISIBLE_DEVICES=<physical-index>`,
 the config's `device: 0` refers to that single exposed GPU.
+
+The sequential matrix is fail-fast: an error stops later runs and is recorded
+in `runs/evaluation/copy_paste_matrix_status.json`. Existing training or
+evaluation outputs are never silently overwritten.
 
 ## Copy-paste release status
 

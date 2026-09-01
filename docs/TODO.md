@@ -128,6 +128,7 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Align the detector protocol with the verified `env_sam3` Ultralytics 8.4.46 installation before any detector run.
 - [x] Add training preflight checks for package version, CUDA/device visibility, dataset/model paths, clean Git state, and output collision.
 - [x] Add explicit single-quantity selection to the copy-paste runner for safe parallel scheduling.
+- [x] Add a fail-fast sequential 512→1024→1536→2048 pipeline with automatic three-domain evaluation, plotting, and progress state after each run.
 - [ ] Confirm the live availability and ownership of all three RTX 3090 GPUs; one GPU may be occupied by an unrelated workload.
 - [ ] Define a reproducible GPU allocation plan before expensive runs: independent detector experiments/seeds per GPU and parallel GenAI generation workers where model memory permits.
 - [ ] Record the exact GPU model, GPU ID, software/CUDA environment, run assignment, and wall-clock time for every paper experiment.

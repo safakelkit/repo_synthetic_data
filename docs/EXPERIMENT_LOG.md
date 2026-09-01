@@ -92,6 +92,14 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 
 Do not add ADR runs to the active registry until all baseline experiments are complete and the researcher approves a finalized ADR protocol. The proposed score is preserved in `DECISIONS.md` and `PROJECT_CONTEXT.md`.
 
+## Cut-paste matrix execution rule
+
+CP-B0512, CP-B1024, CP-B1536, and CP-B2048 execute sequentially in ascending
+order. After each training run, `best.pt` is evaluated on clean/easy/hard and
+plots are rendered before the next run begins. The fixed pipeline is fail-fast;
+progress and errors are written to the Git-ignored
+`runs/evaluation/copy_paste_matrix_status.json`. Metrics never alter later runs.
+
 ## Pre-generation placement pilot
 
 - **Pilot ID:** SP-SAM3-P01

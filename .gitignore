@@ -22,5 +22,5 @@ venv/
 # Local logs
 *.log
 
-# Private working notes for paper preparation
-docs/TECHNICAL_DECISIONS_PRIVATE.md
+# Private canonical working record for paper preparation
+docs/PAPER_TECHNICAL_RECORD_PRIVATE.md

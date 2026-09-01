@@ -123,7 +123,7 @@ degradation:
 
 quality_control:
   status: frozen_implemented
-  config: configs/quality/copy_paste_qc_v1.yaml
+  config: configs/quality/copy_paste_qc_v1_1.yaml
   validator: src/validation/validate_copypaste_dataset.py
   require_readable_image: true
   require_valid_yolo_label: true

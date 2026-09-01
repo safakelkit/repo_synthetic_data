@@ -167,7 +167,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Automatic scope:** Validate all 2,048 images, labels, metadata links, dimensions, SHA-256 values, exact duplicates, normalized boxes, realized-vs-labelled area (maximum 5% relative difference), nested manifests, and exact class×severity counts at every experiment prefix.
 - **Manual scope:** Deterministically sample four images from every class×severity cell, totaling 256 images. Review class identity, scale, support placement, alpha/blending, box alignment, degradation plausibility, and unlabeled target objects.
 - **Release rule:** Automatic QC must pass; the complete stratified sample must be reviewed; and the researcher must record an explicit dataset-level accept/reject disposition before detector training.
-- **Implementation:** `configs/quality/copy_paste_qc_v1.yaml` and `src/validation/validate_copypaste_dataset.py`.
+- **Implementation:** Automatic thresholds and sampling originated in executed `copy_paste_qc_v1.yaml`; the pre-results researcher acceptance rule is versioned in active `configs/quality/copy_paste_qc_v1_1.yaml`. Both use `src/validation/validate_copypaste_dataset.py`.
 
 ## D020 - Production backgrounds are restricted to the reviewed support pool
 
@@ -189,6 +189,16 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Rationale:** These limitations are intrinsic to the deliberately simple cut-paste baseline; solving them would substantially expand the method without guaranteed detector benefit. Automatic label/integrity checks passed, objects remain recognizable, and four nested quantities can measure whether artifacts help or harm detection.
 - **Future work:** Any realism-enhanced generator must use a new version and repeat QC; do not overwrite `cp_v1_seed42`.
 - **Restriction:** Do not use easy/hard test performance to tune these corrections.
+
+## D022 - The cut-paste quantity matrix runs sequentially and fail-fast
+
+- **Status:** Accepted and implemented
+- **Date:** 2026-09-02
+- **Order:** CP-B0512, CP-B1024, CP-B1536, CP-B2048.
+- **Execution:** Train each run to completion, evaluate its source-validation `best.pt` on the three frozen test domains, render plots, then start the next quantity.
+- **Safety:** Preflight validates all selected runs before the first starts. Existing train/evaluation outputs cause an error. Any training, evaluation, or plotting failure stops the matrix and records state in `runs/evaluation/copy_paste_matrix_status.json`.
+- **Validity:** The pipeline does not inspect metrics or change later configurations; sequential evaluation is reporting only and does not create detector feedback.
+- **Implementation:** `src/training/train_copypaste_baselines.py --experiment all --evaluate`.
 
 ## Open decisions
 

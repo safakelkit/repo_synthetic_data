@@ -26,6 +26,10 @@ tolerance.
 
 ADR effectiveness is a later research question. It must be discussed and decided only after the current baselines are complete.
 
+The cut-paste quantity matrix executes in the fixed order 512, 1,024, 1,536,
+and 2,048. Each `best.pt` is evaluated and plotted before the next run starts;
+the pipeline is fail-fast and never modifies a later run using earlier results.
+
 ## Datasets
 
 | Domain | Role | Reported size |

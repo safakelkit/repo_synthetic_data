@@ -14,7 +14,7 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/quality/copy_paste_qc_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/quality/copy_paste_qc_v1_1.yaml"
 
 
 def repo_path(value: str | Path) -> Path:
@@ -134,9 +134,16 @@ def validate(config_path: Path) -> dict[str, Any]:
         writer.writeheader()
         writer.writerows(selected)
 
+    manual_config = config.get("manual_review", {})
+    disposition = manual_config.get("disposition")
+    status = (
+        "automatic_qc_passed_manual_review_disposition_recorded"
+        if disposition
+        else "automatic_qc_passed_manual_review_pending"
+    )
     result = {
         "format_version": 1,
-        "status": "automatic_qc_passed_manual_review_pending",
+        "status": status,
         "config": config_path.resolve().relative_to(REPO_ROOT).as_posix(),
         "config_sha256": sha256(config_path),
         "images": expected,
@@ -145,6 +152,8 @@ def validate(config_path: Path) -> dict[str, Any]:
         "severity_counts": {f"{class_id}:{severity}": count for (class_id, severity), count in sorted(severity_by_class.items())},
         "manual_review_sample": review_path.resolve().relative_to(REPO_ROOT).as_posix(),
         "manual_review_rows": len(selected),
+        "manual_review_disposition": disposition,
+        "manual_review_decision_timing": manual_config.get("decision_timing"),
     }
     (root / "qc_summary.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     return result
