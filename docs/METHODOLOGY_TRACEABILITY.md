@@ -19,7 +19,8 @@ configuration, implementation, and evidence. A value marked **planned** or
   the 256-image review documented systemic realism artifacts, which the
   researcher accepted as limitations of the simple cut-paste baseline before
   observing detector results.
-- **Not run under the frozen protocol:** E000 and all 12 synthetic baselines.
+- **Completed under the frozen protocol:** E000 real-only training and its one-time clean/easy/hard test evaluation.
+- **Not run under the frozen protocol:** all 12 synthetic baselines.
 
 ## Dataset and evaluation values
 

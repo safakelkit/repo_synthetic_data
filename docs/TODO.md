@@ -67,7 +67,8 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 ## Phase 1 - reproduce the real-only and cut-paste baselines
 
-- [ ] Reproduce E000 on the original 2,215 real training images if no traceable result exists.
+- [x] Train E000 on the original 2,215 real images under the frozen 60-epoch YOLO11s protocol.
+- [x] Evaluate E000 source-validation `best.pt` on the three official test domains and record class-wise results.
 - [ ] Verify the revised, versioned cut-paste pipeline after the remaining generation specifications are frozen.
 - [x] Generate the balanced canonical dataset and nested CP-B0512, CP-B1024, CP-B1536, and CP-B2048 manifests.
 - [x] Validate its image counts, class allocation, annotations, provenance, duplicates, and manifests automatically.

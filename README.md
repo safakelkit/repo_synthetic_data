@@ -13,12 +13,12 @@ Exact paper values and their code/evidence mapping are in
 ## Current status
 
 - Dataset paths, counts, labels, and class order have been audited.
-- The active detector is configured as pretrained YOLO11s for 60 epochs with seed 0; no frozen-protocol run is complete yet.
+- The frozen-protocol E000 real-only YOLO11s seed-0 run is complete: clean/easy/hard test mAP50-95 is 0.6884/0.4143/0.1110.
 - The 2,048-image `cp_v1_seed42` canonical dataset passed complete automatic QC and was accepted by the researcher as a simple context-constrained cut-paste baseline with documented visual limitations.
 - Context-aware placement is implemented and reviewed over the full pool. Geometry-v2 retains 527 accepted regions across 527 backgrounds (306 bed tops and 221 table tops); floor placement is disabled because 2D masks cannot model foreground occlusion or scene depth.
 - Training selects `best.pt` using INSP-DET validation.
 - Official evaluation uses `best.pt` on the INSP-DET, INSP-MOT-DET easy, and INSP-MOT-DET hard test splits.
-- No current run satisfies the complete Phase 1 protocol yet.
+- E000 is complete; the four accepted cut-paste quantity runs are next.
 
 ## Repository layout
 

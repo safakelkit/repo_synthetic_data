@@ -25,7 +25,7 @@ The report does not identify the precise mAP variant, run configuration, seed, o
 
 | ID | Generator | Synthetic count | Seed(s) | INSP-DET mAP50-95 | Easy mAP50-95 | Hard mAP50-95 | Evidence |
 |---|---|---:|---:|---:|---:|---:|---|
-| E000 | None | 0 | 0 initial | TBD | TBD | TBD | TBD |
+| E000 | None | 0 | 0 initial | 0.688407 | 0.414322 | 0.111021 | `runs/evaluation/E000_results.json` |
 | CP-B0512 | Cut-paste | 512 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
 | CP-B1024 | Cut-paste | 1,024 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
 | CP-B1536 | Cut-paste | 1,536 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
@@ -53,7 +53,18 @@ The report does not identify the precise mAP variant, run configuration, seed, o
 
 ## Class-wise findings
 
-TBD. Add only findings supported by saved class-wise evaluation outputs.
+For E000, easy-domain mAP50-95 is highest for Alcohol (0.7522), Shaver
+(0.7479), Pliers (0.7143), Scissors (0.6309), and Aerosol can (0.6229). It is
+lowest for Matches (0.0053), Battery (0.1610), and Lighter (0.1636).
+
+Hard-domain mAP50-95 is highest for Laptop (0.5327), Alcohol (0.3239), Aerosol
+can (0.2330), Hammer (0.2047), and Scissors (0.1395). Matches, Knife, and Shaver
+are 0.0; Battery is 0.0002 and Screwdriver is 0.0014. Lighter is unavailable,
+not zero, because the hard split contains no class-0 annotations.
+
+The absolute mAP50-95 drop from clean is 0.2741 on easy and 0.5774 on hard
+(39.8% and 83.9% relative, respectively). These E000 values are the fixed
+reference for every synthetic-data comparison.
 
 ## Interpretation rules
 

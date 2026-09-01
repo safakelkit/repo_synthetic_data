@@ -7,7 +7,7 @@
 - **Researcher:** Safa Kelkit
 - **Supervisor:** Prof. Martin Kampel
 - **Detector:** pretrained YOLO11s for the complete experiment matrix
-- **Current status:** ready to begin the real-only and accepted cut-paste baseline training matrix
+- **Current status:** E000 complete; accepted cut-paste baseline training is next
 
 ## Problem
 

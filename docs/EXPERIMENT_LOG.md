@@ -6,7 +6,7 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 
 | ID | Generator | Synthetic count | Status |
 |---|---|---:|---|
-| E000 | None | 0 | Planned |
+| E000 | None | 0 | Complete |
 | CP-B0512 | Cut-paste | 512 | Ready for training |
 | CP-B1024 | Cut-paste | 1,024 | Ready for training |
 | CP-B1536 | Cut-paste | 1,536 | Ready for training |
@@ -22,24 +22,29 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 
 ## E000 - Real-only baseline
 
-- **Status:** Planned / Running / Complete / Invalid
-- **Date:** TBD
-- **Code revision:** TBD
+- **Status:** Complete
+- **Date:** 2026-09-02
+- **Code revision:** `30531abd3ee84a791348627d5e7daf7d4f535d66`
 - **Config:** `configs/train_baseline.yaml`
 - **Seed:** 0 (initial matrix)
 - **Model and initialization:** pretrained `yolo11s.pt`
 - **Training data:** INSP-DET real only
 - **Training budget:** 60 epochs, image size 640, batch 16
 - **Checkpoint rule:** source-validation `best.pt`
-- **Selected checkpoint:** TBD
-- **INSP-DET mAP50-95:** TBD
-- **INSP-MOT-DET easy mAP50-95:** TBD
-- **INSP-MOT-DET hard mAP50-95:** TBD
-- **Supporting/class-wise results:** TBD
-- **Artifacts:** TBD
-- **Main observation:** TBD
-- **Problems or validity concerns:** TBD
-- **Next action:** TBD
+- **Selected checkpoint:** `runs/train/real_only_yolo11s_seed0/weights/best.pt`
+- **Checkpoint SHA-256:** `9fcc2ca4ef62caf06bb1de76ace07ad41d622cfe41ccc1b68bd730d311392e82`
+- **INSP-DET mAP50-95:** 0.688407
+- **INSP-MOT-DET easy mAP50-95:** 0.414322
+- **INSP-MOT-DET hard mAP50-95:** 0.111021
+- **Supporting overall results (precision / recall / mAP50):** clean 0.882184 / 0.792164 / 0.845998; easy 0.755445 / 0.509286 / 0.536149; hard 0.265208 / 0.133092 / 0.137603
+- **Source-validation result:** epoch 60; precision 0.86009; recall 0.74789; mAP50 0.79945; mAP50-95 0.65733
+- **Training duration:** 2,111.68 seconds (0.587 hours)
+- **Evaluation artifacts:** `runs/evaluation/E000_results.json`; `runs/evaluation/real_only_yolo11s_seed0/`; `runs/evaluation/E000_results_plots/`
+- **Evaluation JSON SHA-256:** `71f05058d307d322058a70c0a4f562c2a324f5a39ca9e01ab38821aff03711ce`
+- **Main observation:** Relative to clean mAP50-95, easy drops 0.274086 (39.8%) and hard drops 0.577386 (83.9%), confirming the target-domain gap.
+- **Class-wise observation:** Easy is strongest for Alcohol (0.7522), Shaver (0.7479), and Pliers (0.7143). Hard is strongest for Laptop (0.5327), Alcohol (0.3239), and Aerosol can (0.2330); Matches, Knife, and Shaver are 0.0. Hard Lighter is unavailable because the split has no class-0 annotations.
+- **Problems or validity concerns:** None observed. Target test results are reporting evidence and must not be used to retune the frozen cut-paste generator.
+- **Next action:** Train the four accepted cut-paste quantities and compare each frozen run against E000.
 
 ---
 
