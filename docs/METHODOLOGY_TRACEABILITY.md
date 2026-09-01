@@ -101,7 +101,8 @@ worktree so the recorded revision identifies the exact source used.
 | Output safety | nonempty output rejected; successful write required; exact composite duplicates rejected | `generate_dataset` |
 | Provenance | asset/background paths, class, size template, realized area, placement, bbox, SHA-256, seed, QC status | output `metadata.json` |
 | Dataset provenance | code revision/dirty state, package versions, input counts and hashes, source config hash | output `generation_config.json` |
-| Manifest provenance | path, image count, and SHA-256 for each nested subset | output `manifest_checksums.json` |
+| Manifest provenance | root-level portable `./images/...` paths, image count, and SHA-256 for each nested subset | output `manifest_checksums.json` |
+| Training dataset gate | exact expected count, existing image/label pairs, zero duplicate paths, Ultralytics-compatible list resolution | `validate_training_dataset()` in `src/training/train.py` |
 | Degradation mixture | 25% clean, 37.5% light, 25% medium, 12.5% heavy in every per-class 32-image block | generation config `degradation` |
 | Degradation operations | Gaussian/motion blur, downscale-upscale, brightness/contrast, JPEG, Gaussian noise; severity-specific probabilities/ranges | `apply_degradations`; generation config `degradation.levels` |
 | Degradation seed | generator seed + 2 = 44 | `build_degradation_schedule`; generation config `seed_offset` |

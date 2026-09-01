@@ -1,6 +1,7 @@
 train: ../data/raw/insp-det/train/images
 val: ../data/raw/insp-det/val/images
 test: ../data/raw/insp-det/test/images
+expected_train_images: 2215
 
 names:
   0: Lighter

@@ -104,7 +104,7 @@ def validate(config_path: Path) -> dict[str, Any]:
         expected_counts = Counter({(class_id, severity): int(count) * factor for class_id in range(16) for severity, count in base.items()})
         if prefix_counts != expected_counts:
             raise ValueError(f"Class/severity balance failed at prefix {prefix}")
-        manifest = root / "manifests" / f"CP-B{int(prefix):04d}.txt"
+        manifest = root / f"CP-B{int(prefix):04d}.txt"
         paths = [
             (manifest.parent / line.strip()).resolve()
             for line in manifest.read_text(encoding="utf-8").splitlines()

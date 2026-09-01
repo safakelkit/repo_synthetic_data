@@ -894,17 +894,15 @@ def generate_dataset(
             "The partial output is not a valid dataset and must not be used for training."
         )
 
-def create_subset_manifests(full_root: Path, manifest_dir: Path) -> None:
+def create_subset_manifests(full_root: Path) -> None:
     """Create YOLO image lists without duplicating generated image files."""
     splits = [512, 1024, 1536, 2048]
 
     full_root = repo_path(full_root)
-    manifest_dir = repo_path(manifest_dir)
     images = sorted((full_root / "images").glob("*.jpg"))
     if len(images) != max(splits):
         raise ValueError(f"Expected exactly 2048 images, found {len(images)}")
 
-    manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_records: list[dict[str, Any]] = []
     for n in splits:
         missing_labels = [
@@ -917,12 +915,14 @@ def create_subset_manifests(full_root: Path, manifest_dir: Path) -> None:
                 f"first missing label: {missing_labels[0].stem}.txt"
             )
 
-        manifest_path = manifest_dir / f"CP-B{n:04d}.txt"
+        # Keep manifests at the dataset root. The pinned Ultralytics release expands only
+        # paths beginning with "./" relative to the list file; a nested list
+        # would require "./../images", whose second "./" is also replaced by
+        # its parser and produces an invalid duplicated path.
+        manifest_path = full_root / f"CP-B{n:04d}.txt"
         with open(manifest_path, "w", encoding="utf-8") as f:
             for image in images[:n]:
-                # Ultralytics resolves paths beginning with ./ relative to the
-                # manifest, so the dataset remains portable with the repo.
-                f.write(f"./../images/{image.name}\n")
+                f.write(f"./images/{image.name}\n")
 
         manifest_records.append(
             {
@@ -935,7 +935,7 @@ def create_subset_manifests(full_root: Path, manifest_dir: Path) -> None:
 
         print(f"Created subset manifest: {manifest_path}")
 
-    with open(manifest_dir / "manifest_checksums.json", "w", encoding="utf-8") as f:
+    with open(full_root / "manifest_checksums.json", "w", encoding="utf-8") as f:
         json.dump(manifest_records, f, indent=2, ensure_ascii=False)
 
 
@@ -1016,10 +1016,7 @@ def main() -> None:
         degradation_config=config["degradation"],
     )
 
-    create_subset_manifests(
-        full_root=output_root,
-        manifest_dir=output_root / "manifests",
-    )
+    create_subset_manifests(full_root=output_root)
 
 if __name__ == "__main__":
     main()

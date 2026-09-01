@@ -179,8 +179,8 @@ def main() -> None:
             write_matrix_status(state)
             print("Finished:", run_name)
             print(output)
-    except Exception as error:
-        state["status"] = "failed"
+    except BaseException as error:
+        state["status"] = "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
         state["failed_utc"] = utc_now()
         state["error"] = f"{type(error).__name__}: {error}"
         write_matrix_status(state)

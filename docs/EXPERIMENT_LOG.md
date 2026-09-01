@@ -100,6 +100,14 @@ plots are rendered before the next run begins. The fixed pipeline is fail-fast;
 progress and errors are written to the Git-ignored
 `runs/evaluation/copy_paste_matrix_status.json`. Metrics never alter later runs.
 
+### Invalid CP-B0512 launch (2026-09-02)
+
+- **Status:** Invalid and interrupted during epoch 2; no result is reportable.
+- **Cause:** Nested manifest entries `./../images/...` were mis-expanded by Ultralytics 8.4.46. The loader marked all 512 synthetic images corrupt and retained only 2,215 real images (139 batches at batch size 16).
+- **Detection:** The terminal batch count differed from the expected 171 batches and the training log reported `2215 images ... 512 corrupt`.
+- **Correction:** Manifests now live at the dataset root with `./images/...` entries. Preflight requires exact expected image/label counts and rejects missing or duplicate paths.
+- **Restriction:** The interrupted checkpoint, metrics, and plots must not be included in any comparison or paper result.
+
 ## Pre-generation placement pilot
 
 - **Pilot ID:** SP-SAM3-P01

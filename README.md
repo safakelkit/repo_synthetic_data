@@ -81,9 +81,10 @@ Each run name is unique and an existing run directory causes an error instead
 of silently creating a suffixed or nested folder.
 
 Every training entry point verifies the pinned Ultralytics version, model and
-dataset paths, CUDA visibility, selected device, clean Git revision, and unused
-run directory before starting. With `CUDA_VISIBLE_DEVICES=<physical-index>`,
-the config's `device: 0` refers to that single exposed GPU.
+dataset paths, exact expected image/label count, duplicate paths, CUDA
+visibility, selected device, clean Git revision, and unused run directory
+before starting. With `CUDA_VISIBLE_DEVICES=<physical-index>`, the config's
+`device: 0` refers to that single exposed GPU.
 
 The sequential matrix is fail-fast: an error stops later runs and is recorded
 in `runs/evaluation/copy_paste_matrix_status.json`. Existing training or

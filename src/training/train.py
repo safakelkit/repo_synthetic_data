@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import importlib.metadata
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,7 @@ from typing import Any
 import torch
 import yaml
 from ultralytics import YOLO
-from ultralytics.data.utils import check_det_dataset
+from ultralytics.data.utils import IMG_FORMATS, check_det_dataset, img2label_paths
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FROZEN_TRAIN_KEYS = (
@@ -49,6 +51,66 @@ def git_state() -> tuple[str, bool]:
     return revision, bool(status)
 
 
+def resolve_ultralytics_image_paths(img_path: str | list[str]) -> list[Path]:
+    """Resolve training inputs exactly as the pinned Ultralytics release does."""
+    files: list[str] = []
+    for raw_path in img_path if isinstance(img_path, list) else [img_path]:
+        path = Path(raw_path)
+        if path.is_dir():
+            files.extend(glob.glob(str(path / "**" / "*.*"), recursive=True))
+        elif path.is_file():
+            lines = path.read_text(encoding="utf-8").strip().splitlines()
+            parent = str(path.parent) + os.sep
+            files.extend(
+                line.replace("./", parent) if line.startswith("./") else line
+                for line in lines
+                if line.strip()
+            )
+        else:
+            raise FileNotFoundError(f"Training input does not exist: {path}")
+    return sorted(
+        Path(file.replace("/", os.sep))
+        for file in files
+        if file.rpartition(".")[-1].lower() in IMG_FORMATS
+    )
+
+
+def validate_training_dataset(dataset: dict[str, Any]) -> dict[str, Any]:
+    """Fail before training if image lists resolve incompletely or incorrectly."""
+    image_paths = resolve_ultralytics_image_paths(dataset["train"])
+    expected = int(dataset["expected_train_images"])
+    if len(image_paths) != expected:
+        raise ValueError(
+            f"Training image count mismatch: expected {expected}, resolved {len(image_paths)}"
+        )
+
+    duplicate_paths = len(image_paths) - len({str(path.resolve()) for path in image_paths})
+    if duplicate_paths:
+        raise ValueError(f"Training inputs contain {duplicate_paths} duplicate image paths")
+
+    missing_images = [path for path in image_paths if not path.is_file()]
+    if missing_images:
+        raise FileNotFoundError(
+            f"Training inputs contain {len(missing_images)} missing images; "
+            f"first missing image: {missing_images[0]}"
+        )
+
+    label_paths = [Path(path) for path in img2label_paths([str(path) for path in image_paths])]
+    missing_labels = [path for path in label_paths if not path.is_file()]
+    if missing_labels:
+        raise FileNotFoundError(
+            f"Training inputs contain {len(missing_labels)} missing labels; "
+            f"first missing label: {missing_labels[0]}"
+        )
+
+    return {
+        "expected_images": expected,
+        "resolved_images": len(image_paths),
+        "resolved_labels": len(label_paths),
+        "duplicate_image_paths": duplicate_paths,
+    }
+
+
 def validate_training_preflight(
     model_path: str,
     data_yaml: str,
@@ -72,6 +134,7 @@ def validate_training_preflight(
     if not resolved_data.is_file():
         raise FileNotFoundError(f"Dataset config not found: {resolved_data}")
     dataset = check_det_dataset(str(resolved_data), autodownload=False)
+    dataset_integrity = validate_training_dataset(dataset)
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available in this terminal session")
@@ -102,6 +165,7 @@ def validate_training_preflight(
         "data_yaml": str(resolved_data),
         "train": dataset["train"],
         "validation": dataset["val"],
+        "dataset_integrity": dataset_integrity,
         "run_dir": str(run_dir),
     }
 

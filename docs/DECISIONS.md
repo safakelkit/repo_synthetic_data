@@ -200,6 +200,16 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Validity:** The pipeline does not inspect metrics or change later configurations; sequential evaluation is reporting only and does not create detector feedback.
 - **Implementation:** `src/training/train_copypaste_baselines.py --experiment all --evaluate`.
 
+## D023 - Dataset manifests must be validated with Ultralytics path semantics
+
+- **Status:** Accepted and implemented
+- **Date:** 2026-09-02
+- **Incident:** The first CP-B0512 launch used nested manifest entries of the form `./../images/...`. Although these paths resolve with standard filesystem semantics, Ultralytics 8.4.46 replaces every `./` substring and produced invalid duplicated paths. All 512 synthetic images were ignored and the interrupted run loaded only the 2,215 real images; that attempt is invalid and must not be reported.
+- **Decision:** Store the four manifests at the canonical dataset root and use `./images/...` entries. Do not duplicate image files.
+- **Safety:** Dataset YAMLs declare the exact expected training-image count. Preflight resolves lists with the pinned Ultralytics semantics and requires the exact number of existing, unique image/label pairs before creating a run.
+- **Expected counts:** 2,727; 3,239; 3,751; and 4,263 total training images for CP-B0512 through CP-B2048.
+- **Implementation:** `create_subset_manifests()` and `validate_training_dataset()`.
+
 ## Open decisions
 
 - Exact Stable Diffusion, Qwen, and ControlNet models and versions.

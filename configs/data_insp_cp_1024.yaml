@@ -1,9 +1,10 @@
 train:
   - ../data/raw/insp-det/train/images
-  - ../data/synthetic/cp_v1_seed42/manifests/CP-B1024.txt
+  - ../data/synthetic/cp_v1_seed42/CP-B1024.txt
 
 val: ../data/raw/insp-det/val/images
 test: ../data/raw/insp-det/test/images
+expected_train_images: 3239
 
 names:
   0: Lighter
