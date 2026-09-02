@@ -297,3 +297,12 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Evidence:** All 16 class masks were selected and rendered successfully without GPU inference. The deterministic scissors case uses asset `02_IMG_0050121_obj_02_crop_000047`; its silhouette preserves blades, pivot, and asymmetric handles.
 - **Boundary:** A correct source silhouette does not prove generated class identity. Post-generation semantic review, SAM3 localization, annotation, and QC remain mandatory.
 - **V3 feasibility evidence:** SDXL produced a clear, plausible scissors. Qwen also produced a recognizable scissors with stronger noise/low-light character. Both resolved the V2 forceps-like semantic failure; Qwen remains subject to all-class quality review.
+
+## D030 - GenAI control suitability is distinct from copy-paste asset eligibility
+
+- **Status:** Accepted for corrected SDXL pilot v2; outcome pending
+- **Date:** 2026-09-03
+- **Decision:** All 2,750 audited assets remain eligible for the accepted copy-paste baseline. GenAI ControlNet conditioning separately requires silhouettes that visually communicate class geometry without RGB texture.
+- **Correction:** For Matches, Pliers, Shaver, Saw, Aerosol can, and Mobile phone, use four predeclared representative accepted masks and class-specific semantic phrases. This does not reject or relabel any source asset.
+- **Scene diversity:** Replace the one shared support polygon with one frozen support/target layout for each of the eight MAIJA scene families. Prompt text retains the complete scene-family description.
+- **Evidence boundary:** The correction was designed from source assets and pilot images only, without easy/hard feedback. It must pass a new 64-image SDXL pilot before canonical promotion.

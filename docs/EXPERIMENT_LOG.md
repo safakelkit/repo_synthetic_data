@@ -42,6 +42,7 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **SDXL all-class pilot result:** Complete, 64/64 images, four images per class, all 64 controls unique, 1,019.395 s aggregate inference time (15.928 s/image mean). Structural coverage passed.
 - **SDXL visual review:** Scissors, Knife, Hammer, Screwdriver, Wrench, and Alcohol were consistently recognizable. Matches, Shaver, Saw, Aerosol can, and Mobile phone showed systematic absent/wrong/ambiguous targets; Pliers was mixed. Some additional images contain questionable secondary geometry. The fixed support polygon also made nominally different scene families visually repetitive.
 - **SDXL pilot disposition:** Reject for canonical promotion pending class-specific silhouette/prompt refinement and scene-family-specific control layouts. Do not use pilot images for training.
+- **SDXL pilot-v2 correction:** Preserve the immutable class IDs and copy-paste asset eligibility, but use a separate GenAI-control suitability policy. Matches, Pliers, Shaver, Saw, Aerosol can, and Mobile phone each receive four visually representative accepted masks. Prompts explicitly describe matchbox, combination pliers, disposable razor, handheld hacksaw, aerosol spray can, and smartphone semantics. Eight scene-specific support polygons replace the shared pilot-v1 polygon. Static rendering produced 64/64 unique controls; GPU generation remains pending.
 
 ## E000 - Real-only baseline
 

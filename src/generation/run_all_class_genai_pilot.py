@@ -26,7 +26,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_all_class_pilot_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_all_class_pilot_v2.yaml"
 FEASIBILITY_MODULE = REPO_ROOT / "src/generation/run_full_scene_feasibility.py"
 
 
@@ -78,11 +78,12 @@ def rotate_binary(mask: np.ndarray, angle: float) -> np.ndarray:
     return cv2.warpAffine(mask, matrix, (new_width, new_height), flags=cv2.INTER_NEAREST)
 
 
-def build_control(config: dict[str, Any], row: dict[str, str], sample_index: int) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
+def build_control(config: dict[str, Any], row: dict[str, str], sample_index: int, scene_name: str) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     width, height = [int(value) for value in config["output_size"]]
     layout = config["control_layout"]
     proxy = np.full((height, width), int(layout["canvas_value"]), dtype=np.uint8)
-    support = np.asarray(layout["support_polygon"], dtype=np.int32)
+    scene_layout = config["scene_layouts"][scene_name]
+    support = np.asarray(scene_layout["support_polygon"], dtype=np.int32)
     cv2.fillPoly(proxy, [support], int(layout["support_value"]))
     mask_path = repo_path(row["mask_path"])
     original = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
@@ -94,7 +95,7 @@ def build_control(config: dict[str, Any], row: dict[str, str], sample_index: int
     binary = np.where(original[ys.min():ys.max() + 1, xs.min():xs.max() + 1] > 0, 255, 0).astype(np.uint8)
     angle = (-24, -8, 8, 24)[sample_index % 4]
     binary = rotate_binary(binary, angle)
-    x1, y1, x2, y2 = [int(value) for value in layout["target_box_xyxy"]]
+    x1, y1, x2, y2 = [int(value) for value in scene_layout["target_box_xyxy"]]
     box_width, box_height = x2 - x1, y2 - y1
     scale = min(box_width / binary.shape[1], box_height / binary.shape[0]) * (0.82 + 0.06 * (sample_index % 3))
     target_width, target_height = max(1, round(binary.shape[1] * scale)), max(1, round(binary.shape[0] * scale))
@@ -110,13 +111,15 @@ def build_control(config: dict[str, Any], row: dict[str, str], sample_index: int
     return Image.fromarray(cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)), Image.fromarray(cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)), {
         "asset_id": row["asset_id"], "mask_path": str(mask_path.relative_to(REPO_ROOT)),
         "mask_sha256": sha256(mask_path), "rotation_degrees": angle,
+        "scene_layout": scene_name,
         "rendered_box_xyxy": [paste_x, paste_y, paste_x + target_width, paste_y + target_height],
     }
 
 
-def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str) -> str:
+def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class_id: int) -> str:
     description = str(scene["description"]).rstrip(".")
-    return f"{config['prompt']['prefix']} {description}. {config['prompt']['suffix'].format(target=target.lower())}"
+    phrase = config.get("class_target_phrases", {}).get(class_id, target.lower())
+    return f"{config['prompt']['prefix']} {description}. {config['prompt']['suffix'].format(target=phrase)}"
 
 
 def main() -> None:
@@ -158,9 +161,17 @@ def main() -> None:
     records: list[dict[str, Any]] = []
     for index, sample in enumerate(schedule):
         rows = read_masks(manifest_path, sample["class_id"])
-        row = rows[(int(config["seed"]) + int(config["silhouette_source"]["selection_seed_offset"]) + index) % len(rows)]
-        proxy, control, silhouette = build_control(config, row, index)
-        prompt = prompt_for(config, scene_policy["scene_families"][sample["scene_name"]], sample["target"])
+        preferred = config["silhouette_source"].get("preferred_stems", {}).get(sample["class_id"])
+        if preferred:
+            stem = preferred[index % 4]
+            matches = [candidate for candidate in rows if candidate["stem"] == stem]
+            if len(matches) != 1:
+                raise ValueError(f"Preferred silhouette is not unique/accepted: class={sample['class_id']} stem={stem}")
+            row = matches[0]
+        else:
+            row = rows[(int(config["seed"]) + int(config["silhouette_source"]["selection_seed_offset"]) + index) % len(rows)]
+        proxy, control, silhouette = build_control(config, row, index, sample["scene_name"])
+        prompt = prompt_for(config, scene_policy["scene_families"][sample["scene_name"]], sample["target"], sample["class_id"])
         generator = torch.Generator(device="cpu").manual_seed(int(config["seed"]) + index)
         common = {"prompt": prompt, "negative_prompt": config["prompt"]["negative"], "height": 1024, "width": 1024, "num_inference_steps": int(config["inference_steps"]), "controlnet_conditioning_scale": float(config["controlnet_conditioning_scale"]), "generator": generator}
         started = time.monotonic()

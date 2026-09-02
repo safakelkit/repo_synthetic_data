@@ -98,7 +98,8 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Implement the deterministic 64-image all-class/all-assigned-scene pilot runner with real binary SAM3 silhouettes, distinct controls, prompts, seeds, and provenance.
 - [x] Generate and inspect the deterministic 64-image SDXL pilot covering all 16 classes and planned scene families.
 - [ ] Resolve SDXL pilot failures: class confusion/absence for Matches, Shaver, Saw, Aerosol can, and Mobile phone; mixed Pliers quality; and insufficient scene-layout diversity caused by the shared support polygon.
-- [ ] Re-run the corrected SDXL all-class pilot before full-scale generation.
+- [x] Implement SDXL pilot v2 with class-specific semantic prompts, four curated control silhouettes for each failed/mixed class, and eight scene-family-specific support layouts.
+- [ ] Run and review the corrected SDXL all-class pilot v2 before full-scale generation.
 - [ ] Generate and validate SD-B0512, SD-B1024, SD-B1536, and SD-B2048.
 - [ ] Train, evaluate, and record every valid configuration using the frozen protocol.
 
