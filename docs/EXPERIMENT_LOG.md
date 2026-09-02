@@ -39,6 +39,9 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **V3 Qwen result:** Completed in 116.855 s wall time (26.270 s load, 90.069 s inference; 16.634/16.859 GiB peak allocated/reserved). The output is recognizably a pair of scissors and follows the silhouette, although it is noisier/darker and lower fidelity than SDXL. Visual feasibility accepted with a quality caveat.
 - **V3 disposition:** Real-silhouette conditioning resolves the V2 class-semantic failure for both backends. These images remain feasibility evidence only; all-class pilot, SAM3 annotation, degradation, and QC are required before canonical generation.
 - **All-class pilot prepared:** `run_all_class_genai_pilot.py` schedules 64 samples/backend, covering every one of the 16 classes in each of its four frozen MAIJA-compatible scene families. It writes unique proxy/Canny images and complete pre-annotation provenance; no labels or degradation are created and training use is forbidden.
+- **SDXL all-class pilot result:** Complete, 64/64 images, four images per class, all 64 controls unique, 1,019.395 s aggregate inference time (15.928 s/image mean). Structural coverage passed.
+- **SDXL visual review:** Scissors, Knife, Hammer, Screwdriver, Wrench, and Alcohol were consistently recognizable. Matches, Shaver, Saw, Aerosol can, and Mobile phone showed systematic absent/wrong/ambiguous targets; Pliers was mixed. Some additional images contain questionable secondary geometry. The fixed support polygon also made nominally different scene families visually repetitive.
+- **SDXL pilot disposition:** Reject for canonical promotion pending class-specific silhouette/prompt refinement and scene-family-specific control layouts. Do not use pilot images for training.
 
 ## E000 - Real-only baseline
 

@@ -105,11 +105,11 @@ overlap across several classes to limit background shortcuts.
 A one-image feasibility runner validates the exact SDXL and Qwen model pairs
 on the same Canny condition without creating training data. V2 proved both
 model integrations, but its hand-drawn scissors proxy remained semantically
-weak. Active v3 computes Canny from an accepted class-matched SAM3 binary mask,
-without transferring source RGB/RGBA pixels, and uses control scale 0.8. Run
-and review both v3 outputs before
-expanding to the deterministic all-class prompt/control and SAM3 annotation/QC
-pilot. Canonical 2,048-image generation remains blocked.
+weak. V3 computes Canny from an accepted class-matched SAM3 binary mask,
+without transferring source RGB/RGBA pixels, and passed one-image review for
+both backends. The 64-image SDXL all-class pilot completed but failed visual
+promotion because several classes were absent or confused and the shared
+support layout limited scene diversity. Canonical generation remains blocked.
 
 Canonical controls will not reuse this one feasibility layout. Every generated
 sample must use a distinct deterministic combination of scene geometry,

@@ -28,7 +28,7 @@ configuration, implementation, and evidence. A value marked **planned** or
 - **Partly executed:** SDXL and Qwen v2 feasibility verified immutable loading,
   ControlNet integration, and RTX 3090 execution. The hand-drawn scissors proxy
   remained semantically weak, especially for Qwen. Active v3 uses accepted
-  class-matched SAM3 binary silhouettes; v3 GPU inference remains pending.
+  class-matched SAM3 binary silhouettes; both v3 GPU feasibility runs passed.
 - **Not yet implemented or run:** all-class prompt/control generation, GenAI
   annotation/QC, dataset release, and eight detector runs.
 
@@ -192,10 +192,10 @@ implemented. Do not describe provisional values as executed methodology.
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
 | Spatial conditioning | V3 Canny derived from class-matched accepted SAM3 binary silhouettes; no RGB/RGBA pixels; control scale 0.8 | Implemented and validated for all 16 classes; SDXL/Qwen v3 feasibility visually passed; all-class pilot pending |
-| All-class pilot | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images/backend; distinct binary-silhouette control, seed, prompt, scale, rotation, and placement | `src/generation/run_all_class_genai_pilot.py`; GPU launch pending; no labels/degradation/training use |
+| All-class pilot | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images/backend; distinct binary-silhouette control, seed, prompt, scale, rotation, and placement | SDXL 64/64 generated and reviewed; structural pass, visual reject pending class-specific controls and scene-specific layouts; Qwen paused at 4/64 |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |
-| Pilot | Deterministic, all 16 classes, covering planned scene families for both backends | Accepted; size pending |
+| Pilot | Deterministic 64 images/backend: all 16 classes × four assigned scene families | SDXL completed/rejected for canonical promotion; Qwen paused at 4/64 |
 | Target-test boundary | No prompt, scene, model, or QC tuning from easy/hard results | Accepted |
 
 The frozen policy is `configs/generation/genai_scene_policy_v1.yaml`.

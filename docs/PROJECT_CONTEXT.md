@@ -7,7 +7,7 @@
 - **Researcher:** Safa Kelkit
 - **Supervisor:** Prof. Martin Kampel
 - **Detector:** pretrained YOLO11s for the complete experiment matrix
-- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete; SDXL model/RTX 3090 compatibility passed, its v1 control failed visual review, and corrected GenAI feasibility v2 awaits manual runs
+- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete. SDXL and Qwen v3 real-silhouette feasibility passed. The 64-image SDXL all-class pilot completed with structural coverage but failed canonical promotion because several classes were confused/absent and scene layouts were too repetitive; Qwen all-class pilot is paused after four images.
 
 ## Problem
 
