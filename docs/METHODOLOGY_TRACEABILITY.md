@@ -208,6 +208,11 @@ official Qwen-Image model card (https://huggingface.co/Qwen/Qwen-Image), and
 the InstantX community inpainting ControlNet model card
 (https://huggingface.co/InstantX/Qwen-Image-ControlNet-Inpainting).
 
+The GenAI dependency specification constrains `huggingface-hub` to
+`>=1.5.0,<2.0`, satisfying both pinned Transformers 5.5.4 and Diffusers 0.40.0.
+The exact version resolved in a run is recorded by backend preflight rather
+than inferred from this compatibility range.
+
 ## Generated dataset and experiment evidence
 
 - `cp_v1_seed42` was generated from clean commit `6c14f12` with 2,048 unique
