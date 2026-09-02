@@ -296,3 +296,4 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Reproducibility:** Record asset ID, class ID, mask path and SHA-256, audit-manifest SHA-256, selection seed, rendered box, proxy hash, and Canny hash. Corresponding SDXL and Qwen samples receive the same condition.
 - **Evidence:** All 16 class masks were selected and rendered successfully without GPU inference. The deterministic scissors case uses asset `02_IMG_0050121_obj_02_crop_000047`; its silhouette preserves blades, pivot, and asymmetric handles.
 - **Boundary:** A correct source silhouette does not prove generated class identity. Post-generation semantic review, SAM3 localization, annotation, and QC remain mandatory.
+- **V3 feasibility evidence:** SDXL produced a clear, plausible scissors. Qwen also produced a recognizable scissors with stronger noise/low-light character. Both resolved the V2 forceps-like semantic failure; Qwen remains subject to all-class quality review.

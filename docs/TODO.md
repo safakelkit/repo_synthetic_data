@@ -90,7 +90,7 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Run SDXL feasibility v1 and record runtime/VRAM; reject its single-line Canny output as visually unrealistic while accepting model/hardware compatibility.
 - [x] Run and visually review SDXL feasibility v2 using filled-proxy-derived Canny at control scale 0.8.
 - [x] Replace the semantically weak programmatic target proxy with deterministic class-matched SAM3 binary silhouettes and verify all 16 classes.
-- [ ] Run and visually review SDXL feasibility v3 with the real scissors silhouette.
+- [x] Run and visually review SDXL feasibility v3 with the real scissors silhouette.
 - [ ] Expand v3 into complete all-class prompt, subtype, scale, and spatial-control templates.
 - [x] Freeze the GenAI canonical diversity rule: eight unique layouts per class-scene-prefix block, at least four shape/pose variants per class, and deterministic variation across camera, target, lighting, clutter, wording, and seed.
 - [x] Freeze the GenAI canonical degradation schedule and ranges equal to executed copy-paste degradation-v1; keep feasibility images clean.
@@ -106,7 +106,7 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Select and record the exact full-scene Qwen and ControlNet models, revisions, licenses, compatibility basis, and proposed RTX 3090 memory strategy.
 - [x] Define the shared single-image feasibility prompt, Canny condition, seed, and provenance.
 - [x] Run Qwen feasibility v2 on RTX 3090 hardware using the same corrected control; measure offload, runtime, and peak VRAM.
-- [ ] Run and visually review Qwen feasibility v3 with the same real scissors silhouette used by SDXL.
+- [x] Run and visually review Qwen feasibility v3 with the same real scissors silhouette used by SDXL.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
 - [ ] Generate and inspect a deterministic all-class full-scene pilot; use
   binary SAM3 silhouettes as non-photographic ControlNet geometry and SAM3 separately for post-generation localization/annotation.

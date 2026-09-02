@@ -35,6 +35,9 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **SDXL v2 result:** Recognizable scissors and usable scene composition, with imperfect target geometry; technical feasibility accepted, not training data.
 - **Qwen v2 result:** 2,127.631 s load, 142.715 s inference, 2,270.781 s wall time, and 16.634/16.859 GiB peak allocated/reserved. Control adherence was strong, but the target resembled forceps/hemostats rather than scissors.
 - **V3 action:** Use an accepted class-matched SAM3 binary silhouette while preserving full-scene generation and prohibiting source RGB/RGBA pixels. The deterministic scissors mask is asset `02_IMG_0050121_obj_02_crop_000047`.
+- **V3 SDXL result:** Completed in 23.594 s wall time (4.687 s load, 18.384 s inference; 7.735/10.379 GiB peak allocated/reserved). The output is clearly a pair of scissors with plausible blades, pivot, handles, scale, and table placement. Visual feasibility accepted.
+- **V3 Qwen result:** Completed in 116.855 s wall time (26.270 s load, 90.069 s inference; 16.634/16.859 GiB peak allocated/reserved). The output is recognizably a pair of scissors and follows the silhouette, although it is noisier/darker and lower fidelity than SDXL. Visual feasibility accepted with a quality caveat.
+- **V3 disposition:** Real-silhouette conditioning resolves the V2 class-semantic failure for both backends. These images remain feasibility evidence only; all-class pilot, SAM3 annotation, degradation, and QC are required before canonical generation.
 
 ## E000 - Real-only baseline
 
