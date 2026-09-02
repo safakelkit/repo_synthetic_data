@@ -7,7 +7,7 @@
 - **Researcher:** Safa Kelkit
 - **Supervisor:** Prof. Martin Kampel
 - **Detector:** pretrained YOLO11s for the complete experiment matrix
-- **Current status:** E000 complete; accepted cut-paste baseline training is next
+- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete; GenAI baseline specification is next
 
 ## Problem
 
@@ -146,6 +146,13 @@ pool combines the researcher's earlier background inspection with the complete
 608-candidate contact-sheet review. No target-class instance was confirmed in
 the accepted pool; very small or occluded instances remain a documented visual-
 review limitation and are checked again during QC-v1.
+
+The detector-seed-0 cut-paste matrix is complete. CP-B0512, CP-B1024,
+CP-B1536, and CP-B2048 respectively achieved clean/easy/hard mAP50-95 of
+0.6781/0.4556/0.1272, 0.6867/0.4596/0.1312, 0.6861/0.4551/0.1618, and
+0.6753/0.4707/0.1463. Every quantity improved both target splits over E000,
+with a small clean-domain decrease. The quantity response is non-monotonic and
+additional detector seeds remain necessary for variance-aware claims.
 
 ### Stage 2 - Stable Diffusion + ControlNet without ADR
 

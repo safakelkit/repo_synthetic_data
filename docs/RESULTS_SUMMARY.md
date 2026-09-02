@@ -26,10 +26,10 @@ The report does not identify the precise mAP variant, run configuration, seed, o
 | ID | Generator | Synthetic count | Seed(s) | INSP-DET mAP50-95 | Easy mAP50-95 | Hard mAP50-95 | Evidence |
 |---|---|---:|---:|---:|---:|---:|---|
 | E000 | None | 0 | 0 initial | 0.688407 | 0.414322 | 0.111021 | `runs/evaluation/E000_results.json` |
-| CP-B0512 | Cut-paste | 512 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
-| CP-B1024 | Cut-paste | 1,024 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
-| CP-B1536 | Cut-paste | 1,536 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
-| CP-B2048 | Cut-paste | 2,048 | detector 0 / generator 42 | TBD | TBD | TBD | TBD |
+| CP-B0512 | Cut-paste | 512 | detector 0 / generator 42 | 0.678076 | 0.455601 | 0.127215 | `runs/evaluation/CP-B0512_yolo11s_seed0_results.json` |
+| CP-B1024 | Cut-paste | 1,024 | detector 0 / generator 42 | 0.686670 | 0.459600 | 0.131242 | `runs/evaluation/CP-B1024_yolo11s_seed0_results.json` |
+| CP-B1536 | Cut-paste | 1,536 | detector 0 / generator 42 | 0.686050 | 0.455120 | 0.161818 | `runs/evaluation/CP-B1536_yolo11s_seed0_results.json` |
+| CP-B2048 | Cut-paste | 2,048 | detector 0 / generator 42 | 0.675311 | 0.470741 | 0.146286 | `runs/evaluation/CP-B2048_yolo11s_seed0_results.json` |
 | SD-B0512 | Stable Diffusion + ControlNet | 512 | TBD | TBD | TBD | TBD | TBD |
 | SD-B1024 | Stable Diffusion + ControlNet | 1,024 | TBD | TBD | TBD | TBD | TBD |
 | SD-B1536 | Stable Diffusion + ControlNet | 1,536 | TBD | TBD | TBD | TBD | TBD |
@@ -65,6 +65,20 @@ not zero, because the hard split contains no class-0 annotations.
 The absolute mAP50-95 drop from clean is 0.2741 on easy and 0.5774 on hard
 (39.8% and 83.9% relative, respectively). These E000 values are the fixed
 reference for every synthetic-data comparison.
+
+### Cut-paste quantity response
+
+All four valid seed-0 cut-paste runs improve both target domains over E000.
+Easy gains are +0.0413, +0.0453, +0.0408, and +0.0564; hard gains are
++0.0162, +0.0202, +0.0508, and +0.0353 for 512 through 2,048 synthetic images.
+Clean changes are -0.0103, -0.0017, -0.0024, and -0.0131. CP-B1024 offers the
+smallest clean cost, CP-B1536 has the largest hard gain, and CP-B2048 has the
+largest easy gain. The response is not monotonic, so the current one-seed
+matrix does not support a claim that more cut-paste data is always better.
+
+Combined numeric and visual evidence is stored in
+`runs/evaluation/copy_paste_matrix_summary.csv` and
+`runs/evaluation/copy_paste_matrix_summary.png`.
 
 ## Interpretation rules
 

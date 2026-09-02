@@ -14,11 +14,12 @@ Exact paper values and their code/evidence mapping are in
 
 - Dataset paths, counts, labels, and class order have been audited.
 - The frozen-protocol E000 real-only YOLO11s seed-0 run is complete: clean/easy/hard test mAP50-95 is 0.6884/0.4143/0.1110.
+- The complete seed-0 cut-paste quantity matrix is valid and complete. All four quantities improve both target splits; CP-B1536 is best on hard (0.1618), CP-B2048 is best on easy (0.4707), and CP-B1024 best preserves clean performance (0.6867).
 - The 2,048-image `cp_v1_seed42` canonical dataset passed complete automatic QC and was accepted by the researcher as a simple context-constrained cut-paste baseline with documented visual limitations.
 - Context-aware placement is implemented and reviewed over the full pool. Geometry-v2 retains 527 accepted regions across 527 backgrounds (306 bed tops and 221 table tops); floor placement is disabled because 2D masks cannot model foreground occlusion or scene depth.
 - Training selects `best.pt` using INSP-DET validation.
 - Official evaluation uses `best.pt` on the INSP-DET, INSP-MOT-DET easy, and INSP-MOT-DET hard test splits.
-- E000 is complete; the four accepted cut-paste quantity runs are next.
+- E000 and all four accepted cut-paste quantity runs are complete; Stable Diffusion + ControlNet specification is the next experimental phase.
 
 ## Repository layout
 

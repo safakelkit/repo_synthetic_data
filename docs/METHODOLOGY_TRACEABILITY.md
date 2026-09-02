@@ -162,7 +162,7 @@ for 1,186 was reconstructed and class-verified. A deterministic 160-asset
 visual sample produced 146 passes and 14 observations. Per the researcher's
 manual cleaning decision, observations do not exclude assets.
 
-## Generated candidate evidence and remaining decisions
+## Generated dataset and experiment evidence
 
 - `cp_v1_seed42` was generated from clean commit `6c14f12` with 2,048 unique
   images, 128 per class, and exact per-class `32/48/32/16`
@@ -193,12 +193,21 @@ manual cleaning decision, observations do not exclude assets.
 - The verified training environment uses Ultralytics 8.4.46 and has no broken
   package requirements. Training preflight enforces this exact version.
 
+The seed-0 cut-paste matrix completed at code revision `f72caff`. Exact input
+counts were 2,727/3,239/3,751/4,263 with zero corrupt samples. Relative to E000,
+all four quantities improved easy by +0.041279/+0.045278/+0.040799/+0.056419
+and hard by +0.016194/+0.020221/+0.050797/+0.035265, while clean changed by
+-0.010331/-0.001737/-0.002357/-0.013097. The source evidence is the four
+evaluation JSON files and checkpoint hashes in `EXPERIMENT_LOG.md`; the combined
+paper-candidate evidence is `copy_paste_matrix_summary.csv` and `.png`. These
+are single-detector-seed findings, not variance or significance estimates.
+
 `cp_v1_seed42` is accepted for CP-B0512--CP-B2048 as a simple cut-paste
 baseline. No realism-driven regeneration will be performed in this matrix. Any
 future improved generator must receive a new version and cannot be selected or
 tuned using easy/hard test results from the current matrix.
 
-The four CP runs are launched in fixed ascending order by
+The four CP runs were launched in fixed ascending order by
 `train_copypaste_baselines.py --experiment all --evaluate`. Each run is trained,
 evaluated, and plotted before the next begins. The orchestration is fail-fast
 and writes an ignored progress record; it never branches or changes parameters

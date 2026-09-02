@@ -7,10 +7,10 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 | ID | Generator | Synthetic count | Status |
 |---|---|---:|---|
 | E000 | None | 0 | Complete |
-| CP-B0512 | Cut-paste | 512 | Ready for training |
-| CP-B1024 | Cut-paste | 1,024 | Ready for training |
-| CP-B1536 | Cut-paste | 1,536 | Ready for training |
-| CP-B2048 | Cut-paste | 2,048 | Ready for training |
+| CP-B0512 | Cut-paste | 512 | Complete |
+| CP-B1024 | Cut-paste | 1,024 | Complete |
+| CP-B1536 | Cut-paste | 1,536 | Complete |
+| CP-B2048 | Cut-paste | 2,048 | Complete |
 | SD-B0512 | Stable Diffusion + ControlNet | 512 | Planned |
 | SD-B1024 | Stable Diffusion + ControlNet | 1,024 | Planned |
 | SD-B1536 | Stable Diffusion + ControlNet | 1,536 | Planned |
@@ -44,7 +44,37 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **Main observation:** Relative to clean mAP50-95, easy drops 0.274086 (39.8%) and hard drops 0.577386 (83.9%), confirming the target-domain gap.
 - **Class-wise observation:** Easy is strongest for Alcohol (0.7522), Shaver (0.7479), and Pliers (0.7143). Hard is strongest for Laptop (0.5327), Alcohol (0.3239), and Aerosol can (0.2330); Matches, Knife, and Shaver are 0.0. Hard Lighter is unavailable because the split has no class-0 annotations.
 - **Problems or validity concerns:** None observed. Target test results are reporting evidence and must not be used to retune the frozen cut-paste generator.
-- **Next action:** Train the four accepted cut-paste quantities and compare each frozen run against E000.
+- **Next action:** Use E000 as the fixed reference for the completed cut-paste matrix and future GenAI baselines.
+
+## Verified cut-paste matrix — detector seed 0
+
+All four runs used code revision `f72caff2f068aacebaeb0078b0b0e1461512bcea`,
+pretrained YOLO11s, generator seed 42, 60 epochs, image size 640, batch 16,
+and source-validation-selected `best.pt`. Ultralytics loaded the exact expected
+2,727/3,239/3,751/4,263 training images with zero corrupt samples. The matrix
+ran on one NVIDIA GeForce RTX 3090 using Ultralytics 8.4.46 and Torch
+2.7.1+cu118. Results below are single-seed evidence.
+
+| ID | Best epoch | Val mAP50-95 | Clean | Delta clean | Easy | Delta easy | Hard | Delta hard | Total seconds |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| CP-B0512 | 55 | 0.655150 | 0.678076 | -0.010331 | 0.455601 | +0.041279 | 0.127215 | +0.016194 | 2,208.64 |
+| CP-B1024 | 54 | 0.682050 | 0.686670 | -0.001737 | 0.459600 | +0.045278 | 0.131242 | +0.020221 | 2,215.96 |
+| CP-B1536 | 59 | 0.677100 | 0.686050 | -0.002357 | 0.455120 | +0.040799 | 0.161818 | +0.050797 | 2,262.81 |
+| CP-B2048 | 49 | 0.665610 | 0.675311 | -0.013097 | 0.470741 | +0.056419 | 0.146286 | +0.035265 | 2,346.82 |
+
+Checkpoint and evaluation evidence:
+
+| ID | `best.pt` SHA-256 | Evaluation JSON SHA-256 |
+|---|---|---|
+| CP-B0512 | `8b0339e5b13197ba8f71556bd5d03ebb47f117f39e665e8259a7c33170a28dae` | `259dcddc85b53ff79acc15bc9f3c0d861350b42413e85e55cd961ceeb723069d` |
+| CP-B1024 | `83643105bad327fbebce0aeba89e3728d63ff0f74e063bcf94ea8dda74ae317d` | `6a92aad56a5a009151b99c2b62c2caa4848e3f92573aac491a9508f8eb612820` |
+| CP-B1536 | `475b0d0912b8877b0020c72235648172d5e5f2c7ed581e81f4d5d0711250db24` | `d02a7e8436ae746cb9ed23399f25c340e5b695ea54faaffa11bf7c4905b4e8fe` |
+| CP-B2048 | `4c2f4da413ecbe5a3460d3ad4051f28ccdab9e071700711e8920796d4d1d9dce` | `32a438f240e5141c8ce92da0a4fd213c3ef20446af012b5866ce13db71267b39` |
+
+- **Artifacts:** `runs/train/CP-B*_yolo11s_seed0/`, `runs/evaluation/CP-B*_yolo11s_seed0_results.json`, domain evaluation folders, per-run plots, `copy_paste_matrix_summary.csv`, and `copy_paste_matrix_summary.png`.
+- **Validity:** Matrix status is `complete`; every expected dataset scan reports zero corrupt samples; the log contains no traceback, runtime error, CUDA OOM, or NaN.
+- **Main finding:** Every cut-paste quantity improves both target splits while decreasing clean mAP50-95. CP-B1024 gives the smallest clean loss; CP-B1536 gives the highest hard result; CP-B2048 gives the highest easy result. Quantity response is not monotonic.
+- **Restriction:** These target-test results must not be used to revise `cp_v1_seed42` and rerun the same comparison. Additional detector seeds are required before strong variability or significance claims.
 
 ---
 

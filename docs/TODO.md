@@ -69,13 +69,14 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 - [x] Train E000 on the original 2,215 real images under the frozen 60-epoch YOLO11s protocol.
 - [x] Evaluate E000 source-validation `best.pt` on the three official test domains and record class-wise results.
-- [ ] Verify the revised, versioned cut-paste pipeline after the remaining generation specifications are frozen.
+- [x] Verify the revised, versioned cut-paste pipeline after the generation specifications were frozen.
 - [x] Generate the balanced canonical dataset and nested CP-B0512, CP-B1024, CP-B1536, and CP-B2048 manifests.
 - [x] Validate its image counts, class allocation, annotations, provenance, duplicates, and manifests automatically.
 - [x] Complete stratified visual review and approve the current dataset with documented baseline limitations.
-- [ ] Train each configuration using the frozen training protocol.
-- [ ] Evaluate source-validation `best.pt` on INSP-DET test, easy test, and hard test.
-- [ ] Record all results and artifacts in `EXPERIMENT_LOG.md` and `RESULTS_SUMMARY.md`.
+- [x] Train each cut-paste configuration using the frozen training protocol.
+- [x] Evaluate each cut-paste source-validation `best.pt` on INSP-DET test, easy test, and hard test.
+- [x] Record the seed-0 cut-paste results and artifacts in `EXPERIMENT_LOG.md`, `RESULTS_SUMMARY.md`, and the private paper record.
+- [x] Produce a combined cut-paste quantity-response CSV and paper-candidate plot.
 
 ## Phase 2 - Stable Diffusion + ControlNet baseline
 

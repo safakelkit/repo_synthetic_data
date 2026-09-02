@@ -87,6 +87,11 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 - Per-class gains and losses.
 - Clean-to-target trade-offs.
 - Failed or invalid experiments.
+- Current cut-paste seed-0 evidence: every quantity improves easy and hard over
+  E000 while slightly reducing clean performance; the response is non-monotonic.
+- Report CP-B1024 as the best clean-preserving trade-off, CP-B1536 as the
+  highest hard result, and CP-B2048 as the highest easy result without treating
+  one seed as statistical proof.
 
 ## 8. Baseline Analysis
 
