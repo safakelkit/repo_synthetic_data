@@ -210,24 +210,62 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Expected counts:** 2,727; 3,239; 3,751; and 4,263 total training images for CP-B0512 through CP-B2048.
 - **Implementation:** `create_subset_manifests()` and `validate_training_dataset()`.
 
-## D024 - GenAI baselines use one paired controlled-inpainting plan
+## D024 - GenAI baselines generate complete MAIJA-aligned scenes
 
-- **Status:** Shared design accepted and implemented; backend models and inference values remain provisional until smoke tests pass
+- **Status:** Method family, scene policy, and feasibility model pairs accepted; canonical implementation pending
 - **Date:** 2026-09-02
-- **Decision:** Stable Diffusion and Qwen receive the same 2,048 class-balanced generation records. Each record reuses the class, source RGBA asset, background, support type, intended placement, and frozen post-generation degradation assignment from the pre-results `cp_v1` schedule.
-- **Fairness:** SD-B0512/QW-B0512 through SD-B2048/QW-B2048 are identical nested record prefixes with 32/64/96/128 requested images per class. Backend-specific randomness uses separate recorded seed ranges, but sample identity and detector protocol remain paired.
-- **Conditioning:** Reconstruct an undegraded OpenCV/RGBA copy-paste initialization from the frozen background, object asset, and intended bounding box. Both backends receive that initialization and the same expanded inpaint rectangle. Stable Diffusion's candidate ControlNet receives Canny edges of the initialization; the candidate Qwen inpainting ControlNet receives its native image-plus-mask control. This backend difference must be reported rather than described as identical tensor conditioning.
-- **Purpose:** GenAI refines a controlled object placement and appearance; it does not choose placement from target-test feedback. The original degraded cut-paste JPEG is not used as the initialization, avoiding double application of the frozen degradation schedule.
-- **Annotation:** The intended placement box defines the generation region, not the accepted label. A post-generation SAM3 mask must localize the generated target; automatic and human QC must reject wrong-class, absent, duplicated, malformed, or out-of-region generations before labels are released.
-- **Pilot:** Use the same deterministic 32 records (two per class) for both backends. Resolve immutable model revisions, benchmark runtime/VRAM, validate mask locality and annotation recovery, and review all outputs before production.
-- **Candidate backends:** `stabilityai/stable-diffusion-xl-base-1.0` in the Diffusers SDXL ControlNet inpaint pipeline plus `diffusers/controlnet-canny-sdxl-1.0`; Qwen-Image plus `InstantX/Qwen-Image-ControlNet-Inpainting`. The Qwen ControlNet is a community release, not an official Qwen ControlNet. Neither candidate is frozen for production until its smoke test passes.
-- **Implementation:** `configs/generation/genai_shared_v1.yaml`, backend candidate configs, `prepare_genai_plan.py`, `render_genai_conditioning.py`, and `preflight_genai_backend.py`.
-- **Technical sources:** Diffusers SDXL ControlNet inpaint API: https://huggingface.co/docs/diffusers/main/api/pipelines/controlnet_sdxl ; Qwen-Image model: https://huggingface.co/Qwen/Qwen-Image ; InstantX inpainting ControlNet model card: https://huggingface.co/InstantX/Qwen-Image-ControlNet-Inpainting
+- **Decision:** Stable Diffusion and Qwen baselines generate both the background and target object as new image content. They do not reuse a real Places365 background or paste an object-bank RGBA crop into the generated image.
+- **Fixed taxonomy:** The existing 16 classes and IDs in `configs/data_insp.yaml` are immutable. GenAI generation may vary object appearance, subtype, viewpoint, and background, but must not add, remove, merge, rename, or reorder experimental classes.
+- **Scene policy:** Backgrounds are not restricted to bedroom, hotel room, and dining room. They follow the frozen correctional-facility policy grounded in MAIJA's detention-room-search scenario and specified in D025.
+- **Context balance:** A class may use physically plausible contexts, but no class may be tied to one unique background family. Multiple scene families must overlap across classes to reduce class prediction from background shortcuts. Freeze the class-to-scene allocation before target-test evaluation.
+- **Spatial control:** ControlNet may receive a layout, contour, silhouette, depth, or other non-photographic spatial condition. It must not receive real background pixels or an RGBA object composite in the active full-scene method.
+- **Allocation:** Preserve 2,048 images/backend, exactly 128 primary targets/class, with balanced nested prefixes of 512/1,024/1,536/2,048.
+- **Annotation:** A requested class or control region is not automatically a valid label. Recover the visible generated target with SAM3 and reject absent, wrong-class, duplicate, malformed, implausibly scaled, or unlocalizable outputs. Any additional visible project-class instance must be annotated or the image rejected.
+- **Pilot:** Before production, generate and inspect the same-size deterministic pilot for both backends, covering every class and the planned scene families. Record immutable model revisions, prompts, controls, seeds, runtime/VRAM, QC, and provenance.
+- **Restriction:** Do not choose scene families, prompts, models, controls, or acceptance thresholds using INSP-MOT-DET easy/hard results.
 
 ## Open decisions
 
-- Immutable revisions and smoke-test acceptance of the candidate Stable Diffusion, Qwen, and ControlNet models.
-- GenAI post-generation SAM3 annotation thresholds and quality-control acceptance criteria.
+- Complete all-class prompting and spatial-conditioning templates after the single-image feasibility runs.
+- Freeze SAM3 annotation thresholds and quality-control acceptance criteria.
 - Seed count and compute budget.
 - Clean-domain tolerance.
 - All ADR design and evaluation questions, after the active baseline phase is complete.
+
+## D025 - Frozen GenAI scene taxonomy and balanced context matrix
+
+- **Status:** Accepted and frozen before GenAI generation
+- **Date:** 2026-09-02
+- **Source of truth:** `configs/generation/genai_scene_policy_v1.yaml`
+- **Evidence:** The official MAIJA description places the mobile assistant in a correctional-facility context. The INSP dataset description narrows the object-recognition scenario to detention-room searches and reports varied indoor scenes, clutter, partial occlusion, and non-uniform lighting.
+- **Scene families:** Cell sleeping area, cell desk area, cell storage area, cell wash area, communal day room, property-inspection station, correctional workshop, and maintenance/service area.
+- **Domain weighting:** Five families represent detention living spaces, one is a controlled property-inspection reference, and two are supervised operational spaces. Assignment frequency gives each 512-image block 272/128/112 images from these three groups respectively.
+- **Semantic matrix:** Every class is assigned exactly four compatible scene families. The property-inspection station is shared by all 16 classes; other families overlap across 4--8 classes. Each 32-image class block allocates eight images to each assigned family. Exact class balance is mandatory, but equal scene totals are deliberately not forced when that would introduce implausible class-scene pairs.
+- **Class boundary:** Scene assignment never changes the existing class label. Subtype and appearance variation may be defined later only within the fixed semantic meaning of that class.
+- **Validity boundary:** This matrix was designed without easy/hard test feedback and accepted by the researcher before generation. It must not be revised using target-test results.
+- **Sources:** https://cvl.tuwien.ac.at/project/maija/ and https://repositum.tuwien.at/bitstream/20.500.12708/224661/1/Bernhart%20Costin%20-%202025%20-%20Real-Time%20Multi-Object%20Tracking%20under%20Resource...pdf
+
+## D026 - Parallel runs use one independent experiment per GPU
+
+- **Status:** Accepted
+- **Date:** 2026-09-02
+- **Hardware:** Three host-visible NVIDIA GeForce RTX 3090 GPUs are currently available; availability must be rechecked immediately before launch.
+- **Decision:** Do not distribute one detector run across three GPUs. Launch up to three independent experiment processes concurrently, each restricted to one physical GPU with `CUDA_VISIBLE_DEVICES` and using logical `device: 0`.
+- **Protocol preservation:** Every run retains global batch 16, detector seed 0, pretrained YOLO11s initialization, 60 epochs, and all other frozen settings. DDP is excluded from the active matrix because three-way distribution would require changing the batch protocol and execution mode used by E000 and cut-paste.
+- **Isolation:** Every process must have a unique experiment ID, run directory, evaluation directory, progress record, and log. A failure in one process must not overwrite or invalidate another.
+- **Resource caution:** Three runs may contend for CPU workers, RAM, and storage bandwidth. Measure utilization at launch; if worker count must change, freeze one common value for all GenAI detector experiments and document the deviation before results are observed.
+- **Evidence:** Record physical GPU ID, logical GPU ID, GPU model, driver/CUDA environment, start/end UTC, wall time, and concurrent workloads for every run.
+- **Generation:** Full-scene generation may also use one independent deterministic worker per GPU, provided sample-level seeds and output ownership make results invariant to worker scheduling.
+
+## D027 - Frozen full-scene feasibility model pairs
+
+- **Status:** Accepted for one-image feasibility; Qwen production acceptance remains conditional on the measured RTX 3090 run
+- **Date:** 2026-09-02
+- **Source of truth:** `configs/generation/genai_models_v1.yaml`
+- **Stable Diffusion:** `stabilityai/stable-diffusion-xl-base-1.0` at commit `462165984030d82259a11f4367a4eed129e94a7b` with `diffusers/controlnet-canny-sdxl-1.0` at `eb115a19a10d14909256db740ed109532ab1483c`; OpenRAIL++; FP16; no refiner.
+- **Qwen:** `Qwen/Qwen-Image` at commit `75e0b4be04f60ec59a75f475837eced720f823b6` with `InstantX/Qwen-Image-ControlNet-Union` at `b13036f066d6dee7c20513e263d3d673055e9de8`; Apache-2.0; Canny control; BF16 compute.
+- **Why original Qwen-Image:** The selected InstantX ControlNet explicitly documents compatibility with the original Qwen-Image base. Qwen-Image-2512 is therefore not substituted without separate compatibility evidence.
+- **RTX 3090 strategy:** Qwen transformer and text encoder use bitsandbytes NF4 4-bit quantization while ControlNet remains BF16; model CPU offload is mandatory. This is a feasibility hypothesis, not yet measured evidence.
+- **Fair feasibility input:** Both backends receive the same programmatically drawn 1024x1024 Canny condition, class (`Scissors`, ID 2), scene (`property_inspection_station`), seed 42, 30 inference steps, and ControlNet scale 0.9. Model-specific guidance remains SDXL 5.0 and Qwen true-CFG 4.0.
+- **Boundary:** A generated feasibility image is not training data and has no automatic YOLO annotation. Canonical generation stays blocked until both outputs are visually reviewed and the all-class annotation/QC pilot is approved.
+- **Primary sources:** https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0 ; https://huggingface.co/diffusers/controlnet-canny-sdxl-1.0 ; https://huggingface.co/Qwen/Qwen-Image ; https://huggingface.co/InstantX/Qwen-Image-ControlNet-Union ; https://huggingface.co/docs/diffusers/quantization/bitsandbytes .

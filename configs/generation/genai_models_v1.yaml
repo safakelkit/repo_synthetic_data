@@ -1,0 +1,90 @@
+format_version: 1
+protocol_id: genai_models_v1
+status: frozen_for_single_image_feasibility
+decision_date: 2026-09-02
+
+shared:
+  output_width: 1024
+  output_height: 1024
+  inference_steps: 30
+  seed: 42
+  control_type: canny
+  control_source: synthetic_non_photographic_layout
+  controlnet_conditioning_scale: 0.9
+  target_class_id: 2
+  target_class_name: Scissors
+  scene_family: property_inspection_station
+  prompt: >-
+    A realistic mobile inspection-camera photograph inside a correctional
+    facility property-inspection station. Exactly one pair of scissors is
+    clearly visible on the center of a plain inspection table, at a plausible
+    scale, fully inside the image and not occluded. Institutional indoor
+    environment, natural perspective, realistic materials, neutral mixed
+    lighting, documentary photography, no people.
+  negative_prompt: >-
+    multiple scissors, duplicate object, additional project target objects,
+    wrong object, deformed scissors, fused parts, floating object, cropped
+    target, hidden target, hand, person, text, letters, numbers, logo,
+    watermark, illustration, cartoon, CGI, low resolution, blurry target
+  feasibility_output_root: data/synthetic/feasibility/full_scene_v1
+
+sdxl:
+  accepted: true
+  base_model:
+    id: stabilityai/stable-diffusion-xl-base-1.0
+    revision: 462165984030d82259a11f4367a4eed129e94a7b
+    license: openrail++
+    source: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+  controlnet:
+    id: diffusers/controlnet-canny-sdxl-1.0
+    revision: eb115a19a10d14909256db740ed109532ab1483c
+    license: openrail++
+    source: https://huggingface.co/diffusers/controlnet-canny-sdxl-1.0
+  pipeline_class: StableDiffusionXLControlNetPipeline
+  torch_dtype: float16
+  variant: fp16
+  guidance_scale: 5.0
+  memory_strategy: single_gpu_model_cpu_offload
+  use_refiner: false
+
+qwen:
+  accepted_for_feasibility: true
+  production_acceptance_requires_rtx3090_measurement: true
+  base_model:
+    id: Qwen/Qwen-Image
+    revision: 75e0b4be04f60ec59a75f475837eced720f823b6
+    license: apache-2.0
+    source: https://huggingface.co/Qwen/Qwen-Image
+  controlnet:
+    id: InstantX/Qwen-Image-ControlNet-Union
+    revision: b13036f066d6dee7c20513e263d3d673055e9de8
+    license: apache-2.0
+    source: https://huggingface.co/InstantX/Qwen-Image-ControlNet-Union
+  pipeline_class: QwenImageControlNetPipeline
+  torch_dtype: bfloat16
+  true_cfg_scale: 4.0
+  quantization:
+    backend: bitsandbytes_4bit
+    components: [transformer, text_encoder]
+    load_in_4bit: true
+    bnb_4bit_quant_type: nf4
+    bnb_4bit_compute_dtype: bfloat16
+  memory_strategy: quantized_components_plus_model_cpu_offload
+
+selection_rationale:
+  - SDXL 1.0 has a mature official Canny ControlNet and fits a 24 GB RTX 3090 in FP16 with offload.
+  - The SDXL refiner is excluded to reduce compute and keep the baseline reproducible.
+  - The InstantX union ControlNet explicitly targets the original Qwen-Image base model, so Qwen-Image-2512 is not substituted.
+  - Qwen feasibility uses NF4 quantization and CPU offload because the unquantized model plus ControlNet is not a safe 24 GB assumption.
+  - Both backends receive the identical generated Canny control image, target class, scene family, resolution, seed, and inference-step count.
+  - https://huggingface.co/docs/diffusers/quantization/bitsandbytes documents the selected 4-bit backend.
+
+release_gate:
+  canonical_generation_approved: false
+  required_before_release:
+    - successful_sdxl_single_image_feasibility
+    - successful_qwen_single_image_feasibility
+    - recorded_wall_time_and_peak_vram
+    - researcher_visual_review
+    - all_class_prompt_and_control_pilot
+    - post_generation_annotation_and_qc_policy

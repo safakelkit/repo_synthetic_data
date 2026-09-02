@@ -19,7 +19,7 @@ Exact paper values and their code/evidence mapping are in
 - Context-aware placement is implemented and reviewed over the full pool. Geometry-v2 retains 527 accepted regions across 527 backgrounds (306 bed tops and 221 table tops); floor placement is disabled because 2D masks cannot model foreground occlusion or scene depth.
 - Training selects `best.pt` using INSP-DET validation.
 - Official evaluation uses `best.pt` on the INSP-DET, INSP-MOT-DET easy, and INSP-MOT-DET hard test splits.
-- E000 and all four accepted cut-paste quantity runs are complete. The shared paired GenAI conditioning plan and its 32-record visual preview are ready; backend model smoke tests are next. No GenAI image has been generated yet.
+- E000 and all four accepted cut-paste quantity runs are complete. The next phase is a full-scene GenAI baseline in which Stable Diffusion and Qwen generate both the MAIJA-aligned background and the target object. The eight-family scene policy and exact SDXL/Qwen ControlNet pairs are frozen for single-image feasibility; annotation, QC, and canonical generation remain open.
 
 ## Repository layout
 
@@ -33,7 +33,6 @@ docs/                    Research context, decisions, TODO, and results
 runs/train/              Training outputs (generated, ignored by Git)
 runs/evaluation/         Evaluation outputs (generated, ignored by Git)
 src/augmentation/        Copy-paste generation
-src/generation/          Paired GenAI planning, conditioning, and preflight
 src/extraction/          SAM3 object-bank construction and audit
 src/placement/           Reproducible support-mask preprocessing
 src/training/            Training entry points
@@ -92,31 +91,32 @@ The sequential matrix is fail-fast: an error stops later runs and is recorded
 in `runs/evaluation/copy_paste_matrix_status.json`. Existing training or
 evaluation outputs are never silently overwritten.
 
-## GenAI baseline preparation
+## GenAI baseline status
 
-Stable Diffusion and Qwen use the same frozen 2,048 sample identities and nested
-quantity prefixes. The common plan reconstructs an undegraded reference
-composite from each background, SAM3 RGBA asset, and accepted cut-paste
-placement. GenAI then inpaints that controlled region; the intended box is not
-automatically accepted as the final label.
+The accepted GenAI direction is complete-scene generation rather than reuse of
+the cut-paste backgrounds or RGBA composites. The 16-class taxonomy remains
+fixed. The frozen v1 policy is grounded in MAIJA's correctional-facility and
+detention-room-search scope. It contains eight scene families spanning
+detention living spaces, controlled property inspection, and supervised operational
+spaces. Every class is assigned four semantically compatible families. A
+property-inspection scene is shared by all classes, while the remaining scenes
+overlap across several classes to limit background shortcuts.
+
+A one-image feasibility runner now validates the exact SDXL and Qwen model
+pairs on the same programmatically drawn Canny condition without creating
+training data. Run it manually on an RTX 3090 and review both outputs before
+expanding to the deterministic all-class prompt/control and SAM3 annotation/QC
+pilot. Canonical 2,048-image generation remains blocked.
 
 ```bash
-# CPU-only deterministic plan and conditioning preview; already completed.
-python src/generation/prepare_genai_plan.py
-python src/generation/render_genai_conditioning.py
-
-# Metadata-only model/environment preflight; writes a local report but does not
-# download model weights or run inference.
-python src/generation/preflight_genai_backend.py --backend sdxl --gpu 0
-python src/generation/preflight_genai_backend.py --backend qwen --gpu 0
+python src/generation/run_full_scene_feasibility.py --help
 ```
 
-The backend configs currently name smoke-test candidates, not approved
-production models. Exact Hugging Face revisions, practical RTX 3090 memory
-behavior, generation throughput, post-generation SAM3 annotation, and QC must
-be verified before either 2,048-image production run is unlocked. Qwen's
-candidate ControlNet is a community InstantX release and must not be described
-as an official Qwen ControlNet.
+The runner is intentionally limited to one local image per backend and refuses
+a dirty Git worktree or an existing output directory. Install the pinned GenAI
+requirements, run `--preflight-only`, and then launch SDXL and Qwen manually on
+an available GPU. Run the two first measurements sequentially to avoid mixing
+CPU-offload, download, and storage contention in the evidence.
 
 ## Copy-paste release status
 

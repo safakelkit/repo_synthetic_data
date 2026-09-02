@@ -1,0 +1,114 @@
+format_version: 1
+policy_id: genai_scene_policy_v1
+status: frozen_for_genai_baselines
+revision: semantic_compatibility_v1_1
+scope: shared_by_stable_diffusion_and_qwen_full_scene_baselines
+
+evidence_boundary:
+  project_context: correctional_facility_mobile_assistance
+  primary_detection_scenario: detention_room_search
+  sources:
+    - https://cvl.tuwien.ac.at/project/maija/
+    - https://repositum.tuwien.at/bitstream/20.500.12708/224661/1/Bernhart%20Costin%20-%202025%20-%20Real-Time%20Multi-Object%20Tracking%20under%20Resource...pdf
+
+class_policy:
+  immutable: true
+  source: configs/data_insp.yaml
+  count: 16
+  names:
+    0: Lighter
+    1: Matches
+    2: Scissors
+    3: Pliers
+    4: Knife
+    5: Shaver
+    6: Hammer
+    7: Cigarettes
+    8: Saw
+    9: Screwdriver
+    10: Wrench
+    11: Aerosol can
+    12: Battery
+    13: Alcohol
+    14: Mobile phone
+    15: Laptop
+
+scene_families:
+  cell_sleeping_area:
+    group: core_detention_living_space
+    description: Correctional detention cell sleeping area with a bed or bunk and sparse institutional furnishing.
+  cell_desk_area:
+    group: core_detention_living_space
+    description: Desk or table area inside a correctional detention room, with restrained institutional furnishing.
+  cell_storage_area:
+    group: core_detention_living_space
+    description: Locker, shelf, cabinet, or personal-storage area inside a correctional detention room.
+  cell_wash_area:
+    group: core_detention_living_space
+    description: Washbasin, bathroom, or personal-care area attached to or inside a correctional detention room.
+  communal_day_room:
+    group: core_detention_living_space
+    description: Shared correctional-facility day room with tables, seating, and institutional interior design.
+  property_inspection_station:
+    group: controlled_property_inspection
+    description: Controlled inspection table for searching and documenting personal belongings in a correctional facility.
+  correctional_workshop:
+    group: supervised_operational_space
+    description: Supervised correctional workshop with a workbench and controlled tools or materials.
+  maintenance_service_area:
+    group: supervised_operational_space
+    description: Maintenance, utility, or service-storage area within a correctional facility.
+
+allocation_rule:
+  canonical_images_per_backend: 2048
+  images_per_class: 128
+  nested_prefixes: [512, 1024, 1536, 2048]
+  class_block_size: 32
+  scene_families_per_class: 4
+  images_per_assigned_scene_per_class_block: 8
+  scene_balance: controlled_but_not_forced_equal
+  deterministic: true
+  generator_seed: 42
+  notes:
+    - Each 512-image prefix adds exactly 32 images per class.
+    - Within each per-class block, each of the four assigned scenes contributes exactly eight images.
+    - Class balance is mandatory; equal scene counts are not mandatory when they would force semantically weak class-scene pairs.
+    - Property inspection is a common reference scene for all classes; the other three scenes are class-compatible contexts.
+    - Stable Diffusion and Qwen use the same allocation policy; output pixels are generated independently by each backend.
+
+class_to_scene_families:
+  0: [cell_sleeping_area, cell_desk_area, cell_storage_area, property_inspection_station]
+  1: [cell_sleeping_area, cell_desk_area, communal_day_room, property_inspection_station]
+  2: [cell_desk_area, cell_wash_area, property_inspection_station, correctional_workshop]
+  3: [cell_storage_area, property_inspection_station, correctional_workshop, maintenance_service_area]
+  4: [cell_sleeping_area, communal_day_room, property_inspection_station, correctional_workshop]
+  5: [cell_sleeping_area, cell_desk_area, cell_wash_area, property_inspection_station]
+  6: [cell_storage_area, property_inspection_station, correctional_workshop, maintenance_service_area]
+  7: [cell_sleeping_area, cell_desk_area, communal_day_room, property_inspection_station]
+  8: [cell_storage_area, property_inspection_station, correctional_workshop, maintenance_service_area]
+  9: [cell_storage_area, property_inspection_station, correctional_workshop, maintenance_service_area]
+  10: [cell_storage_area, property_inspection_station, correctional_workshop, maintenance_service_area]
+  11: [cell_storage_area, cell_wash_area, property_inspection_station, maintenance_service_area]
+  12: [cell_desk_area, cell_storage_area, property_inspection_station, maintenance_service_area]
+  13: [cell_sleeping_area, cell_wash_area, communal_day_room, property_inspection_station]
+  14: [cell_sleeping_area, cell_desk_area, communal_day_room, property_inspection_station]
+  15: [cell_sleeping_area, cell_desk_area, communal_day_room, property_inspection_station]
+
+generation_constraints:
+  full_scene_generation: true
+  reuse_real_background_pixels: false
+  reuse_object_bank_pixels: false
+  exactly_one_primary_target_requested: true
+  scene_family_must_not_change_class_id: true
+  extra_visible_project_class_policy: annotate_all_or_reject
+  target_test_tuning_forbidden: true
+  photographic_style: realistic_mobile_inspection_camera
+  prohibit_visible_text_logos_and_watermarks: true
+
+pending_before_release:
+  - prompt_templates_and_negative_prompts
+  - spatial_condition_representation
+  - subtype_and_scale_policy_within_fixed_class_semantics
+  - sam3_annotation_thresholds
+  - automatic_and_manual_qc_thresholds
+  - deterministic_all_class_pilot

@@ -80,24 +80,30 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 ## Phase 2 - Stable Diffusion + ControlNet baseline
 
-- [x] Build and checksum one paired 2,048-record conditioning plan with exact class balance and nested 512/1,024/1,536/2,048 prefixes.
-- [x] Define the shared controlled-inpainting design, prompts, negative prompts, initialization reconstruction, masks, backend seed ranges, and post-generation degradation reuse.
-- [x] Render and verify initialization/mask/Canny previews for the deterministic 32-record pilot without model inference.
-- [ ] Select and record the exact Stable Diffusion and ControlNet models, versions, licenses, and compute requirements.
-- [ ] Run candidate-model preflight and a small SDXL smoke test; freeze or reject its model revisions and provisional inference values.
+- [x] Decide that the active GenAI method generates both background and object as new content while preserving the fixed 16-class taxonomy.
+- [x] Draft, structurally validate, and freeze an eight-family MAIJA scene policy
+  with four semantically compatible scenes per class and an all-class
+  property-inspection reference scene.
+- [x] Define and freeze MAIJA-aligned scene families and a cross-class context-allocation matrix that avoids one-class/one-background shortcuts.
+- [x] Select and record the exact full-scene Stable Diffusion and ControlNet models, revisions, licenses, and feasibility compute strategy.
+- [x] Define the shared single-image feasibility prompt, negative prompt, synthetic Canny condition, seed, and provenance.
+- [ ] Run and visually review the frozen one-image SDXL feasibility case on an RTX 3090; record runtime and peak VRAM.
+- [ ] Expand the accepted feasibility design into complete all-class prompt, subtype, scale, and spatial-control templates.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
-- [ ] Generate and inspect a small pilot using the SAM3 object assets.
+- [ ] Generate and inspect a deterministic pilot covering all 16 classes and planned scene families.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate SD-B0512, SD-B1024, SD-B1536, and SD-B2048.
 - [ ] Train, evaluate, and record every valid configuration using the frozen protocol.
 
 ## Phase 3 - Qwen + ControlNet baseline
 
-- [x] Reuse the same paired conditioning records, prompts, masks, placement, and quantity prefixes as Stable Diffusion.
-- [ ] Select and record the exact Qwen and ControlNet models, versions, licenses, compatibility, and compute requirements.
-- [ ] Run candidate-model preflight and a one-image Qwen feasibility smoke test on RTX 3090 hardware; measure offload, runtime, and peak VRAM before accepting the backend.
+- [x] Apply the same fixed classes, quantities, and MAIJA scene/context policy as Stable Diffusion.
+- [x] Select and record the exact full-scene Qwen and ControlNet models, revisions, licenses, compatibility basis, and proposed RTX 3090 memory strategy.
+- [x] Define the shared single-image feasibility prompt, Canny condition, seed, and provenance.
+- [ ] Run a Qwen feasibility test on RTX 3090 hardware; measure offload, runtime, and peak VRAM before accepting the backend.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
-- [ ] Generate and inspect a small pilot using the SAM3 object assets.
+- [ ] Generate and inspect a deterministic all-class full-scene pilot; use
+  SAM3 only for post-generation localization/annotation, not as a visual input.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate QW-B0512, QW-B1024, QW-B1536, and QW-B2048.
 - [ ] Train, evaluate, and record every valid configuration using the frozen protocol.
@@ -121,8 +127,9 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 ## Decisions still needed for the active phase
 
-- [ ] Immutable revisions and smoke-test acceptance for the candidate Stable Diffusion, Qwen, and ControlNet models.
-- [ ] GenAI post-generation annotation thresholds and quality-control procedure.
+- [x] Freeze MAIJA-aligned scene families and cross-class context allocation.
+- [x] Freeze exact full-scene Stable Diffusion, Qwen, and ControlNet models and immutable revisions for feasibility.
+- [ ] Expand the feasibility prompt/conditioning policy and finalize GenAI post-generation annotation/QC procedure.
 - [ ] Seed count and compute budget.
 - [ ] Clean-domain mAP50-95 tolerance.
 - [x] Fix the complete experiment matrix to pretrained YOLO11s; no model-size ablation.
@@ -137,14 +144,16 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Add explicit single-quantity selection to the copy-paste runner for safe parallel scheduling.
 - [x] Add a fail-fast sequential 512→1024→1536→2048 pipeline with automatic three-domain evaluation, plotting, and progress state after each run.
 - [x] Correct Ultralytics-incompatible nested manifest paths and require exact image/label counts in training preflight.
-- [ ] Confirm the live availability and ownership of all three RTX 3090 GPUs; one GPU may be occupied by an unrelated workload.
-- [ ] Define a reproducible GPU allocation plan before expensive runs: independent detector experiments/seeds per GPU and parallel GenAI generation workers where model memory permits.
+- [x] Confirm from the researcher that all three RTX 3090 GPUs are currently idle; recheck immediately before each launch.
+- [x] Define the allocation plan: up to three independent single-GPU detector runs in parallel and deterministic per-GPU GenAI workers where memory permits.
 - [ ] Record the exact GPU model, GPU ID, software/CUDA environment, run assignment, and wall-clock time for every paper experiment.
-- [ ] Decide whether detector training remains one GPU per run or uses DDP; do not mix execution modes inside paired comparisons.
+- [x] Keep one GPU per detector run and exclude DDP from the active experiment matrix so batch 16 and the E000/cut-paste execution mode remain unchanged.
 - [ ] Benchmark generation throughput and VRAM for the selected Stable Diffusion, Qwen, and ControlNet implementations before launching full datasets.
 
 ## Scope boundaries
 
 - No ADR implementation or experiments during the active baseline phase.
-- No VLM-based failure analysis, scene understanding, or condition-aware control.
+- No VLM-based failure analysis, detector-feedback-driven condition selection,
+  or scene-aware ADR. Predeclared MAIJA scene prompting for non-adaptive GenAI
+  baselines is allowed.
 - Target easy and hard results do not tune checkpoints or generator settings during the active baseline phase.

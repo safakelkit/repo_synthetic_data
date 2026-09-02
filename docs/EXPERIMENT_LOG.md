@@ -20,18 +20,15 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 | QW-B1536 | Qwen + ControlNet | 1,536 | Planned |
 | QW-B2048 | Qwen + ControlNet | 2,048 | Planned |
 
-## GenAI preparation record
+### GenAI feasibility protocol (not a detector experiment)
 
-- **Status:** Shared conditioning plan complete; backend smoke tests pending
-- **Date:** 2026-09-02
-- **Shared records:** 2,048, exactly 128 per class; nested prefixes 512/1,024/1,536/2,048
-- **Pilot records:** 32, exactly two per class and identical across backends
-- **Conditioning:** Reconstructed undegraded RGBA composite + expanded inpaint mask; SDXL candidate additionally uses Canny control, while Qwen uses its native image-plus-mask inpainting control
-- **Annotation:** Post-generation SAM3 mask required; intended box is not a final label
-- **Candidate SD backend:** `stabilityai/stable-diffusion-xl-base-1.0` in the SDXL ControlNet inpaint pipeline + `diffusers/controlnet-canny-sdxl-1.0`; revision pending preflight
-- **Candidate Qwen backend:** `Qwen/Qwen-Image` + community `InstantX/Qwen-Image-ControlNet-Inpainting`; revision and RTX 3090 feasibility pending preflight
-- **Evidence:** `data/processed/genai_v1/shared_conditioning_plan_summary.json` and `conditioning_preview/conditioning_summary.json` (local, Git-ignored)
-- **Validity:** No model weights were downloaded and no GenAI inference or detector training was performed in this preparation step.
+- **Status:** Ready for manual GPU launch; no feasibility image generated yet
+- **Purpose:** Verify one exact model pair at a time on an RTX 3090 before the all-class pilot.
+- **Shared case:** Scissors (class 2), property-inspection station, seed 42, 1024x1024, 30 steps, programmatic Canny layout, ControlNet scale 0.9.
+- **SDXL:** `stabilityai/stable-diffusion-xl-base-1.0@462165984030d82259a11f4367a4eed129e94a7b` + `diffusers/controlnet-canny-sdxl-1.0@eb115a19a10d14909256db740ed109532ab1483c`; FP16; CFG 5.0; no refiner.
+- **Qwen:** `Qwen/Qwen-Image@75e0b4be04f60ec59a75f475837eced720f823b6` + `InstantX/Qwen-Image-ControlNet-Union@b13036f066d6dee7c20513e263d3d673055e9de8`; BF16 plus NF4 quantization/offload; true-CFG 4.0.
+- **Evidence to add after each run:** run record, generated image/control hashes, exact environment, physical/logical GPU, wall/load/inference time, peak allocated/reserved VRAM, and human-review decision.
+- **Boundary:** These images are local feasibility evidence, not part of SD-B/QW-B datasets and not detector training inputs.
 
 ## E000 - Real-only baseline
 
@@ -109,11 +106,13 @@ Checkpoint and evaluation evidence:
 - **Synthetic image count:** TBD
 - **Total training image count:** TBD
 - **Generator/config version:** TBD
-- **Placement method:** semantic support masks with human verification
-- **Segmentation model/revision:** TBD
-- **Support-region manifest/checksum:** TBD
-- **Class orientation/support policy version:** TBD
-- **Support-mask pilot/QC evidence:** TBD
+- **Generation mode:** None / Cut-paste composite / Complete-scene generation
+- **Scene taxonomy and class-to-scene allocation:** TBD or N/A
+- **Prompt and spatial-conditioning manifest/checksum:** TBD or N/A
+- **Generation model(s), immutable revisions, and licenses:** TBD or N/A
+- **Placement/support policy:** Cut-paste support-region version or GenAI
+  spatial-control version; TBD or N/A
+- **Segmentation/annotation model and revision:** TBD or N/A
 - **Synthetic manifest:** TBD
 - **Class-allocation manifest:** TBD
 - **Annotation/QC evidence:** TBD

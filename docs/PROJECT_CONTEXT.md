@@ -7,7 +7,7 @@
 - **Researcher:** Safa Kelkit
 - **Supervisor:** Prof. Martin Kampel
 - **Detector:** pretrained YOLO11s for the complete experiment matrix
-- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete; GenAI baseline specification is next
+- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete; GenAI scene policy and one-image model feasibility protocol are frozen and await manual RTX 3090 runs
 
 ## Problem
 
@@ -163,12 +163,16 @@ Create four new class-balanced datasets:
 - `SD-B1536`;
 - `SD-B2048`.
 
-Use paired controlled inpainting to refine the same frozen object/background/
-placement records used for the cut-paste schedule. The deterministic 2,048-row
-shared plan and 32-row conditioning preview are complete. SDXL inpainting plus
-Diffusers Canny ControlNet is a smoke-test candidate; it is not yet frozen for
-production. The final annotation must come from a verified post-generation
-SAM3 mask rather than automatically reusing the requested inpaint box.
+Generate the complete image, including both background and target object, as
+new model output. Backgrounds are not limited to the three cut-paste categories;
+the frozen v1 taxonomy contains eight correctional-facility scene families
+grounded in the detention-room-search scenario. Every class receives four
+semantically compatible families. Property inspection is shared by all
+classes; the other families overlap across multiple classes. The existing 16
+classes and IDs cannot change. Exact SDXL and Canny-ControlNet revisions plus
+the one-image prompt, spatial condition, seed, and provenance are frozen for
+feasibility. All-class templates, post-generation SAM3 annotation, and QC must
+be approved before production.
 
 ### Stage 3 - Qwen + ControlNet without ADR
 
@@ -179,11 +183,17 @@ Create four new class-balanced datasets:
 - `QW-B1536`;
 - `QW-B2048`.
 
-Use the identical shared record identities, initial composites, inpaint masks,
-prompts, quantity prefixes, and post-generation degradation assignments. The
-candidate is Qwen-Image with InstantX's community inpainting ControlNet; exact
-revision, RTX 3090 feasibility, runtime, memory strategy, annotation, and QC
-must pass smoke testing before production.
+Generate complete images under the same fixed taxonomy, quantities,
+MAIJA-aligned scene families, cross-class context-balance rule, annotation
+policy, and detector protocol as Stable Diffusion. The original Qwen-Image and
+InstantX Union ControlNet revisions are frozen; verify NF4 plus CPU-offload
+feasibility, runtime, peak RTX 3090 memory, and QC before production.
+
+Detector runs remain single-GPU with global batch 16. Up to three independent
+experiments may run concurrently on the three RTX 3090 devices; the active
+matrix does not use DDP. Generation may be sharded across independent GPU
+workers only when sample-level seeds and isolated outputs preserve exact
+reproducibility.
 
 ### Meaning of without ADR
 
@@ -240,7 +250,13 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 The metric definitions, weights, normalization, probability conversion, validation/feedback data, and scientific evaluation protocol remain unresolved. Do not implement or run ADR until all current baseline experiments are complete and the researcher explicitly approves the next phase.
 
-VLM-based failure analysis, scene understanding, and condition-aware ADR remain out of scope. Synthetic generators may still create blur, low resolution, lighting variation, compression, occlusion, and varied backgrounds without claiming that a controller inferred those conditions.
+VLM-based failure analysis, detector-feedback-driven condition selection, and
+scene-aware ADR remain out of scope. The non-adaptive GenAI baselines may use a
+predeclared MAIJA-aligned scene taxonomy and class-compatible scene prompts,
+provided those choices are frozen without consulting easy/hard test results.
+Synthetic generators may also create blur, low resolution, lighting variation,
+compression, occlusion, and varied backgrounds without claiming that a
+controller inferred those conditions from detector failures.
 
 ## Reproducibility requirements
 

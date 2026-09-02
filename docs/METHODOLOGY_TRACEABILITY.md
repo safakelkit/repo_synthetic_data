@@ -21,10 +21,15 @@ configuration, implementation, and evidence. A value marked **planned** or
   observing detector results.
 - **Completed under the frozen protocol:** E000 and all four cut-paste quantity
   runs, including three-domain evaluation and combined response plots.
-- **GenAI preparation complete:** one paired 2,048-record schedule and a
-  deterministic 32-record initialization/mask/control preview.
-- **Not yet run:** Stable Diffusion or Qwen model inference, GenAI annotation,
-  GenAI dataset release, and the eight GenAI detector runs.
+- **GenAI method decision:** Stable Diffusion and Qwen will generate complete
+  MAIJA-aligned scenes while preserving the fixed 16-class taxonomy and four
+  balanced quantities. The scene matrix and exact feasibility model pairs are
+  frozen.
+- **Implemented but not run:** shared synthetic Canny construction, immutable
+  model loading, RTX 3090 preflight, one-image SDXL/Qwen feasibility, and
+  runtime/VRAM/hash provenance capture.
+- **Not yet implemented or run:** all-class prompt/control generation, GenAI
+  annotation/QC, dataset release, and eight detector runs.
 
 ## Dataset and evaluation values
 
@@ -58,6 +63,7 @@ values were checked against that installed version before the first run and are 
 | Optimization | AdamW; lr0 0.0005; lrf 0.01; beta1 (`momentum`) 0.9; weight decay 0.0005 |
 | Warmup/loss | warmup 3.0 epochs; warmup momentum 0.8; bias LR 0.0; box 7.5; cls 0.5; dfl 1.5 |
 | Runtime | AMP true; cache false; rectangular batches false; multi-scale 0.0; patience 100 |
+| Execution mode | One GPU per run; global batch 16; no DDP; up to three independent runs may execute concurrently |
 | Color | hsv_h 0.015; hsv_s 0.7; hsv_v 0.4; BGR swap 0.0 |
 | Geometry | rotation 0.0; translation 0.1; scale 0.5; shear 0.0; perspective 0.0 |
 | Flips | vertical 0.0; horizontal 0.5 |
@@ -75,6 +81,11 @@ changing the optimizer.
 YOLO11s is fixed for the complete experiment matrix; no detector model-size
 ablation is planned. This keeps model capacity constant across generator and
 synthetic-quantity comparisons.
+
+Concurrent execution changes scheduling only. Each process is isolated to one
+physical RTX 3090 and retains the same global batch, seed, optimizer, and run
+configuration. Physical/logical GPU assignment and concurrent workload must be
+recorded for every paper run.
 
 ## Cut-paste values and sources
 
@@ -166,52 +177,59 @@ for 1,186 was reconstructed and class-verified. A deterministic 160-asset
 visual sample produced 146 passes and 14 observations. Per the researcher's
 manual cleaning decision, observations do not exclude assets.
 
-## GenAI paired-plan values and sources
+## Planned full-scene GenAI values
 
-These values define the accepted shared experiment design. Backend model IDs
-and numerical inference values remain provisional until smoke-test acceptance.
+The following constraints are accepted, but the generator is not yet
+implemented. Do not describe provisional values as executed methodology.
 
-| Item | Current value | Executable source | Evidence/status |
-|---|---|---|---|
-| Shared records | 2,048; exactly 128/class | `genai_shared_v1.yaml`; `prepare_genai_plan.py` | Verified |
-| Nested prefixes | 512/1,024/1,536/2,048; 32/64/96/128 per class | same | Verified |
-| Backend pilot | same 32 records/backend; two/class | same | Verified selection |
-| Sample pairing | same class, RGBA asset, background, support type, placement, and degradation assignment | CP metadata transformed by `prepare_genai_plan.py` | Verified hashes/paths |
-| Initialization | undegraded RGBA composite reconstructed at the frozen intended box | `render_genai_conditioning.py::reconstruct_initialization` | 32 previews rendered |
-| Inpaint region | intended box expanded 25% on each axis, minimum 4 source pixels | `expand_bbox`; shared config | Verified in preview |
-| Inference resolution | 1,024 x 1,024 | shared config | Provisional pending model smoke |
-| SD candidate seeds | `142000 + image_id` | shared config | Planned |
-| Qwen candidate seeds | `242000 + image_id` | shared config | Planned |
-| Prompt enhancement | disabled | backend configs | Planned |
-| SD candidate | SDXL 1.0 base in the Diffusers ControlNet inpaint pipeline + SDXL Canny ControlNet | `sdxl_controlnet_v1.yaml` | Candidate; revisions unresolved |
-| Qwen candidate | Qwen-Image + InstantX inpainting ControlNet | `qwen_controlnet_v1.yaml` | Candidate; community ControlNet; revisions unresolved |
-| Final annotation | post-generation SAM3 target mask; intended bbox cannot be copied as label | shared config | Designed, not implemented |
-| Degradation | reuse exact CP severity/operation assignment after generation/annotation acceptance | shared config | Designed, not implemented |
+| Item | Accepted or pending value | Status |
+|---|---|---|
+| Class taxonomy | Existing 16 names and IDs 0--15; no changes permitted | Accepted |
+| Image content | Both background and target object are newly generated | Accepted |
+| Real-image reuse | No real background pixels or RGBA object composite in the generated image | Accepted |
+| Scene scope | Eight correctional-facility families: five detention living-space, one controlled property-inspection, and two supervised operational contexts | Accepted and frozen v1.1 |
+| Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
+| Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
+| Spatial conditioning | Programmatically drawn non-photographic Canny layout for feasibility; no real-image pixels | Implemented for one-image feasibility; all-class templates pending |
+| Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
+| Extra target classes | Fully annotate or reject the image | Accepted |
+| Pilot | Deterministic, all 16 classes, covering planned scene families for both backends | Accepted; size pending |
+| Target-test boundary | No prompt, scene, model, or QC tuning from easy/hard results | Accepted |
 
-The initial composite is a control/reference input, not a GenAI output and not
-an additional experiment. Stable Diffusion's candidate uses Canny edges of this
-reference; the candidate Qwen pipeline uses its native image-plus-mask control.
-The record identities are paired, but the backend-specific conditioning tensor
-is not falsely claimed to be identical.
+The frozen policy is `configs/generation/genai_scene_policy_v1.yaml`.
+Its 64 class-to-scene assignments preserve exact class balance while
+prioritizing semantic compatibility: every class appears in four scenes,
+property inspection is shared by all classes, and the other scenes are shared
+by 4--8 classes. Scene totals are therefore intentionally unequal. The policy
+is grounded in the official MAIJA correctional-facility scope and the INSP
+detention-room-search dataset description and was accepted before generation.
 
-Local evidence (Git-ignored):
+Exact feasibility models are frozen in
+`configs/generation/genai_models_v1.yaml`. SDXL uses
+`stabilityai/stable-diffusion-xl-base-1.0` revision
+`462165984030d82259a11f4367a4eed129e94a7b` with
+`diffusers/controlnet-canny-sdxl-1.0` revision
+`eb115a19a10d14909256db740ed109532ab1483c` (OpenRAIL++, FP16, no refiner).
+Qwen uses `Qwen/Qwen-Image` revision
+`75e0b4be04f60ec59a75f475837eced720f823b6` with
+`InstantX/Qwen-Image-ControlNet-Union` revision
+`b13036f066d6dee7c20513e263d3d673055e9de8` (Apache-2.0, BF16 ControlNet).
+The original Qwen base is retained because the selected ControlNet explicitly
+documents that pairing. Qwen's transformer and text encoder are configured for
+bitsandbytes NF4 4-bit quantization plus model CPU offload; RTX 3090 runtime and
+peak VRAM remain to be measured.
 
-- `data/processed/genai_v1/shared_conditioning_plan_summary.json`;
-- `data/processed/genai_v1/shared_conditioning_plan.jsonl`;
-- `data/processed/genai_v1/pilot_image_ids.json`;
-- `data/processed/genai_v1/conditioning_preview/conditioning_summary.json`;
-- 32 preview panels under `conditioning_preview/sample_*/preview.jpg`.
+`src/generation/run_full_scene_feasibility.py` creates one image/backend using
+the identical 1024x1024 synthetic Canny layout, Scissors class (ID 2), property
+inspection scene, seed 42, 30 steps, and ControlNet scale 0.9. Model-specific
+guidance is SDXL 5.0 and Qwen true-CFG 4.0. Outputs are local feasibility
+evidence, are not annotated automatically, and are not training data.
 
-Technical sources: Diffusers SDXL ControlNet inpainting API
-(https://huggingface.co/docs/diffusers/main/api/pipelines/controlnet_sdxl),
-official Qwen-Image model card (https://huggingface.co/Qwen/Qwen-Image), and
-the InstantX community inpainting ControlNet model card
-(https://huggingface.co/InstantX/Qwen-Image-ControlNet-Inpainting).
-
-The GenAI dependency specification follows Diffusers 0.40.0 package metadata:
-`huggingface-hub>=1.23.0,<2.0` and `safetensors>=0.8.0,<1.0`. These ranges also
-satisfy pinned Transformers 5.5.4. Exact versions resolved in a run are
-recorded by backend preflight rather than inferred from compatibility ranges.
+The GenAI environment is frozen at Diffusers 0.40.0, Transformers 5.5.4,
+Accelerate 1.13.0, huggingface-hub 1.29.0, safetensors 0.8.0, and
+bitsandbytes 0.50.2. These versions satisfy the resolved compatibility set and
+avoid the earlier hub/safetensors pin conflicts. Every run still records its
+resolved environment.
 
 ## Generated dataset and experiment evidence
 
@@ -229,9 +247,9 @@ recorded by backend preflight rather than inferred from compatibility ranges.
   support-depth-conditioned scale are reported as methodological limitations.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
-- Stable Diffusion, Qwen, and ControlNet candidate configurations exist, but
-  immutable revisions, memory behavior, inference values, and acceptance remain
-  unresolved until smoke tests.
+- Full-scene model pairs, immutable revisions, scene matrix, and single-image
+  inference values are frozen. Measured memory behavior, all-class templates,
+  annotation/QC, and production acceptance remain open.
 - The retained SAM3 asset metadata proves source images, classes, annotation
   indices, and SAM scores, but does not prove the exact model revision or full
   extraction command used for every historical crop. The current extraction

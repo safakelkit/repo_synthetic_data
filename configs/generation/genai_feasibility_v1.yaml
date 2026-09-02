@@ -1,0 +1,28 @@
+format_version: 1
+feasibility_id: genai_full_scene_single_image_v1
+status: ready_for_manual_gpu_launch
+models_config: configs/generation/genai_models_v1.yaml
+scene_policy: configs/generation/genai_scene_policy_v1.yaml
+backends: [sdxl, qwen]
+samples_per_backend: 1
+same_control_for_both_backends: true
+control_layout:
+  background: black
+  line_color: white
+  line_width: 8
+  room_vanishing_point: [512, 315]
+  table_polygon:
+    - [130, 440]
+    - [894, 440]
+    - [1010, 1010]
+    - [14, 1010]
+  target_box_xyxy: [330, 535, 694, 820]
+  target_shape: scissors_outline
+  notes:
+    - This image is programmatically drawn and contains no pixels from real datasets.
+    - It constrains approximate scene layout and target location; it is not a ground-truth annotation.
+output_files:
+  generated_image: generated.png
+  control_image: control_canny.png
+  run_record: run_record.json
+  resolved_config: resolved_config.yaml
