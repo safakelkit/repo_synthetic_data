@@ -95,7 +95,8 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Freeze the GenAI canonical diversity rule: eight unique layouts per class-scene-prefix block, at least four shape/pose variants per class, and deterministic variation across camera, target, lighting, clutter, wording, and seed.
 - [x] Freeze the GenAI canonical degradation schedule and ranges equal to executed copy-paste degradation-v1; keep feasibility images clean.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
-- [ ] Generate and inspect a deterministic pilot covering all 16 classes and planned scene families.
+- [x] Implement the deterministic 64-image all-class/all-assigned-scene pilot runner with real binary SAM3 silhouettes, distinct controls, prompts, seeds, and provenance.
+- [ ] Generate and inspect the deterministic 64-image SDXL pilot covering all 16 classes and planned scene families.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate SD-B0512, SD-B1024, SD-B1536, and SD-B2048.
 - [ ] Train, evaluate, and record every valid configuration using the frozen protocol.
@@ -108,8 +109,8 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Run Qwen feasibility v2 on RTX 3090 hardware using the same corrected control; measure offload, runtime, and peak VRAM.
 - [x] Run and visually review Qwen feasibility v3 with the same real scissors silhouette used by SDXL.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
-- [ ] Generate and inspect a deterministic all-class full-scene pilot; use
-  binary SAM3 silhouettes as non-photographic ControlNet geometry and SAM3 separately for post-generation localization/annotation.
+- [ ] Generate and inspect the deterministic 64-image Qwen pilot; use binary
+  SAM3 silhouettes as non-photographic ControlNet geometry and SAM3 separately for post-generation localization/annotation.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate QW-B0512, QW-B1024, QW-B1536, and QW-B2048.
 - [ ] Train, evaluate, and record every valid configuration using the frozen protocol.

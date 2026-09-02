@@ -192,6 +192,7 @@ implemented. Do not describe provisional values as executed methodology.
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
 | Spatial conditioning | V3 Canny derived from class-matched accepted SAM3 binary silhouettes; no RGB/RGBA pixels; control scale 0.8 | Implemented and validated for all 16 classes; SDXL/Qwen v3 feasibility visually passed; all-class pilot pending |
+| All-class pilot | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images/backend; distinct binary-silhouette control, seed, prompt, scale, rotation, and placement | `src/generation/run_all_class_genai_pilot.py`; GPU launch pending; no labels/degradation/training use |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |
 | Pilot | Deterministic, all 16 classes, covering planned scene families for both backends | Accepted; size pending |

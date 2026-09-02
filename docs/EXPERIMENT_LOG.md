@@ -38,6 +38,7 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **V3 SDXL result:** Completed in 23.594 s wall time (4.687 s load, 18.384 s inference; 7.735/10.379 GiB peak allocated/reserved). The output is clearly a pair of scissors with plausible blades, pivot, handles, scale, and table placement. Visual feasibility accepted.
 - **V3 Qwen result:** Completed in 116.855 s wall time (26.270 s load, 90.069 s inference; 16.634/16.859 GiB peak allocated/reserved). The output is recognizably a pair of scissors and follows the silhouette, although it is noisier/darker and lower fidelity than SDXL. Visual feasibility accepted with a quality caveat.
 - **V3 disposition:** Real-silhouette conditioning resolves the V2 class-semantic failure for both backends. These images remain feasibility evidence only; all-class pilot, SAM3 annotation, degradation, and QC are required before canonical generation.
+- **All-class pilot prepared:** `run_all_class_genai_pilot.py` schedules 64 samples/backend, covering every one of the 16 classes in each of its four frozen MAIJA-compatible scene families. It writes unique proxy/Canny images and complete pre-annotation provenance; no labels or degradation are created and training use is forbidden.
 
 ## E000 - Real-only baseline
 

@@ -1,0 +1,47 @@
+format_version: 1
+pilot_id: genai_full_scene_all_class_v1
+status: ready_for_manual_gpu_launch
+models_config: configs/generation/genai_models_v1.yaml
+scene_policy: configs/generation/genai_scene_policy_v1.yaml
+generation_policy: configs/generation/genai_generation_policy_v1.yaml
+backends: [sdxl, qwen]
+output_root: data/synthetic/pilots/genai_full_scene_v1
+seed: 42
+output_size: [1024, 1024]
+inference_steps: 30
+controlnet_conditioning_scale: 0.8
+pilot_scope:
+  images_per_class_scene: 1
+  expected_images_per_backend: 64
+  covers_all_classes: true
+  covers_all_assigned_scene_families: true
+  annotation_performed: false
+  degradation_applied: false
+  training_use_forbidden: true
+silhouette_source:
+  audit_manifest: data/processed/object_bank_sam3/asset_audit_manifest.csv
+  use_rgb_or_rgba_pixels: false
+  selection_seed_offset: 1000
+control_layout:
+  canvas_value: 32
+  support_value: 128
+  target_value: 235
+  pre_canny_blur_sigma: 1.0
+  canny_thresholds: [80, 160]
+  support_polygon: [[130, 440], [894, 440], [1010, 1010], [14, 1010]]
+  target_box_xyxy: [345, 520, 679, 830]
+prompt:
+  prefix: >-
+    A realistic mobile inspection-camera photograph inside a correctional facility.
+  suffix: >-
+    Exactly one {target} is clearly visible at a plausible scale, fully inside
+    the image and not occluded. Natural perspective, realistic materials,
+    documentary photography, no people, no visible text.
+  negative: >-
+    multiple target objects, duplicate object, additional project target objects,
+    wrong object, deformed object, fused parts, floating object, cropped target,
+    hidden target, hand, person, text, letters, numbers, logo, watermark,
+    illustration, cartoon, CGI, low resolution, blurry target
+release_gate:
+  canonical_generation_approved: false
+  requires_human_review: true
