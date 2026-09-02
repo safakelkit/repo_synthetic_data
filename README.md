@@ -19,7 +19,7 @@ Exact paper values and their code/evidence mapping are in
 - Context-aware placement is implemented and reviewed over the full pool. Geometry-v2 retains 527 accepted regions across 527 backgrounds (306 bed tops and 221 table tops); floor placement is disabled because 2D masks cannot model foreground occlusion or scene depth.
 - Training selects `best.pt` using INSP-DET validation.
 - Official evaluation uses `best.pt` on the INSP-DET, INSP-MOT-DET easy, and INSP-MOT-DET hard test splits.
-- E000 and all four accepted cut-paste quantity runs are complete; Stable Diffusion + ControlNet specification is the next experimental phase.
+- E000 and all four accepted cut-paste quantity runs are complete. The shared paired GenAI conditioning plan and its 32-record visual preview are ready; backend model smoke tests are next. No GenAI image has been generated yet.
 
 ## Repository layout
 
@@ -33,6 +33,7 @@ docs/                    Research context, decisions, TODO, and results
 runs/train/              Training outputs (generated, ignored by Git)
 runs/evaluation/         Evaluation outputs (generated, ignored by Git)
 src/augmentation/        Copy-paste generation
+src/generation/          Paired GenAI planning, conditioning, and preflight
 src/extraction/          SAM3 object-bank construction and audit
 src/placement/           Reproducible support-mask preprocessing
 src/training/            Training entry points
@@ -90,6 +91,32 @@ before starting. With `CUDA_VISIBLE_DEVICES=<physical-index>`, the config's
 The sequential matrix is fail-fast: an error stops later runs and is recorded
 in `runs/evaluation/copy_paste_matrix_status.json`. Existing training or
 evaluation outputs are never silently overwritten.
+
+## GenAI baseline preparation
+
+Stable Diffusion and Qwen use the same frozen 2,048 sample identities and nested
+quantity prefixes. The common plan reconstructs an undegraded reference
+composite from each background, SAM3 RGBA asset, and accepted cut-paste
+placement. GenAI then inpaints that controlled region; the intended box is not
+automatically accepted as the final label.
+
+```bash
+# CPU-only deterministic plan and conditioning preview; already completed.
+python src/generation/prepare_genai_plan.py
+python src/generation/render_genai_conditioning.py
+
+# Metadata-only model/environment preflight; writes a local report but does not
+# download model weights or run inference.
+python src/generation/preflight_genai_backend.py --backend sdxl --gpu 0
+python src/generation/preflight_genai_backend.py --backend qwen --gpu 0
+```
+
+The backend configs currently name smoke-test candidates, not approved
+production models. Exact Hugging Face revisions, practical RTX 3090 memory
+behavior, generation throughput, post-generation SAM3 annotation, and QC must
+be verified before either 2,048-image production run is unlocked. Qwen's
+candidate ControlNet is a community InstantX release and must not be described
+as an official Qwen ControlNet.
 
 ## Copy-paste release status
 

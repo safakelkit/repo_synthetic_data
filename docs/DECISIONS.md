@@ -210,10 +210,24 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Expected counts:** 2,727; 3,239; 3,751; and 4,263 total training images for CP-B0512 through CP-B2048.
 - **Implementation:** `create_subset_manifests()` and `validate_training_dataset()`.
 
+## D024 - GenAI baselines use one paired controlled-inpainting plan
+
+- **Status:** Shared design accepted and implemented; backend models and inference values remain provisional until smoke tests pass
+- **Date:** 2026-09-02
+- **Decision:** Stable Diffusion and Qwen receive the same 2,048 class-balanced generation records. Each record reuses the class, source RGBA asset, background, support type, intended placement, and frozen post-generation degradation assignment from the pre-results `cp_v1` schedule.
+- **Fairness:** SD-B0512/QW-B0512 through SD-B2048/QW-B2048 are identical nested record prefixes with 32/64/96/128 requested images per class. Backend-specific randomness uses separate recorded seed ranges, but sample identity and detector protocol remain paired.
+- **Conditioning:** Reconstruct an undegraded OpenCV/RGBA copy-paste initialization from the frozen background, object asset, and intended bounding box. Both backends receive that initialization and the same expanded inpaint rectangle. Stable Diffusion's candidate ControlNet receives Canny edges of the initialization; the candidate Qwen inpainting ControlNet receives its native image-plus-mask control. This backend difference must be reported rather than described as identical tensor conditioning.
+- **Purpose:** GenAI refines a controlled object placement and appearance; it does not choose placement from target-test feedback. The original degraded cut-paste JPEG is not used as the initialization, avoiding double application of the frozen degradation schedule.
+- **Annotation:** The intended placement box defines the generation region, not the accepted label. A post-generation SAM3 mask must localize the generated target; automatic and human QC must reject wrong-class, absent, duplicated, malformed, or out-of-region generations before labels are released.
+- **Pilot:** Use the same deterministic 32 records (two per class) for both backends. Resolve immutable model revisions, benchmark runtime/VRAM, validate mask locality and annotation recovery, and review all outputs before production.
+- **Candidate backends:** `stabilityai/stable-diffusion-xl-base-1.0` in the Diffusers SDXL ControlNet inpaint pipeline plus `diffusers/controlnet-canny-sdxl-1.0`; Qwen-Image plus `InstantX/Qwen-Image-ControlNet-Inpainting`. The Qwen ControlNet is a community release, not an official Qwen ControlNet. Neither candidate is frozen for production until its smoke test passes.
+- **Implementation:** `configs/generation/genai_shared_v1.yaml`, backend candidate configs, `prepare_genai_plan.py`, `render_genai_conditioning.py`, and `preflight_genai_backend.py`.
+- **Technical sources:** Diffusers SDXL ControlNet inpaint API: https://huggingface.co/docs/diffusers/main/api/pipelines/controlnet_sdxl ; Qwen-Image model: https://huggingface.co/Qwen/Qwen-Image ; InstantX inpainting ControlNet model card: https://huggingface.co/InstantX/Qwen-Image-ControlNet-Inpainting
+
 ## Open decisions
 
-- Exact Stable Diffusion, Qwen, and ControlNet models and versions.
-- GenAI prompting, conditioning, placement, annotation, and quality-control procedures.
+- Immutable revisions and smoke-test acceptance of the candidate Stable Diffusion, Qwen, and ControlNet models.
+- GenAI post-generation SAM3 annotation thresholds and quality-control acceptance criteria.
 - Seed count and compute budget.
 - Clean-domain tolerance.
 - All ADR design and evaluation questions, after the active baseline phase is complete.

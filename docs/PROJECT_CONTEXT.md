@@ -163,7 +163,12 @@ Create four new class-balanced datasets:
 - `SD-B1536`;
 - `SD-B2048`.
 
-Use ControlNet to control object placement as specified by the research plan. Freeze and record the exact model, prompts, conditioning, placement, annotation, seed, and quality-control configuration.
+Use paired controlled inpainting to refine the same frozen object/background/
+placement records used for the cut-paste schedule. The deterministic 2,048-row
+shared plan and 32-row conditioning preview are complete. SDXL inpainting plus
+Diffusers Canny ControlNet is a smoke-test candidate; it is not yet frozen for
+production. The final annotation must come from a verified post-generation
+SAM3 mask rather than automatically reusing the requested inpaint box.
 
 ### Stage 3 - Qwen + ControlNet without ADR
 
@@ -174,7 +179,11 @@ Create four new class-balanced datasets:
 - `QW-B1536`;
 - `QW-B2048`.
 
-Use ControlNet to control object placement as specified by the research plan. Verify the exact technical integration before full generation and record the same provenance and quality information required for Stable Diffusion.
+Use the identical shared record identities, initial composites, inpaint masks,
+prompts, quantity prefixes, and post-generation degradation assignments. The
+candidate is Qwen-Image with InstantX's community inpainting ControlNet; exact
+revision, RTX 3090 feasibility, runtime, memory strategy, annotation, and QC
+must pass smoke testing before production.
 
 ### Meaning of without ADR
 

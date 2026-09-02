@@ -19,8 +19,12 @@ configuration, implementation, and evidence. A value marked **planned** or
   the 256-image review documented systemic realism artifacts, which the
   researcher accepted as limitations of the simple cut-paste baseline before
   observing detector results.
-- **Completed under the frozen protocol:** E000 real-only training and its one-time clean/easy/hard test evaluation.
-- **Not run under the frozen protocol:** all 12 synthetic baselines.
+- **Completed under the frozen protocol:** E000 and all four cut-paste quantity
+  runs, including three-domain evaluation and combined response plots.
+- **GenAI preparation complete:** one paired 2,048-record schedule and a
+  deterministic 32-record initialization/mask/control preview.
+- **Not yet run:** Stable Diffusion or Qwen model inference, GenAI annotation,
+  GenAI dataset release, and the eight GenAI detector runs.
 
 ## Dataset and evaluation values
 
@@ -162,6 +166,48 @@ for 1,186 was reconstructed and class-verified. A deterministic 160-asset
 visual sample produced 146 passes and 14 observations. Per the researcher's
 manual cleaning decision, observations do not exclude assets.
 
+## GenAI paired-plan values and sources
+
+These values define the accepted shared experiment design. Backend model IDs
+and numerical inference values remain provisional until smoke-test acceptance.
+
+| Item | Current value | Executable source | Evidence/status |
+|---|---|---|---|
+| Shared records | 2,048; exactly 128/class | `genai_shared_v1.yaml`; `prepare_genai_plan.py` | Verified |
+| Nested prefixes | 512/1,024/1,536/2,048; 32/64/96/128 per class | same | Verified |
+| Backend pilot | same 32 records/backend; two/class | same | Verified selection |
+| Sample pairing | same class, RGBA asset, background, support type, placement, and degradation assignment | CP metadata transformed by `prepare_genai_plan.py` | Verified hashes/paths |
+| Initialization | undegraded RGBA composite reconstructed at the frozen intended box | `render_genai_conditioning.py::reconstruct_initialization` | 32 previews rendered |
+| Inpaint region | intended box expanded 25% on each axis, minimum 4 source pixels | `expand_bbox`; shared config | Verified in preview |
+| Inference resolution | 1,024 x 1,024 | shared config | Provisional pending model smoke |
+| SD candidate seeds | `142000 + image_id` | shared config | Planned |
+| Qwen candidate seeds | `242000 + image_id` | shared config | Planned |
+| Prompt enhancement | disabled | backend configs | Planned |
+| SD candidate | SDXL 1.0 base in the Diffusers ControlNet inpaint pipeline + SDXL Canny ControlNet | `sdxl_controlnet_v1.yaml` | Candidate; revisions unresolved |
+| Qwen candidate | Qwen-Image + InstantX inpainting ControlNet | `qwen_controlnet_v1.yaml` | Candidate; community ControlNet; revisions unresolved |
+| Final annotation | post-generation SAM3 target mask; intended bbox cannot be copied as label | shared config | Designed, not implemented |
+| Degradation | reuse exact CP severity/operation assignment after generation/annotation acceptance | shared config | Designed, not implemented |
+
+The initial composite is a control/reference input, not a GenAI output and not
+an additional experiment. Stable Diffusion's candidate uses Canny edges of this
+reference; the candidate Qwen pipeline uses its native image-plus-mask control.
+The record identities are paired, but the backend-specific conditioning tensor
+is not falsely claimed to be identical.
+
+Local evidence (Git-ignored):
+
+- `data/processed/genai_v1/shared_conditioning_plan_summary.json`;
+- `data/processed/genai_v1/shared_conditioning_plan.jsonl`;
+- `data/processed/genai_v1/pilot_image_ids.json`;
+- `data/processed/genai_v1/conditioning_preview/conditioning_summary.json`;
+- 32 preview panels under `conditioning_preview/sample_*/preview.jpg`.
+
+Technical sources: Diffusers SDXL ControlNet inpainting API
+(https://huggingface.co/docs/diffusers/main/api/pipelines/controlnet_sdxl),
+official Qwen-Image model card (https://huggingface.co/Qwen/Qwen-Image), and
+the InstantX community inpainting ControlNet model card
+(https://huggingface.co/InstantX/Qwen-Image-ControlNet-Inpainting).
+
 ## Generated dataset and experiment evidence
 
 - `cp_v1_seed42` was generated from clean commit `6c14f12` with 2,048 unique
@@ -178,7 +224,9 @@ manual cleaning decision, observations do not exclude assets.
   support-depth-conditioned scale are reported as methodological limitations.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
-- Stable Diffusion, Qwen, and ControlNet models/protocols remain `TBD`.
+- Stable Diffusion, Qwen, and ControlNet candidate configurations exist, but
+  immutable revisions, memory behavior, inference values, and acceptance remain
+  unresolved until smoke tests.
 - The retained SAM3 asset metadata proves source images, classes, annotation
   indices, and SAM scores, but does not prove the exact model revision or full
   extraction command used for every historical crop. The current extraction

@@ -1,0 +1,12 @@
+diffusers==0.40.0
+transformers==5.5.4
+accelerate==1.13.0
+huggingface-hub==1.11.0
+safetensors==0.7.0
+sentencepiece==0.2.1
+protobuf==6.33.5
+numpy==2.2.6
+opencv-python==4.13.0.92
+Pillow==12.1.1
+PyYAML==6.0.3
+tqdm==4.67.3

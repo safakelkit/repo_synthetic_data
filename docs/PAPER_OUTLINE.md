@@ -55,13 +55,15 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 
 ### 5.2 Stable Diffusion + ControlNet
 
-- Exact models and versions: `TBD`.
+- Shared method: paired controlled inpainting from the frozen background, RGBA object, placement, expanded mask, and degradation schedule.
+- Candidate backend: SDXL inpainting with Diffusers Canny ControlNet; exact immutable revisions and inference values remain pending smoke-test acceptance.
 - Prompts, conditioning, object placement, and pilot validation.
 - Annotation and quality control.
 
 ### 5.3 Qwen + ControlNet
 
-- Exact models and versions: `TBD`.
+- Shared method and sample identities match Section 5.2.
+- Candidate backend: Qwen-Image with the community InstantX inpainting ControlNet; explicitly distinguish this from an official Qwen release and freeze exact revisions only after feasibility testing.
 - Prompts, conditioning, object placement, and pilot validation.
 - Annotation and quality control.
 

@@ -80,8 +80,12 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 ## Phase 2 - Stable Diffusion + ControlNet baseline
 
+- [x] Build and checksum one paired 2,048-record conditioning plan with exact class balance and nested 512/1,024/1,536/2,048 prefixes.
+- [x] Define the shared controlled-inpainting design, prompts, negative prompts, initialization reconstruction, masks, backend seed ranges, and post-generation degradation reuse.
+- [x] Render and verify initialization/mask/Canny previews for the deterministic 32-record pilot without model inference.
 - [ ] Select and record the exact Stable Diffusion and ControlNet models, versions, licenses, and compute requirements.
-- [ ] Define prompts, negative prompts, conditioning, object placement, seeds, annotation, provenance, and acceptance criteria.
+- [ ] Run candidate-model preflight and a small SDXL smoke test; freeze or reject its model revisions and provisional inference values.
+- [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
 - [ ] Generate and inspect a small pilot using the SAM3 object assets.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate SD-B0512, SD-B1024, SD-B1536, and SD-B2048.
@@ -89,8 +93,10 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 ## Phase 3 - Qwen + ControlNet baseline
 
+- [x] Reuse the same paired conditioning records, prompts, masks, placement, and quantity prefixes as Stable Diffusion.
 - [ ] Select and record the exact Qwen and ControlNet models, versions, licenses, compatibility, and compute requirements.
-- [ ] Define prompts, conditioning, object placement, seeds, annotation, provenance, and acceptance criteria.
+- [ ] Run candidate-model preflight and a one-image Qwen feasibility smoke test on RTX 3090 hardware; measure offload, runtime, and peak VRAM before accepting the backend.
+- [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
 - [ ] Generate and inspect a small pilot using the SAM3 object assets.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate QW-B0512, QW-B1024, QW-B1536, and QW-B2048.
@@ -115,8 +121,8 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 ## Decisions still needed for the active phase
 
-- [ ] Exact Stable Diffusion, Qwen, and ControlNet models and versions.
-- [ ] GenAI annotation and quality-control procedure.
+- [ ] Immutable revisions and smoke-test acceptance for the candidate Stable Diffusion, Qwen, and ControlNet models.
+- [ ] GenAI post-generation annotation thresholds and quality-control procedure.
 - [ ] Seed count and compute budget.
 - [ ] Clean-domain mAP50-95 tolerance.
 - [x] Fix the complete experiment matrix to pretrained YOLO11s; no model-size ablation.

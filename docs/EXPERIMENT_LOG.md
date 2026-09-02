@@ -20,6 +20,19 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 | QW-B1536 | Qwen + ControlNet | 1,536 | Planned |
 | QW-B2048 | Qwen + ControlNet | 2,048 | Planned |
 
+## GenAI preparation record
+
+- **Status:** Shared conditioning plan complete; backend smoke tests pending
+- **Date:** 2026-09-02
+- **Shared records:** 2,048, exactly 128 per class; nested prefixes 512/1,024/1,536/2,048
+- **Pilot records:** 32, exactly two per class and identical across backends
+- **Conditioning:** Reconstructed undegraded RGBA composite + expanded inpaint mask; SDXL candidate additionally uses Canny control, while Qwen uses its native image-plus-mask inpainting control
+- **Annotation:** Post-generation SAM3 mask required; intended box is not a final label
+- **Candidate SD backend:** `stabilityai/stable-diffusion-xl-base-1.0` in the SDXL ControlNet inpaint pipeline + `diffusers/controlnet-canny-sdxl-1.0`; revision pending preflight
+- **Candidate Qwen backend:** `Qwen/Qwen-Image` + community `InstantX/Qwen-Image-ControlNet-Inpainting`; revision and RTX 3090 feasibility pending preflight
+- **Evidence:** `data/processed/genai_v1/shared_conditioning_plan_summary.json` and `conditioning_preview/conditioning_summary.json` (local, Git-ignored)
+- **Validity:** No model weights were downloaded and no GenAI inference or detector training was performed in this preparation step.
+
 ## E000 - Real-only baseline
 
 - **Status:** Complete
