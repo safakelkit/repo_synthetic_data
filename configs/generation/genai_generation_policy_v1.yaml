@@ -45,12 +45,14 @@ diversity:
     threshold: pending_all_class_pilot
 
 conditioning:
-  feasibility: canny_from_programmatic_filled_geometry
-  canonical: unique_programmatic_layout_per_sample
+  feasibility: canny_from_real_class_sam3_binary_silhouette
+  canonical: unique_real_class_sam3_binary_silhouette_layout_per_sample
   prohibit_single_line_object_skeletons: true
-  prohibit_real_dataset_pixels: true
+  prohibit_real_rgb_or_rgba_pixels: true
+  allow_binary_shape_from_accepted_object_bank_mask: true
   control_strength: 0.8
-  all_class_shape_templates: pending_implementation_and_validation
+  all_class_shape_templates: available_from_accepted_object_bank_masks
+  geometry_critical_classes_require_real_silhouette_without_fallback: true
 
 generation_order:
   - generate_clean_complete_scene

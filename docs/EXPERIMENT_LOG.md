@@ -22,7 +22,7 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 
 ### GenAI feasibility protocol (not a detector experiment)
 
-- **Status:** SDXL v1 technical pass/visual reject; corrected v2 ready for manual GPU launch; Qwen not yet generated
+- **Status:** SDXL and Qwen v2 executed; technical integration passed, hand-drawn target proxy rejected; real-silhouette v3 ready for manual GPU launch
 - **Purpose:** Verify one exact model pair at a time on an RTX 3090 before the all-class pilot.
 - **Shared case:** Scissors (class 2), property-inspection station, seed 42, 1024x1024, 30 steps. Active v2 uses Canny derived from filled proxy geometry at ControlNet scale 0.8.
 - **SDXL:** `stabilityai/stable-diffusion-xl-base-1.0@462165984030d82259a11f4367a4eed129e94a7b` + `diffusers/controlnet-canny-sdxl-1.0@eb115a19a10d14909256db740ed109532ab1483c`; FP16; CFG 5.0; no refiner.
@@ -32,6 +32,9 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **SDXL v1 result:** Commit `957b8d9`; model load 224.981 s; inference 180.978 s; wall 406.376 s; peak allocated/reserved 7.735/10.379 GiB; output SHA-256 `88b6ad59106508ad9a96c455e2e5bf2cb77ebd19b8f46d9745fcc7763a88d883`.
 - **SDXL v1 disposition:** Model execution and RTX 3090 fit accepted. Visual output rejected because single-line table/scissors geometry was rendered as thin physical cords and did not form a realistic target. It is not training data and is not a canonical method result.
 - **V2 correction:** Generate Canny from filled table/scissors proxy regions, remove decorative room lines, and reduce shared control strength to 0.8 before testing both backends.
+- **SDXL v2 result:** Recognizable scissors and usable scene composition, with imperfect target geometry; technical feasibility accepted, not training data.
+- **Qwen v2 result:** 2,127.631 s load, 142.715 s inference, 2,270.781 s wall time, and 16.634/16.859 GiB peak allocated/reserved. Control adherence was strong, but the target resembled forceps/hemostats rather than scissors.
+- **V3 action:** Use an accepted class-matched SAM3 binary silhouette while preserving full-scene generation and prohibiting source RGB/RGBA pixels. The deterministic scissors mask is asset `02_IMG_0050121_obj_02_crop_000047`.
 
 ## E000 - Real-only baseline
 

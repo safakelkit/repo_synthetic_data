@@ -88,8 +88,10 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Select and record the exact full-scene Stable Diffusion and ControlNet models, revisions, licenses, and feasibility compute strategy.
 - [x] Define the shared single-image feasibility prompt, negative prompt, synthetic Canny condition, seed, and provenance.
 - [x] Run SDXL feasibility v1 and record runtime/VRAM; reject its single-line Canny output as visually unrealistic while accepting model/hardware compatibility.
-- [ ] Run and visually review SDXL feasibility v2 using filled-proxy-derived Canny at control scale 0.8.
-- [ ] Expand the accepted feasibility design into complete all-class prompt, subtype, scale, and spatial-control templates.
+- [x] Run and visually review SDXL feasibility v2 using filled-proxy-derived Canny at control scale 0.8.
+- [x] Replace the semantically weak programmatic target proxy with deterministic class-matched SAM3 binary silhouettes and verify all 16 classes.
+- [ ] Run and visually review SDXL feasibility v3 with the real scissors silhouette.
+- [ ] Expand v3 into complete all-class prompt, subtype, scale, and spatial-control templates.
 - [x] Freeze the GenAI canonical diversity rule: eight unique layouts per class-scene-prefix block, at least four shape/pose variants per class, and deterministic variation across camera, target, lighting, clutter, wording, and seed.
 - [x] Freeze the GenAI canonical degradation schedule and ranges equal to executed copy-paste degradation-v1; keep feasibility images clean.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
@@ -103,10 +105,11 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Apply the same fixed classes, quantities, and MAIJA scene/context policy as Stable Diffusion.
 - [x] Select and record the exact full-scene Qwen and ControlNet models, revisions, licenses, compatibility basis, and proposed RTX 3090 memory strategy.
 - [x] Define the shared single-image feasibility prompt, Canny condition, seed, and provenance.
-- [ ] Run Qwen feasibility v2 on RTX 3090 hardware using the same corrected control; measure offload, runtime, and peak VRAM before accepting the backend.
+- [x] Run Qwen feasibility v2 on RTX 3090 hardware using the same corrected control; measure offload, runtime, and peak VRAM.
+- [ ] Run and visually review Qwen feasibility v3 with the same real scissors silhouette used by SDXL.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
 - [ ] Generate and inspect a deterministic all-class full-scene pilot; use
-  SAM3 only for post-generation localization/annotation, not as a visual input.
+  binary SAM3 silhouettes as non-photographic ControlNet geometry and SAM3 separately for post-generation localization/annotation.
 - [ ] Resolve pilot failures before full-scale generation.
 - [ ] Generate and validate QW-B0512, QW-B1024, QW-B1536, and QW-B2048.
 - [ ] Train, evaluate, and record every valid configuration using the frozen protocol.

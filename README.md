@@ -19,7 +19,7 @@ Exact paper values and their code/evidence mapping are in
 - Context-aware placement is implemented and reviewed over the full pool. Geometry-v2 retains 527 accepted regions across 527 backgrounds (306 bed tops and 221 table tops); floor placement is disabled because 2D masks cannot model foreground occlusion or scene depth.
 - Training selects `best.pt` using INSP-DET validation.
 - Official evaluation uses `best.pt` on the INSP-DET, INSP-MOT-DET easy, and INSP-MOT-DET hard test splits.
-- E000 and all four accepted cut-paste quantity runs are complete. The next phase is a full-scene GenAI baseline in which Stable Diffusion and Qwen generate both the MAIJA-aligned background and the target object. The eight-family scene policy and exact SDXL/Qwen ControlNet pairs are frozen for single-image feasibility; annotation, QC, and canonical generation remain open.
+- E000 and all four accepted cut-paste quantity runs are complete. The next phase is a full-scene GenAI baseline in which Stable Diffusion and Qwen generate both the MAIJA-aligned background and the target object. Both exact model pairs completed v2 feasibility; active v3 replaces the semantically weak hand-drawn target proxy with class-matched binary SAM3 silhouettes. Annotation, QC, and canonical generation remain open.
 
 ## Repository layout
 
@@ -103,10 +103,11 @@ property-inspection scene is shared by all classes, while the remaining scenes
 overlap across several classes to limit background shortcuts.
 
 A one-image feasibility runner validates the exact SDXL and Qwen model pairs
-on the same programmatically drawn Canny condition without creating training
-data. SDXL v1 proved model/RTX 3090 compatibility but its single-line control
-failed visual review. Active v2 computes Canny from filled proxy geometry and
-uses control scale 0.8. Run and review both v2 outputs before
+on the same Canny condition without creating training data. V2 proved both
+model integrations, but its hand-drawn scissors proxy remained semantically
+weak. Active v3 computes Canny from an accepted class-matched SAM3 binary mask,
+without transferring source RGB/RGBA pixels, and uses control scale 0.8. Run
+and review both v3 outputs before
 expanding to the deterministic all-class prompt/control and SAM3 annotation/QC
 pilot. Canonical 2,048-image generation remains blocked.
 

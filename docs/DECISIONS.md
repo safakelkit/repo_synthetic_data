@@ -259,18 +259,19 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D027 - Frozen full-scene feasibility model pairs
 
-- **Status:** Accepted for one-image feasibility; Qwen production acceptance remains conditional on the measured RTX 3090 run
+- **Status:** Both model pairs accepted for continued pilot development; canonical production remains blocked
 - **Date:** 2026-09-02
 - **Source of truth:** `configs/generation/genai_models_v1.yaml`
 - **Stable Diffusion:** `stabilityai/stable-diffusion-xl-base-1.0` at commit `462165984030d82259a11f4367a4eed129e94a7b` with `diffusers/controlnet-canny-sdxl-1.0` at `eb115a19a10d14909256db740ed109532ab1483c`; OpenRAIL++; FP16; no refiner.
 - **Qwen:** `Qwen/Qwen-Image` at commit `75e0b4be04f60ec59a75f475837eced720f823b6` with `InstantX/Qwen-Image-ControlNet-Union` at `b13036f066d6dee7c20513e263d3d673055e9de8`; Apache-2.0; Canny control; BF16 compute.
 - **Why original Qwen-Image:** The selected InstantX ControlNet explicitly documents compatibility with the original Qwen-Image base. Qwen-Image-2512 is therefore not substituted without separate compatibility evidence.
-- **RTX 3090 strategy:** Qwen transformer and text encoder use bitsandbytes NF4 4-bit quantization while ControlNet remains BF16; model CPU offload is mandatory. This is a feasibility hypothesis, not yet measured evidence.
+- **RTX 3090 evidence:** Qwen transformer and text encoder used bitsandbytes NF4 4-bit quantization while ControlNet remained BF16 with model CPU offload. V2 completed with 16.634/16.859 GiB peak allocated/reserved memory, 2,127.631 s model load, 142.715 s inference, and 2,270.781 s wall time.
 - **Fair feasibility input:** Both backends receive the same programmatically drawn 1024x1024 Canny condition, class (`Scissors`, ID 2), scene (`property_inspection_station`), seed 42, 30 inference steps, and ControlNet scale 0.8. Model-specific guidance remains SDXL 5.0 and Qwen true-CFG 4.0.
 - **Boundary:** A generated feasibility image is not training data and has no automatic YOLO annotation. Canonical generation stays blocked until both outputs are visually reviewed and the all-class annotation/QC pilot is approved.
 - **Primary sources:** https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0 ; https://huggingface.co/diffusers/controlnet-canny-sdxl-1.0 ; https://huggingface.co/Qwen/Qwen-Image ; https://huggingface.co/InstantX/Qwen-Image-ControlNet-Union ; https://huggingface.co/docs/diffusers/quantization/bitsandbytes .
 - **V1 evidence:** SDXL loaded and generated successfully on an RTX 3090 at commit `957b8d9` (406.376 s wall time; 180.978 s inference; 7.735/10.379 GiB peak allocated/reserved). The single-line Canny drawing was interpreted as thin physical cords, so the output failed visual realism and is not training data.
 - **V2 correction:** Keep the same models/class/scene/seed/steps, derive Canny from filled table and object proxy regions, and reduce control scale from 0.9 to 0.8. This tests solid-object boundaries rather than line-art copying.
+- **V2 outcome:** SDXL produced a recognizable but imperfect scissors; Qwen followed the condition strongly but produced a forceps/hemostat-like object. Both runs proved technical integration, but the hand-drawn target proxy failed class-semantic review.
 
 ## D028 - GenAI diversity and degradation are controlled independently
 
@@ -283,3 +284,15 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Canonical degradation:** After localization/annotation, apply the exact executed cut-paste degradation-v1 mixture and numerical ranges to the complete generated image: 25% clean, 37.5% light, 25% medium, and 12.5% heavy in every 32-image per-class block.
 - **Operations:** Gaussian or motion blur, downscale-upscale resolution loss, brightness/contrast, JPEG compression, and Gaussian sensor noise; every non-clean image receives at least one operation.
 - **Post-degradation QC:** Recheck target visibility and unchanged label geometry after degradation. Do not tune diversity or degradation using easy/hard results.
+
+## D029 - GenAI ControlNet target geometry uses real class silhouettes
+
+- **Status:** Accepted and implemented for v3 feasibility; all-class pilot validation pending
+- **Date:** 2026-09-02
+- **Source of truth:** `configs/generation/genai_feasibility_v3.yaml` and `src/generation/run_full_scene_feasibility.py`
+- **Decision:** Construct the target portion of each Canny condition from a class-matched accepted SAM3 binary mask in the existing object bank. The background and target appearance remain newly generated.
+- **Pixel boundary:** Reuse binary shape only. Source RGB/RGBA pixels never enter the condition or generated scene.
+- **Coverage:** Real silhouettes are the default for all 16 classes. Geometry-critical hazard/tool classes have no programmatic-shape fallback.
+- **Reproducibility:** Record asset ID, class ID, mask path and SHA-256, audit-manifest SHA-256, selection seed, rendered box, proxy hash, and Canny hash. Corresponding SDXL and Qwen samples receive the same condition.
+- **Evidence:** All 16 class masks were selected and rendered successfully without GPU inference. The deterministic scissors case uses asset `02_IMG_0050121_obj_02_crop_000047`; its silhouette preserves blades, pivot, and asymmetric handles.
+- **Boundary:** A correct source silhouette does not prove generated class identity. Post-generation semantic review, SAM3 localization, annotation, and QC remain mandatory.

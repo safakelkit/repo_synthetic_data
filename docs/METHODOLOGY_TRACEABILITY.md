@@ -25,10 +25,10 @@ configuration, implementation, and evidence. A value marked **planned** or
   MAIJA-aligned scenes while preserving the fixed 16-class taxonomy and four
   balanced quantities. The scene matrix and exact feasibility model pairs are
   frozen.
-- **Partly executed:** SDXL feasibility v1 verified immutable loading and RTX
-  3090 memory/runtime capture but failed visual review because single-line
-  Canny geometry was rendered as cords. V2 filled-proxy-derived Canny is
-  implemented but not run; Qwen remains unexecuted.
+- **Partly executed:** SDXL and Qwen v2 feasibility verified immutable loading,
+  ControlNet integration, and RTX 3090 execution. The hand-drawn scissors proxy
+  remained semantically weak, especially for Qwen. Active v3 uses accepted
+  class-matched SAM3 binary silhouettes; v3 GPU inference remains pending.
 - **Not yet implemented or run:** all-class prompt/control generation, GenAI
   annotation/QC, dataset release, and eight detector runs.
 
@@ -191,7 +191,7 @@ implemented. Do not describe provisional values as executed methodology.
 | Scene scope | Eight correctional-facility families: five detention living-space, one controlled property-inspection, and two supervised operational contexts | Accepted and frozen v1.1 |
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
-| Spatial conditioning | V2 Canny derived from filled non-photographic proxy regions; no real-image pixels; control scale 0.8 | Implemented for one-image feasibility; all-class templates pending |
+| Spatial conditioning | V3 Canny derived from class-matched accepted SAM3 binary silhouettes; no RGB/RGBA pixels; control scale 0.8 | Implemented and CPU-validated for all 16 classes; v3 GPU inference pending |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |
 | Pilot | Deterministic, all 16 classes, covering planned scene families for both backends | Accepted; size pending |

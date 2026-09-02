@@ -8,6 +8,7 @@ provenance before an all-class pilot is implemented.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import importlib.metadata
 import json
@@ -30,7 +31,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_feasibility_v2.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_feasibility_v3.yaml"
 EXPECTED_PACKAGES = {
     "diffusers": "0.40.0",
     "transformers": "5.5.4",
@@ -122,9 +123,24 @@ def validate_config(
         raise ValueError("Both backends must use the same control layout")
 
 
+def select_real_class_mask(config: dict[str, Any], class_id: int) -> dict[str, str]:
+    silhouette = config["silhouette_source"]
+    manifest_path = resolve_repo_path(silhouette["audit_manifest"])
+    candidates: list[dict[str, str]] = []
+    with manifest_path.open("r", encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            if int(row["class_id"]) == class_id and row["status"] == "accepted":
+                candidates.append(row)
+    if not candidates:
+        raise ValueError(f"No accepted real silhouette for class {class_id}")
+    candidates.sort(key=lambda row: row["asset_id"])
+    index = int(silhouette["selection_seed"]) % len(candidates)
+    return candidates[index]
+
+
 def draw_control(
-    config: dict[str, Any], width: int, height: int
-) -> tuple[Image.Image, Image.Image]:
+    config: dict[str, Any], width: int, height: int, class_id: int
+) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     layout = config["control_layout"]
     canvas_value = int(layout["canvas_value"])
     table_value = int(layout["table_value"])
@@ -133,28 +149,28 @@ def draw_control(
     table = np.asarray(layout["table_polygon"], dtype=np.int32)
     cv2.fillPoly(proxy, [table], table_value)
 
-    # A filled proxy produces two physical boundaries around blades and arms
-    # after Canny, instead of asking the model to interpret a one-pixel skeleton.
+    # Only the binary SAM3 silhouette is reused. No source RGB/RGBA pixels enter
+    # the generated scene or the ControlNet condition.
     x1, y1, x2, y2 = [int(v) for v in layout["target_box_xyxy"]]
-    cx = (x1 + x2) // 2
-    cy = (y1 + y2) // 2
-    handle_radius = max(28, (x2 - x1) // 10)
-    handle_hole_radius = max(14, int(handle_radius * 0.52))
-    body_width = max(18, (x2 - x1) // 16)
-    left_handle = (x1 + handle_radius + 12, y2 - handle_radius - 10)
-    right_handle = (x2 - handle_radius - 12, y2 - handle_radius - 10)
-    pivot = (cx, cy + 35)
-    blade_left = (x1 + 25, y1 + 20)
-    blade_right = (x2 - 25, y1 + 20)
-    cv2.line(proxy, left_handle, pivot, object_value, body_width)
-    cv2.line(proxy, right_handle, pivot, object_value, body_width)
-    cv2.line(proxy, pivot, blade_left, object_value, body_width)
-    cv2.line(proxy, pivot, blade_right, object_value, body_width)
-    cv2.circle(proxy, left_handle, handle_radius, object_value, -1)
-    cv2.circle(proxy, right_handle, handle_radius, object_value, -1)
-    cv2.circle(proxy, left_handle, handle_hole_radius, table_value, -1)
-    cv2.circle(proxy, right_handle, handle_hole_radius, table_value, -1)
-    cv2.circle(proxy, pivot, max(10, body_width // 2), object_value, -1)
+    selected = select_real_class_mask(config, class_id)
+    mask_path = resolve_repo_path(selected["mask_path"])
+    source_mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+    if source_mask is None:
+        raise ValueError(f"Cannot read silhouette mask: {mask_path}")
+    binary = np.where(source_mask > 0, 255, 0).astype(np.uint8)
+    ys, xs = np.where(binary > 0)
+    if xs.size == 0 or ys.size == 0:
+        raise ValueError(f"Empty silhouette mask: {mask_path}")
+    binary = binary[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    box_w, box_h = x2 - x1, y2 - y1
+    scale = min(box_w / binary.shape[1], box_h / binary.shape[0])
+    resized_w = max(1, round(binary.shape[1] * scale))
+    resized_h = max(1, round(binary.shape[0] * scale))
+    resized = cv2.resize(binary, (resized_w, resized_h), interpolation=cv2.INTER_NEAREST)
+    paste_x = x1 + (box_w - resized_w) // 2
+    paste_y = y1 + (box_h - resized_h) // 2
+    region = proxy[paste_y:paste_y + resized_h, paste_x:paste_x + resized_w]
+    region[resized > 0] = object_value
 
     blurred = cv2.GaussianBlur(
         proxy, (0, 0), sigmaX=float(layout["pre_canny_blur_sigma"])
@@ -163,7 +179,19 @@ def draw_control(
     canny = cv2.Canny(blurred, low, high)
     proxy_rgb = cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)
     canny_rgb = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
-    return Image.fromarray(proxy_rgb), Image.fromarray(canny_rgb)
+    metadata = {
+        "source_type": "real_class_sam3_binary_mask",
+        "asset_id": selected["asset_id"],
+        "class_id": class_id,
+        "mask_path": str(mask_path.relative_to(REPO_ROOT)),
+        "mask_sha256": sha256_file(mask_path),
+        "audit_manifest": str(resolve_repo_path(config["silhouette_source"]["audit_manifest"]).relative_to(REPO_ROOT)),
+        "audit_manifest_sha256": sha256_file(resolve_repo_path(config["silhouette_source"]["audit_manifest"])),
+        "selection_seed": int(config["silhouette_source"]["selection_seed"]),
+        "real_pixels_reused": False,
+        "rendered_box_xyxy": [paste_x, paste_y, paste_x + resized_w, paste_y + resized_h],
+    }
+    return Image.fromarray(proxy_rgb), Image.fromarray(canny_rgb), metadata
 
 
 def resolve_remote_revisions(models: dict[str, Any], backend: str) -> dict[str, str]:
@@ -349,9 +377,9 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     started_utc = utc_now()
-    proxy, control = draw_control(
+    proxy, control, silhouette_metadata = draw_control(
         feasibility, int(models["shared"]["output_width"]),
-        int(models["shared"]["output_height"]),
+        int(models["shared"]["output_height"]), int(models["shared"]["target_class_id"]),
     )
     control_path = output_dir / feasibility["output_files"]["control_image"]
     proxy_path = output_dir / feasibility["output_files"]["proxy_layout"]
@@ -385,6 +413,7 @@ def main() -> None:
         "negative_prompt": models["shared"]["negative_prompt"],
         "control_sha256": sha256_file(control_path),
         "proxy_layout_sha256": sha256_file(proxy_path),
+        "silhouette_source": silhouette_metadata,
         "canonical_degradation_applied": False,
         "annotation_performed": False,
         "canonical_dataset_modified": False,
