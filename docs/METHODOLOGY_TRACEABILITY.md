@@ -25,9 +25,10 @@ configuration, implementation, and evidence. A value marked **planned** or
   MAIJA-aligned scenes while preserving the fixed 16-class taxonomy and four
   balanced quantities. The scene matrix and exact feasibility model pairs are
   frozen.
-- **Implemented but not run:** shared synthetic Canny construction, immutable
-  model loading, RTX 3090 preflight, one-image SDXL/Qwen feasibility, and
-  runtime/VRAM/hash provenance capture.
+- **Partly executed:** SDXL feasibility v1 verified immutable loading and RTX
+  3090 memory/runtime capture but failed visual review because single-line
+  Canny geometry was rendered as cords. V2 filled-proxy-derived Canny is
+  implemented but not run; Qwen remains unexecuted.
 - **Not yet implemented or run:** all-class prompt/control generation, GenAI
   annotation/QC, dataset release, and eight detector runs.
 
@@ -190,7 +191,7 @@ implemented. Do not describe provisional values as executed methodology.
 | Scene scope | Eight correctional-facility families: five detention living-space, one controlled property-inspection, and two supervised operational contexts | Accepted and frozen v1.1 |
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
-| Spatial conditioning | Programmatically drawn non-photographic Canny layout for feasibility; no real-image pixels | Implemented for one-image feasibility; all-class templates pending |
+| Spatial conditioning | V2 Canny derived from filled non-photographic proxy regions; no real-image pixels; control scale 0.8 | Implemented for one-image feasibility; all-class templates pending |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |
 | Pilot | Deterministic, all 16 classes, covering planned scene families for both backends | Accepted; size pending |
@@ -221,9 +222,23 @@ peak VRAM remain to be measured.
 
 `src/generation/run_full_scene_feasibility.py` creates one image/backend using
 the identical 1024x1024 synthetic Canny layout, Scissors class (ID 2), property
-inspection scene, seed 42, 30 steps, and ControlNet scale 0.9. Model-specific
-guidance is SDXL 5.0 and Qwen true-CFG 4.0. Outputs are local feasibility
-evidence, are not annotated automatically, and are not training data.
+inspection scene, seed 42, 30 steps, and active v2 ControlNet scale 0.8.
+Model-specific guidance is SDXL 5.0 and Qwen true-CFG 4.0. Outputs are local
+feasibility evidence, are not annotated automatically, and are not training
+data. V1's scale-0.9 single-line input produced a technical SDXL pass but a
+visual rejection; v2 instead computes edges from filled object/table regions.
+
+Canonical generation is intentionally more diverse than this integration
+case. `genai_generation_policy_v1.yaml` requires a unique deterministic layout
+for every sample, eight unique layouts per class-scene-prefix block, at least
+four shape/pose variants per class, and variation across camera, target
+placement/scale/orientation, lighting, clutter/materials, prompt wording, and
+sample seed. Identical controls within a class-scene block are forbidden.
+
+`genai_degradation_v1.yaml` copies the executed cut-paste probabilities and
+ranges exactly. Clean scenes are generated and annotated first; the complete
+image then receives the class-balanced 25/37.5/25/12.5% clean/light/medium/heavy
+schedule. Post-degradation QC must confirm target visibility and label geometry.
 
 The GenAI environment is frozen at Diffusers 0.40.0, Transformers 5.5.4,
 Accelerate 1.13.0, huggingface-hub 1.29.0, safetensors 0.8.0, and
@@ -247,9 +262,10 @@ resolved environment.
   support-depth-conditioned scale are reported as methodological limitations.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
-- Full-scene model pairs, immutable revisions, scene matrix, and single-image
-  inference values are frozen. Measured memory behavior, all-class templates,
-  annotation/QC, and production acceptance remain open.
+- Full-scene model pairs, immutable revisions, scene matrix, diversity policy,
+  degradation policy, and v2 single-image inference values are frozen. Qwen
+  memory behavior, all-class templates, annotation/QC implementation, and
+  production acceptance remain open.
 - The retained SAM3 asset metadata proves source images, classes, annotation
   indices, and SAM scores, but does not prove the exact model revision or full
   extraction command used for every historical crop. The current extraction

@@ -22,13 +22,16 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 
 ### GenAI feasibility protocol (not a detector experiment)
 
-- **Status:** Ready for manual GPU launch; no feasibility image generated yet
+- **Status:** SDXL v1 technical pass/visual reject; corrected v2 ready for manual GPU launch; Qwen not yet generated
 - **Purpose:** Verify one exact model pair at a time on an RTX 3090 before the all-class pilot.
-- **Shared case:** Scissors (class 2), property-inspection station, seed 42, 1024x1024, 30 steps, programmatic Canny layout, ControlNet scale 0.9.
+- **Shared case:** Scissors (class 2), property-inspection station, seed 42, 1024x1024, 30 steps. Active v2 uses Canny derived from filled proxy geometry at ControlNet scale 0.8.
 - **SDXL:** `stabilityai/stable-diffusion-xl-base-1.0@462165984030d82259a11f4367a4eed129e94a7b` + `diffusers/controlnet-canny-sdxl-1.0@eb115a19a10d14909256db740ed109532ab1483c`; FP16; CFG 5.0; no refiner.
 - **Qwen:** `Qwen/Qwen-Image@75e0b4be04f60ec59a75f475837eced720f823b6` + `InstantX/Qwen-Image-ControlNet-Union@b13036f066d6dee7c20513e263d3d673055e9de8`; BF16 plus NF4 quantization/offload; true-CFG 4.0.
 - **Evidence to add after each run:** run record, generated image/control hashes, exact environment, physical/logical GPU, wall/load/inference time, peak allocated/reserved VRAM, and human-review decision.
 - **Boundary:** These images are local feasibility evidence, not part of SD-B/QW-B datasets and not detector training inputs.
+- **SDXL v1 result:** Commit `957b8d9`; model load 224.981 s; inference 180.978 s; wall 406.376 s; peak allocated/reserved 7.735/10.379 GiB; output SHA-256 `88b6ad59106508ad9a96c455e2e5bf2cb77ebd19b8f46d9745fcc7763a88d883`.
+- **SDXL v1 disposition:** Model execution and RTX 3090 fit accepted. Visual output rejected because single-line table/scissors geometry was rendered as thin physical cords and did not form a realistic target. It is not training data and is not a canonical method result.
+- **V2 correction:** Generate Canny from filled table/scissors proxy regions, remove decorative room lines, and reduce shared control strength to 0.8 before testing both backends.
 
 ## E000 - Real-only baseline
 

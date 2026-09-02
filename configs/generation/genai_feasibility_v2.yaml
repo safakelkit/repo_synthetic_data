@@ -1,0 +1,34 @@
+format_version: 2
+feasibility_id: genai_full_scene_single_image_v2
+status: ready_for_manual_gpu_launch
+models_config: configs/generation/genai_models_v1.yaml
+scene_policy: configs/generation/genai_scene_policy_v1.yaml
+backends: [sdxl, qwen]
+samples_per_backend: 1
+same_control_for_both_backends: true
+apply_canonical_degradation: false
+output_root: data/synthetic/feasibility/full_scene_v2
+control_layout:
+  representation: canny_from_programmatic_filled_geometry
+  canvas_value: 32
+  table_value: 128
+  object_value: 235
+  pre_canny_blur_sigma: 1.0
+  canny_thresholds: [80, 160]
+  table_polygon:
+    - [130, 440]
+    - [894, 440]
+    - [1010, 1010]
+    - [14, 1010]
+  target_box_xyxy: [345, 520, 679, 830]
+  target_shape: filled_scissors_silhouette
+  notes:
+    - The proxy geometry is programmatically drawn and contains no pixels from real datasets.
+    - Canny is computed from filled regions so solid-object boundaries, rather than single line segments, condition the model.
+    - The feasibility image is intentionally clean; canonical degradation is evaluated only after base generation passes visual review.
+output_files:
+  generated_image: generated.png
+  control_image: control_canny.png
+  proxy_layout: proxy_layout.png
+  run_record: run_record.json
+  resolved_config: resolved_config.yaml

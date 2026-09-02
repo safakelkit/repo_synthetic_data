@@ -102,11 +102,19 @@ spaces. Every class is assigned four semantically compatible families. A
 property-inspection scene is shared by all classes, while the remaining scenes
 overlap across several classes to limit background shortcuts.
 
-A one-image feasibility runner now validates the exact SDXL and Qwen model
-pairs on the same programmatically drawn Canny condition without creating
-training data. Run it manually on an RTX 3090 and review both outputs before
+A one-image feasibility runner validates the exact SDXL and Qwen model pairs
+on the same programmatically drawn Canny condition without creating training
+data. SDXL v1 proved model/RTX 3090 compatibility but its single-line control
+failed visual review. Active v2 computes Canny from filled proxy geometry and
+uses control scale 0.8. Run and review both v2 outputs before
 expanding to the deterministic all-class prompt/control and SAM3 annotation/QC
 pilot. Canonical 2,048-image generation remains blocked.
+
+Canonical controls will not reuse this one feasibility layout. Every generated
+sample must use a distinct deterministic combination of scene geometry,
+camera, target placement/scale/orientation, lighting, clutter, prompt wording,
+and seed. After clean generation and annotation, each backend receives the
+same frozen degradation-v1 distribution and ranges used by cut-paste.
 
 ```bash
 python src/generation/run_full_scene_feasibility.py --help

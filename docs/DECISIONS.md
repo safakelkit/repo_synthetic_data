@@ -266,6 +266,20 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Qwen:** `Qwen/Qwen-Image` at commit `75e0b4be04f60ec59a75f475837eced720f823b6` with `InstantX/Qwen-Image-ControlNet-Union` at `b13036f066d6dee7c20513e263d3d673055e9de8`; Apache-2.0; Canny control; BF16 compute.
 - **Why original Qwen-Image:** The selected InstantX ControlNet explicitly documents compatibility with the original Qwen-Image base. Qwen-Image-2512 is therefore not substituted without separate compatibility evidence.
 - **RTX 3090 strategy:** Qwen transformer and text encoder use bitsandbytes NF4 4-bit quantization while ControlNet remains BF16; model CPU offload is mandatory. This is a feasibility hypothesis, not yet measured evidence.
-- **Fair feasibility input:** Both backends receive the same programmatically drawn 1024x1024 Canny condition, class (`Scissors`, ID 2), scene (`property_inspection_station`), seed 42, 30 inference steps, and ControlNet scale 0.9. Model-specific guidance remains SDXL 5.0 and Qwen true-CFG 4.0.
+- **Fair feasibility input:** Both backends receive the same programmatically drawn 1024x1024 Canny condition, class (`Scissors`, ID 2), scene (`property_inspection_station`), seed 42, 30 inference steps, and ControlNet scale 0.8. Model-specific guidance remains SDXL 5.0 and Qwen true-CFG 4.0.
 - **Boundary:** A generated feasibility image is not training data and has no automatic YOLO annotation. Canonical generation stays blocked until both outputs are visually reviewed and the all-class annotation/QC pilot is approved.
 - **Primary sources:** https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0 ; https://huggingface.co/diffusers/controlnet-canny-sdxl-1.0 ; https://huggingface.co/Qwen/Qwen-Image ; https://huggingface.co/InstantX/Qwen-Image-ControlNet-Union ; https://huggingface.co/docs/diffusers/quantization/bitsandbytes .
+- **V1 evidence:** SDXL loaded and generated successfully on an RTX 3090 at commit `957b8d9` (406.376 s wall time; 180.978 s inference; 7.735/10.379 GiB peak allocated/reserved). The single-line Canny drawing was interpreted as thin physical cords, so the output failed visual realism and is not training data.
+- **V2 correction:** Keep the same models/class/scene/seed/steps, derive Canny from filled table and object proxy regions, and reduce control scale from 0.9 to 0.8. This tests solid-object boundaries rather than line-art copying.
+
+## D028 - GenAI diversity and degradation are controlled independently
+
+- **Status:** Accepted design; canonical implementation and all-class pilot pending
+- **Date:** 2026-09-02
+- **Source of truth:** `configs/generation/genai_generation_policy_v1.yaml` and `configs/generation/genai_degradation_v1.yaml`
+- **Diversity:** A single control image or layout must never be reused across the canonical dataset. Every class-scene block uses deterministic but distinct scene geometry, camera framing, target position/scale/orientation, lighting, clutter/material, prompt wording, and sample seed combinations. Each eight-image class-scene increment requires eight unique layouts and at least four class-specific shape/pose variants.
+- **Fair comparison:** SDXL and Qwen receive the same class, scene, variation schedule, target geometry, and sample seed for corresponding canonical indices; their output pixels remain independently generated.
+- **Clean-first rule:** Generate and validate the clean complete scene first. The one-image feasibility tests remain clean so degradation cannot hide a failed object or scene generator.
+- **Canonical degradation:** After localization/annotation, apply the exact executed cut-paste degradation-v1 mixture and numerical ranges to the complete generated image: 25% clean, 37.5% light, 25% medium, and 12.5% heavy in every 32-image per-class block.
+- **Operations:** Gaussian or motion blur, downscale-upscale resolution loss, brightness/contrast, JPEG compression, and Gaussian sensor noise; every non-clean image receives at least one operation.
+- **Post-degradation QC:** Recheck target visibility and unchanged label geometry after degradation. Do not tune diversity or degradation using easy/hard results.

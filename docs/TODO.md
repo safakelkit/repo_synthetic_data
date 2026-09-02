@@ -87,8 +87,11 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Define and freeze MAIJA-aligned scene families and a cross-class context-allocation matrix that avoids one-class/one-background shortcuts.
 - [x] Select and record the exact full-scene Stable Diffusion and ControlNet models, revisions, licenses, and feasibility compute strategy.
 - [x] Define the shared single-image feasibility prompt, negative prompt, synthetic Canny condition, seed, and provenance.
-- [ ] Run and visually review the frozen one-image SDXL feasibility case on an RTX 3090; record runtime and peak VRAM.
+- [x] Run SDXL feasibility v1 and record runtime/VRAM; reject its single-line Canny output as visually unrealistic while accepting model/hardware compatibility.
+- [ ] Run and visually review SDXL feasibility v2 using filled-proxy-derived Canny at control scale 0.8.
 - [ ] Expand the accepted feasibility design into complete all-class prompt, subtype, scale, and spatial-control templates.
+- [x] Freeze the GenAI canonical diversity rule: eight unique layouts per class-scene-prefix block, at least four shape/pose variants per class, and deterministic variation across camera, target, lighting, clutter, wording, and seed.
+- [x] Freeze the GenAI canonical degradation schedule and ranges equal to executed copy-paste degradation-v1; keep feasibility images clean.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
 - [ ] Generate and inspect a deterministic pilot covering all 16 classes and planned scene families.
 - [ ] Resolve pilot failures before full-scale generation.
@@ -100,7 +103,7 @@ Keep this list current and update it only after verified work. ADR implementatio
 - [x] Apply the same fixed classes, quantities, and MAIJA scene/context policy as Stable Diffusion.
 - [x] Select and record the exact full-scene Qwen and ControlNet models, revisions, licenses, compatibility basis, and proposed RTX 3090 memory strategy.
 - [x] Define the shared single-image feasibility prompt, Canny condition, seed, and provenance.
-- [ ] Run a Qwen feasibility test on RTX 3090 hardware; measure offload, runtime, and peak VRAM before accepting the backend.
+- [ ] Run Qwen feasibility v2 on RTX 3090 hardware using the same corrected control; measure offload, runtime, and peak VRAM before accepting the backend.
 - [ ] Finalize post-generation SAM3 annotation and QC acceptance criteria.
 - [ ] Generate and inspect a deterministic all-class full-scene pilot; use
   SAM3 only for post-generation localization/annotation, not as a visual input.
@@ -129,7 +132,7 @@ Keep this list current and update it only after verified work. ADR implementatio
 
 - [x] Freeze MAIJA-aligned scene families and cross-class context allocation.
 - [x] Freeze exact full-scene Stable Diffusion, Qwen, and ControlNet models and immutable revisions for feasibility.
-- [ ] Expand the feasibility prompt/conditioning policy and finalize GenAI post-generation annotation/QC procedure.
+- [ ] Implement the frozen diversity/degradation policies, expand all-class prompt/conditioning templates, and finalize GenAI post-generation annotation/QC.
 - [ ] Seed count and compute budget.
 - [ ] Clean-domain mAP50-95 tolerance.
 - [x] Fix the complete experiment matrix to pretrained YOLO11s; no model-size ablation.

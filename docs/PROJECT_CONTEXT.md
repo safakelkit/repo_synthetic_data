@@ -7,7 +7,7 @@
 - **Researcher:** Safa Kelkit
 - **Supervisor:** Prof. Martin Kampel
 - **Detector:** pretrained YOLO11s for the complete experiment matrix
-- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete; GenAI scene policy and one-image model feasibility protocol are frozen and await manual RTX 3090 runs
+- **Current status:** E000 and the four seed-0 cut-paste quantity experiments are complete; SDXL model/RTX 3090 compatibility passed, its v1 control failed visual review, and corrected GenAI feasibility v2 awaits manual runs
 
 ## Problem
 
@@ -174,6 +174,12 @@ the one-image prompt, spatial condition, seed, and provenance are frozen for
 feasibility. All-class templates, post-generation SAM3 annotation, and QC must
 be approved before production.
 
+The single feasibility layout is only an integration test and will not be
+repeated in a dataset. Canonical SD images use distinct deterministic layouts,
+camera/target geometry, lighting, clutter, prompt variants, and seeds. After
+clean generation and annotation, they receive the same frozen degradation-v1
+mixture and ranges as cut-paste.
+
 ### Stage 3 - Qwen + ControlNet without ADR
 
 Create four new class-balanced datasets:
@@ -187,7 +193,10 @@ Generate complete images under the same fixed taxonomy, quantities,
 MAIJA-aligned scene families, cross-class context-balance rule, annotation
 policy, and detector protocol as Stable Diffusion. The original Qwen-Image and
 InstantX Union ControlNet revisions are frozen; verify NF4 plus CPU-offload
-feasibility, runtime, peak RTX 3090 memory, and QC before production.
+feasibility, runtime, peak RTX 3090 memory, and QC before production. Qwen uses
+the same canonical diversity and post-generation degradation policy as Stable
+Diffusion. Corresponding indices share planned class, scene, control geometry,
+and seed schedules, while output pixels are generated independently.
 
 Detector runs remain single-GPU with global batch 16. Up to three independent
 experiments may run concurrently on the three RTX 3090 devices; the active

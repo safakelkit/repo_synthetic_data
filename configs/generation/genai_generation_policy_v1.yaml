@@ -1,0 +1,70 @@
+format_version: 1
+policy_id: genai_full_scene_generation_policy_v1
+status: accepted_design_pending_implementation_and_all_class_pilot
+applies_to: [sdxl, qwen]
+
+content:
+  complete_scene_generation: true
+  reuse_real_background_pixels: false
+  reuse_object_bank_rgb_or_rgba_pixels: false
+  fixed_class_taxonomy: configs/data_insp.yaml
+  scene_policy: configs/generation/genai_scene_policy_v1.yaml
+  exactly_one_primary_target_requested: true
+
+allocation:
+  canonical_images_per_backend: 2048
+  images_per_class: 128
+  nested_prefixes: [512, 1024, 1536, 2048]
+  images_per_class_per_prefix_increment: 32
+  assigned_scenes_per_class: 4
+  images_per_assigned_scene_per_increment: 8
+
+diversity:
+  same_single_control_reused_across_dataset: false
+  deterministic_sample_seed: base_seed_plus_canonical_sample_index
+  base_seed: 42
+  required_axes:
+    - scene_geometry_and_furnishing
+    - camera_azimuth_elevation_and_distance
+    - target_position_scale_and_orientation
+    - lighting_exposure_and_color_temperature
+    - background_clutter_and_materials
+    - prompt_wording_with_fixed_semantics
+  minimum_unique_layouts_per_class_scene_per_512_increment: 8
+  minimum_control_shape_or_pose_variants_per_class: 4
+  prohibit_identical_control_hashes_within_class_scene_block: true
+  source_scale_distribution: INSP_DET_train_class_specific_p10_p90
+  semantic_rule: variation_must_not_change_class_id_or_class_meaning
+  context_shortcut_rule: no_class_may_be_identified_by_a_unique_scene_or_layout_template
+  cross_backend_rule: >-
+    SDXL and Qwen receive the same canonical class, scene, variation schedule,
+    target geometry, and sample seed; generated pixels remain backend-specific.
+  duplicate_policy:
+    exact_duplicate: reject
+    perceptual_near_duplicate: reject_or_regenerate
+    threshold: pending_all_class_pilot
+
+conditioning:
+  feasibility: canny_from_programmatic_filled_geometry
+  canonical: unique_programmatic_layout_per_sample
+  prohibit_single_line_object_skeletons: true
+  prohibit_real_dataset_pixels: true
+  control_strength: 0.8
+  all_class_shape_templates: pending_implementation_and_validation
+
+generation_order:
+  - generate_clean_complete_scene
+  - verify_target_semantics_and_visual_realism
+  - localize_visible_target_and_create_annotation
+  - apply_frozen_degradation_to_complete_image
+  - verify_post_degradation_target_visibility_and_label_geometry
+  - write_image_label_metadata_and_nested_manifest
+
+release_gate:
+  canonical_generation_approved: false
+  blockers:
+    - feasibility_v2_for_both_backends
+    - deterministic_all_class_prompt_and_control_templates
+    - sam3_annotation_thresholds
+    - automatic_and_manual_qc_thresholds
+    - perceptual_duplicate_threshold

@@ -30,7 +30,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_feasibility_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_feasibility_v2.yaml"
 EXPECTED_PACKAGES = {
     "diffusers": "0.40.0",
     "transformers": "5.5.4",
@@ -97,7 +97,7 @@ def validate_config(
 ) -> None:
     if feasibility.get("status") != "ready_for_manual_gpu_launch":
         raise ValueError("Feasibility config is not approved for manual launch")
-    if models.get("status") != "frozen_for_single_image_feasibility":
+    if models.get("status") != "frozen_for_single_image_feasibility_v2":
         raise ValueError("Model config is not frozen for feasibility")
     if backend not in feasibility.get("backends", []):
         raise ValueError(f"Unsupported backend: {backend}")
@@ -122,37 +122,48 @@ def validate_config(
         raise ValueError("Both backends must use the same control layout")
 
 
-def draw_control(config: dict[str, Any], width: int, height: int) -> Image.Image:
+def draw_control(
+    config: dict[str, Any], width: int, height: int
+) -> tuple[Image.Image, Image.Image]:
     layout = config["control_layout"]
-    canvas = np.zeros((height, width, 3), dtype=np.uint8)
-    color = (255, 255, 255)
-    line = int(layout["line_width"])
-    vp = tuple(int(v) for v in layout["room_vanishing_point"])
+    canvas_value = int(layout["canvas_value"])
+    table_value = int(layout["table_value"])
+    object_value = int(layout["object_value"])
+    proxy = np.full((height, width), canvas_value, dtype=np.uint8)
     table = np.asarray(layout["table_polygon"], dtype=np.int32)
+    cv2.fillPoly(proxy, [table], table_value)
 
-    # Sparse room geometry and inspection-table boundary.
-    cv2.line(canvas, (0, 0), vp, color, line)
-    cv2.line(canvas, (width - 1, 0), vp, color, line)
-    cv2.polylines(canvas, [table], True, color, line)
-
-    # Deterministic scissors outline inside the declared target region.
+    # A filled proxy produces two physical boundaries around blades and arms
+    # after Canny, instead of asking the model to interpret a one-pixel skeleton.
     x1, y1, x2, y2 = [int(v) for v in layout["target_box_xyxy"]]
     cx = (x1 + x2) // 2
     cy = (y1 + y2) // 2
-    handle_radius = max(22, (x2 - x1) // 12)
+    handle_radius = max(28, (x2 - x1) // 10)
+    handle_hole_radius = max(14, int(handle_radius * 0.52))
+    body_width = max(18, (x2 - x1) // 16)
     left_handle = (x1 + handle_radius + 12, y2 - handle_radius - 10)
     right_handle = (x2 - handle_radius - 12, y2 - handle_radius - 10)
     pivot = (cx, cy + 35)
     blade_left = (x1 + 25, y1 + 20)
     blade_right = (x2 - 25, y1 + 20)
-    cv2.circle(canvas, left_handle, handle_radius, color, line)
-    cv2.circle(canvas, right_handle, handle_radius, color, line)
-    cv2.line(canvas, left_handle, pivot, color, line)
-    cv2.line(canvas, right_handle, pivot, color, line)
-    cv2.circle(canvas, pivot, max(7, line), color, -1)
-    cv2.line(canvas, pivot, blade_left, color, line)
-    cv2.line(canvas, pivot, blade_right, color, line)
-    return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
+    cv2.line(proxy, left_handle, pivot, object_value, body_width)
+    cv2.line(proxy, right_handle, pivot, object_value, body_width)
+    cv2.line(proxy, pivot, blade_left, object_value, body_width)
+    cv2.line(proxy, pivot, blade_right, object_value, body_width)
+    cv2.circle(proxy, left_handle, handle_radius, object_value, -1)
+    cv2.circle(proxy, right_handle, handle_radius, object_value, -1)
+    cv2.circle(proxy, left_handle, handle_hole_radius, table_value, -1)
+    cv2.circle(proxy, right_handle, handle_hole_radius, table_value, -1)
+    cv2.circle(proxy, pivot, max(10, body_width // 2), object_value, -1)
+
+    blurred = cv2.GaussianBlur(
+        proxy, (0, 0), sigmaX=float(layout["pre_canny_blur_sigma"])
+    )
+    low, high = [int(value) for value in layout["canny_thresholds"]]
+    canny = cv2.Canny(blurred, low, high)
+    proxy_rgb = cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)
+    canny_rgb = cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)
+    return Image.fromarray(proxy_rgb), Image.fromarray(canny_rgb)
 
 
 def resolve_remote_revisions(models: dict[str, Any], backend: str) -> dict[str, str]:
@@ -324,7 +335,7 @@ def main() -> None:
     scene_path = resolve_repo_path(feasibility["scene_policy"])
     models = load_yaml(models_path)
     scene = load_yaml(scene_path)
-    output_dir = resolve_repo_path(models["shared"]["feasibility_output_root"]) / args.backend
+    output_dir = resolve_repo_path(feasibility["output_root"]) / args.backend
 
     report = preflight(
         args.backend, feasibility_path, models_path, scene_path,
@@ -338,15 +349,17 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     started_utc = utc_now()
-    control = draw_control(
+    proxy, control = draw_control(
         feasibility, int(models["shared"]["output_width"]),
         int(models["shared"]["output_height"]),
     )
     control_path = output_dir / feasibility["output_files"]["control_image"]
+    proxy_path = output_dir / feasibility["output_files"]["proxy_layout"]
     output_path = output_dir / feasibility["output_files"]["generated_image"]
     record_path = output_dir / feasibility["output_files"]["run_record"]
     resolved_path = output_dir / feasibility["output_files"]["resolved_config"]
     control.save(control_path)
+    proxy.save(proxy_path)
     with resolved_path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(
             {"feasibility": feasibility, "models": models, "scene_policy": scene},
@@ -371,6 +384,8 @@ def main() -> None:
         "prompt": models["shared"]["prompt"],
         "negative_prompt": models["shared"]["negative_prompt"],
         "control_sha256": sha256_file(control_path),
+        "proxy_layout_sha256": sha256_file(proxy_path),
+        "canonical_degradation_applied": False,
         "annotation_performed": False,
         "canonical_dataset_modified": False,
     })

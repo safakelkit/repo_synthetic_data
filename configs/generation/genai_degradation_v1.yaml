@@ -1,0 +1,52 @@
+format_version: 1
+policy_id: genai_degradation_v1
+status: frozen_equal_to_executed_copy_paste_degradation_v1_pending_genai_integration
+source: configs/generation/copy_paste_v1.yaml#degradation
+apply_to_complete_generated_image: true
+apply_after_clean_generation_and_annotation: true
+post_degradation_visibility_qc_required: true
+seed_offset: 2
+operations: [blur, resolution, photometric, jpeg, noise]
+severity_distribution:
+  clean: 0.25
+  light: 0.375
+  medium: 0.25
+  heavy: 0.125
+per_class_per_32_images:
+  clean: 8
+  light: 12
+  medium: 8
+  heavy: 4
+levels:
+  light:
+    probabilities: {blur: 0.25, resolution: 0.35, photometric: 0.55, jpeg: 0.30, noise: 0.15}
+    gaussian_kernel: 3
+    gaussian_sigma: [0.3, 0.8]
+    motion_kernel_choices: [3, 5]
+    resolution_scale: [0.75, 0.90]
+    contrast_multiplier: [0.90, 1.10]
+    brightness_offset: [-12, 10]
+    jpeg_quality: [75, 92]
+    noise_sigma: [1.0, 4.0]
+  medium:
+    probabilities: {blur: 0.50, resolution: 0.60, photometric: 0.70, jpeg: 0.50, noise: 0.30}
+    gaussian_kernel: 5
+    gaussian_sigma: [0.8, 1.5]
+    motion_kernel_choices: [5, 7]
+    resolution_scale: [0.55, 0.75]
+    contrast_multiplier: [0.75, 1.20]
+    brightness_offset: [-25, 18]
+    jpeg_quality: [50, 75]
+    noise_sigma: [4.0, 9.0]
+  heavy:
+    probabilities: {blur: 0.75, resolution: 0.85, photometric: 0.85, jpeg: 0.75, noise: 0.50}
+    gaussian_kernel: 7
+    gaussian_sigma: [1.5, 2.5]
+    motion_kernel_choices: [7, 9, 11, 13]
+    resolution_scale: [0.35, 0.55]
+    contrast_multiplier: [0.60, 1.25]
+    brightness_offset: [-40, 25]
+    jpeg_quality: [30, 55]
+    noise_sigma: [8.0, 15.0]
+composition_rule: independent_operations_with_at_least_one_for_nonclean_severity
+tuning_restriction: do_not_modify_using_easy_or_hard_test_results

@@ -1,6 +1,6 @@
 format_version: 1
 protocol_id: genai_models_v1
-status: frozen_for_single_image_feasibility
+status: frozen_for_single_image_feasibility_v2
 decision_date: 2026-09-02
 
 shared:
@@ -10,7 +10,7 @@ shared:
   seed: 42
   control_type: canny
   control_source: synthetic_non_photographic_layout
-  controlnet_conditioning_scale: 0.9
+  controlnet_conditioning_scale: 0.8
   target_class_id: 2
   target_class_name: Scissors
   scene_family: property_inspection_station
@@ -26,7 +26,6 @@ shared:
     wrong object, deformed scissors, fused parts, floating object, cropped
     target, hidden target, hand, person, text, letters, numbers, logo,
     watermark, illustration, cartoon, CGI, low resolution, blurry target
-  feasibility_output_root: data/synthetic/feasibility/full_scene_v1
 
 sdxl:
   accepted: true
@@ -77,13 +76,14 @@ selection_rationale:
   - The InstantX union ControlNet explicitly targets the original Qwen-Image base model, so Qwen-Image-2512 is not substituted.
   - Qwen feasibility uses NF4 quantization and CPU offload because the unquantized model plus ControlNet is not a safe 24 GB assumption.
   - Both backends receive the identical generated Canny control image, target class, scene family, resolution, seed, and inference-step count.
+  - Feasibility v2 derives Canny edges from filled proxy geometry after v1 single-line geometry was interpreted as thin physical cords rather than a solid object.
   - https://huggingface.co/docs/diffusers/quantization/bitsandbytes documents the selected 4-bit backend.
 
 release_gate:
   canonical_generation_approved: false
   required_before_release:
-    - successful_sdxl_single_image_feasibility
-    - successful_qwen_single_image_feasibility
+    - successful_sdxl_single_image_feasibility_v2
+    - successful_qwen_single_image_feasibility_v2
     - recorded_wall_time_and_peak_vram
     - researcher_visual_review
     - all_class_prompt_and_control_pilot

@@ -66,6 +66,10 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 - Preserve the existing 16 class names, IDs, and order without modification.
 - SDXL 1.0 and Canny ControlNet immutable revisions, FP16/no-refiner choice,
   shared feasibility control, prompts, inference values, and pilot validation.
+- Canonical diversity axes and unique-control requirement; distinguish the
+  one-image integration case from production layout sampling.
+- Apply the same post-generation degradation-v1 schedule and ranges as the
+  cut-paste baseline after clean-scene annotation.
 - Annotation and quality control.
 
 ### 5.3 Qwen + ControlNet
@@ -75,6 +79,8 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 - Original Qwen-Image and InstantX Union ControlNet immutable revisions,
   compatibility basis, NF4/offload strategy, prompts, spatial conditioning,
   measured RTX 3090 feasibility, and pilot validation.
+- Use the same class/scene/layout/seed and degradation schedules as SDXL while
+  generating pixels independently.
 - Annotation and quality control.
 
 ### 5.4 Class-balanced allocation
