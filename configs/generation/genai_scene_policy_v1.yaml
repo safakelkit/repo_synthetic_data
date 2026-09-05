@@ -106,9 +106,7 @@ generation_constraints:
   prohibit_visible_text_logos_and_watermarks: true
 
 pending_before_release:
-  - prompt_templates_and_negative_prompts
-  - spatial_condition_representation
-  - subtype_and_scale_policy_within_fixed_class_semantics
+  - remaining_class_generation_reliability
+  - candidate_surplus_policy
   - sam3_annotation_thresholds
   - automatic_and_manual_qc_thresholds
-  - deterministic_all_class_pilot

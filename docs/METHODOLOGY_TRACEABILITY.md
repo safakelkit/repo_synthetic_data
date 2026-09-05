@@ -29,7 +29,7 @@ configuration, implementation, and evidence. A value marked **planned** or
   ControlNet integration, and RTX 3090 execution. The hand-drawn scissors proxy
   remained semantically weak, especially for Qwen. Active v3 uses accepted
   class-matched SAM3 binary silhouettes; both v3 GPU feasibility runs passed.
-- **Not yet implemented or run:** all-class prompt/control generation, GenAI
+- **Not yet implemented or run:** canonical GenAI generation,
   annotation/QC, dataset release, and eight detector runs.
 
 ## Dataset and evaluation values
@@ -191,12 +191,15 @@ implemented. Do not describe provisional values as executed methodology.
 | Scene scope | Eight correctional-facility families: five detention living-space, one controlled property-inspection, and two supervised operational contexts | Accepted and frozen v1.1 |
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
-| Spatial conditioning | V3 Canny derived from class-matched accepted SAM3 binary silhouettes; no RGB/RGBA pixels; control scale 0.8 | Implemented and validated for all 16 classes; SDXL/Qwen v3 feasibility visually passed; all-class pilot pending |
+| Spatial conditioning | V3 Canny derived from class-matched accepted SAM3 binary silhouettes; no RGB/RGBA pixels; control scale 0.8 | Implemented for all 16 classes; single-image feasibility passed, but two SDXL all-class pilots show that silhouette conditioning does not reliably preserve class identity |
 | All-class pilot | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images/backend; distinct binary-silhouette control, seed, prompt, scale, rotation, and placement | SDXL 64/64 generated and reviewed; structural pass, visual reject pending class-specific controls and scene-specific layouts; Qwen paused at 4/64 |
-| SDXL pilot-v2 correction | Class-specific semantic phrases; four curated accepted control masks for each failed/mixed class; eight scene-family support layouts; copy-paste object eligibility unchanged | Implemented in `genai_all_class_pilot_v2.yaml`; 64 unique controls rendered statically; GPU run pending |
+| SDXL pilot-v2 correction | Class-specific semantic phrases; four curated accepted control masks for each failed/mixed class; eight scene-family support layouts; copy-paste object eligibility unchanged | Executed 64/64; layout diversity and Saw improved, but systematic/important semantic failures remain; rejected for canonical promotion |
+| SDXL targeted pilot-v3 | Seven remaining problematic classes; binary SAM3 silhouette plus class-defining synthetic internal Canny edges, zero rotation, class-specific negatives, ControlNet scale 1.0 | Executed 28/28; Matches, Shaver, and Mobile phone materially improved, but Pliers/Aerosol/Battery/Laptop remain unreliable; rejected for canonical promotion |
+| SDXL remaining-class pilot-v4 | Four unresolved classes; subtype-matched prompts/silhouettes; explicit AA/9V and open-laptop controls; per-class ControlNet scales; no source RGB/RGBA pixels | Implemented in `genai_remaining_classes_pilot_v4.yaml`; 16/16 controls and static validation passed; GPU run pending |
+| GenAI pilot provenance | Git revision/dirty state; exact config, policy, model and script hashes; requested/resolved model revisions; package/CUDA/GPU environment; load/inference/wall time; peak VRAM; per-image proxy/control/output hashes | `run_all_class_genai_pilot.py` manifest format v2 |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |
-| Pilot | Deterministic 64 images/backend: all 16 classes × four assigned scene families | SDXL completed/rejected for canonical promotion; Qwen paused at 4/64 |
+| Pilot | Deterministic 64 images/backend: all 16 classes × four assigned scene families | SDXL v1 and corrected v2 completed/rejected for canonical promotion; Qwen v1 paused at 4/64 |
 | Target-test boundary | No prompt, scene, model, or QC tuning from easy/hard results | Accepted |
 
 The frozen policy is `configs/generation/genai_scene_policy_v1.yaml`.
@@ -265,9 +268,9 @@ resolved environment.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
 - Full-scene model pairs, immutable revisions, scene matrix, diversity policy,
-  degradation policy, and v2 single-image inference values are frozen. Qwen
-  memory behavior, all-class templates, annotation/QC implementation, and
-  production acceptance remain open.
+  degradation policy, feasibility memory/runtime, and SDXL all-class templates
+  are recorded. Four SDXL classes, annotation/QC implementation, candidate
+  surplus, and production acceptance remain open; Qwen all-class work is paused.
 - The retained SAM3 asset metadata proves source images, classes, annotation
   indices, and SAM scores, but does not prove the exact model revision or full
   extraction command used for every historical crop. The current extraction

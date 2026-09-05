@@ -226,7 +226,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## Open decisions
 
-- Complete all-class prompting and spatial-conditioning templates after the single-image feasibility runs.
+- Resolve the four remaining unreliable SDXL classes and freeze candidate-surplus/quality-gate rules.
 - Freeze SAM3 annotation thresholds and quality-control acceptance criteria.
 - Seed count and compute budget.
 - Clean-domain tolerance.
@@ -275,7 +275,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D028 - GenAI diversity and degradation are controlled independently
 
-- **Status:** Accepted design; canonical implementation and all-class pilot pending
+- **Status:** Accepted design; exercised in all-class pilots, canonical implementation pending
 - **Date:** 2026-09-02
 - **Source of truth:** `configs/generation/genai_generation_policy_v1.yaml` and `configs/generation/genai_degradation_v1.yaml`
 - **Diversity:** A single control image or layout must never be reused across the canonical dataset. Every class-scene block uses deterministic but distinct scene geometry, camera framing, target position/scale/orientation, lighting, clutter/material, prompt wording, and sample seed combinations. Each eight-image class-scene increment requires eight unique layouts and at least four class-specific shape/pose variants.
@@ -287,7 +287,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D029 - GenAI ControlNet target geometry uses real class silhouettes
 
-- **Status:** Accepted and implemented for v3 feasibility; all-class pilot validation pending
+- **Status:** Accepted for single-image feasibility; all-class SDXL pilots completed but not promoted to canonical generation
 - **Date:** 2026-09-02
 - **Source of truth:** `configs/generation/genai_feasibility_v3.yaml` and `src/generation/run_full_scene_feasibility.py`
 - **Decision:** Construct the target portion of each Canny condition from a class-matched accepted SAM3 binary mask in the existing object bank. The background and target appearance remain newly generated.
@@ -300,9 +300,36 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D030 - GenAI control suitability is distinct from copy-paste asset eligibility
 
-- **Status:** Accepted for corrected SDXL pilot v2; outcome pending
+- **Status:** Design tested; SDXL pilot v2 rejected for canonical promotion
 - **Date:** 2026-09-03
 - **Decision:** All 2,750 audited assets remain eligible for the accepted copy-paste baseline. GenAI ControlNet conditioning separately requires silhouettes that visually communicate class geometry without RGB texture.
 - **Correction:** For Matches, Pliers, Shaver, Saw, Aerosol can, and Mobile phone, use four predeclared representative accepted masks and class-specific semantic phrases. This does not reject or relabel any source asset.
 - **Scene diversity:** Replace the one shared support polygon with one frozen support/target layout for each of the eight MAIJA scene families. Prompt text retains the complete scene-family description.
 - **Evidence boundary:** The correction was designed from source assets and pilot images only, without easy/hard feedback. It must pass a new 64-image SDXL pilot before canonical promotion.
+- **Pilot-v2 execution:** All 64 scheduled images were generated (four per class), with 64 unique outputs and controls. Aggregate inference was 1,018.154 seconds (15.909 seconds/image mean; 18.974 seconds maximum).
+- **Pilot-v2 visual outcome:** Scene-family layouts are more diverse and Saw improved relative to v1. Knife and Screwdriver remain consistently recognizable. Shaver still fails systematically; Matches and Pliers remain largely ambiguous; Aerosol can, Mobile phone, Battery, Laptop, and some Scissors/Wrench outputs contain ambiguity, wrong geometry, or additional-object violations.
+- **Disposition:** Reject pilot v2 for canonical use. Curated silhouettes and stronger semantic phrases did not provide a sufficiently reliable class-identity constraint. Do not generate the 2,048-image SDXL dataset or train on either pilot.
+
+## D031 - Diagnostic semantic ControlNet overlays for generic silhouettes
+
+- **Status:** Partly successful diagnostic; canonical promotion rejected
+- **Date:** 2026-09-03
+- **Problem:** A binary silhouette alone does not distinguish semantically generic shapes: a phone resembles a battery or remote, a closed laptop resembles a tablet, an aerosol can resembles a bottle, and a manual razor resembles a hammer-like tool.
+- **Decision:** For a non-training diagnostic pilot only, add predeclared class-defining internal edges to the synthetic proxy before Canny conversion: matchbox/matches, plier pivot/handles/jaws, razor head/handle, aerosol cap/nozzle, battery terminal, phone screen/camera, and laptop hinge/screen. The existing binary SAM3 silhouette remains part of each condition.
+- **Pixel boundary:** These overlays are programmatic geometry. They transfer no real source RGB/RGBA pixels and do not alter the fixed class taxonomy or copy-paste asset eligibility.
+- **Additional constraints:** The seven targeted classes use zero rotation so internal semantic geometry remains aligned. Class-specific negative terms explicitly reject common confusions. ControlNet scale is 1.0, compared with v2's 0.8.
+- **Scope:** `configs/generation/genai_problem_classes_pilot_v3.yaml` schedules exactly 28 SDXL images (seven classes times four frozen compatible scenes). The output is prohibited from training, annotation, degradation, and canonical promotion until visual review.
+- **Acceptance rule:** Every class must produce enough visually clear, single-target images across its assigned scenes to justify a later candidate-generation/QC workflow. A technical run alone is not acceptance.
+- **Execution:** 28/28 SDXL images, four per targeted class, completed with 28 unique controls and outputs. Aggregate inference was 444.317 seconds (15.868 seconds/image mean; 18.729 seconds maximum).
+- **Visual result:** Matches, Shaver, and Mobile phone are materially improved; the latter two now have multiple clearly recognizable examples. Pliers improved but remains inconsistent. Aerosol can and Battery remain generic device/bottle/remote-like forms. Laptop commonly contains an additional computer or lacks a clear laptop identity.
+- **Disposition:** Do not promote the v3 configuration to canonical generation. Retain the improvements for the three materially improved classes, but use a distinct next intervention for Pliers, Aerosol can, Battery, and Laptop.
+
+## D032 - Remaining classes require prompt–silhouette subtype consistency
+
+- **Status:** Implemented for targeted SDXL pilot v4; GPU execution pending
+- **Date:** 2026-09-05
+- **Finding:** V3 mixed incompatible semantic instructions and controls: cylindrical-battery prompts were paired with 9V silhouettes, open-laptop prompts with mostly closed-laptop silhouettes, and some selected plier silhouettes did not clearly expose the two-handle/pivot/jaw structure.
+- **Decision:** Select four visually explicit accepted silhouettes per unresolved class and bind each sample to a matching subtype phrase. Battery uses declared AA or 9V prompts matching its source shape; Laptop uses only open-laptop silhouettes and prompts; Pliers uses four clearly open plier silhouettes. Aerosol retains verified can crops with simplified cap/nozzle edges.
+- **Control policy:** Preserve zero rotation. Use class-specific ControlNet scales (Pliers/Battery/Laptop 1.1; Aerosol 0.9) and class-specific confusion negatives. The output still contains no source RGB/RGBA pixels.
+- **Scope:** `genai_remaining_classes_pilot_v4.yaml` schedules 16 diagnostic images: Pliers, Aerosol can, Battery, and Laptop in their four frozen scenes. It creates no labels/degradation and is forbidden from training until review.
+- **Run record:** Manifest format v2 must capture the clean Git revision, exact code/config/policy/model hashes, frozen and remotely resolved model revisions, package and CUDA/GPU environment, load/inference/wall time, peak VRAM, and every proxy/control/output hash.

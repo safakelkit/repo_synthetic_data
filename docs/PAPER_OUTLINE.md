@@ -86,7 +86,7 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 ### 5.4 Class-balanced allocation
 
 - No detector feedback.
-- Deterministic remainder handling across 16 classes.
+- Deterministic balanced ordering across 16 classes; divisible quantities require no remainder allocation.
 - Quantities: 512, 1,024, 1,536, and 2,048, giving exactly 32, 64, 96, and 128 images per class.
 
 ## 6. Experimental Setup
