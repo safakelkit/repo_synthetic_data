@@ -211,6 +211,11 @@ def main() -> None:
         raise RuntimeError("Git worktree is dirty; commit the frozen pilot code before launch")
     if not torch.cuda.is_available() and not args.preflight_only:
         raise RuntimeError("CUDA is not visible")
+    if not args.preflight_only and not 0 <= args.gpu < torch.cuda.device_count():
+        raise ValueError(
+            f"Logical GPU index {args.gpu} is invalid; visible device count is "
+            f"{torch.cuda.device_count()}"
+        )
     manifest_path = repo_path(config["silhouette_source"]["audit_manifest"])
     schedule: list[dict[str, Any]] = []
     selected_classes = config.get("pilot_scope", {}).get("class_ids")
@@ -227,15 +232,14 @@ def main() -> None:
         print(json.dumps({"status": "ready", "backend": args.backend, "samples": len(schedule), "output": str(output_dir.relative_to(REPO_ROOT)), "git": git, "packages": versions, "config_sha256": sha256(config_path), "mask_manifest_sha256": sha256(manifest_path)}, indent=2))
         return
     remote_revisions = helper.resolve_remote_revisions(models, args.backend)
-    output_dir.mkdir(parents=True)
-    (output_dir / "images").mkdir()
-    (output_dir / "controls").mkdir()
     run_started_utc = helper.utc_now()
     run_started = time.monotonic()
-    torch.cuda.reset_peak_memory_stats(args.gpu)
     model_load_started = time.monotonic()
     pipe = helper.load_pipeline(args.backend, models, args.gpu)
     model_load_seconds = round(time.monotonic() - model_load_started, 3)
+    output_dir.mkdir(parents=True)
+    (output_dir / "images").mkdir()
+    (output_dir / "controls").mkdir()
     records: list[dict[str, Any]] = []
     for index, sample in enumerate(schedule):
         rows = read_masks(manifest_path, sample["class_id"])
