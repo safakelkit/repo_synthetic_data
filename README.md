@@ -11,9 +11,9 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 - Every cut-paste quantity improved both target splits over E000.
 - The 2,048-image cut-paste dataset is accepted as a deliberately simple
   baseline with documented realism limitations.
-- SDXL/Qwen single-image feasibility passed. SDXL all-class pilots exposed
-  class-identity failures; targeted v3 improved Matches, Shaver, and Mobile
-  phone, while Pliers, Aerosol can, Battery, and Laptop remain unresolved.
+- SDXL/Qwen single-image feasibility passed. Targeted SDXL pilots resolved
+  Matches, Shaver, Mobile phone, and Pliers. Battery and Laptop now produce
+  mixed viable candidates; Aerosol can remains a systematic failure.
 - No GenAI pilot image is training data. Canonical GenAI generation, annotation,
   QC, degradation, and detector training have not started.
 

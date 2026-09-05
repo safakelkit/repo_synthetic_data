@@ -13,13 +13,17 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 - [x] Run/review two 64-image SDXL all-class pilots.
 - [x] Run/review the 28-image targeted SDXL v3 diagnostic; retain improvements
   for Matches, Shaver, and Mobile phone.
-- [ ] Improve Pliers, Aerosol can, Battery, and Laptop generation without using
-  easy/hard feedback.
+- [ ] Resolve the remaining Aerosol can zero-yield failure without using
+  easy/hard feedback; preserve the accepted Pliers and viable 9V/Laptop rules.
 - [x] Prepare targeted SDXL v4 with subtype-consistent prompts/silhouettes and
   verify all 16 controls for the four remaining classes.
 - [x] Extend the pilot manifest with frozen code/config/model hashes, package
   and GPU environment, runtime/VRAM, and per-image output/control hashes.
-- [ ] Run/review targeted SDXL v4 and measure viable candidate yield per class.
+- [x] Run/review targeted SDXL v4: Pliers 4/4, Aerosol can 0/4, Battery
+  2/4, Laptop 2/4; overall strict acceptance 8/16.
+- [x] Prepare Aerosol-only v5 conditioning-scale diagnostic with four samples
+  each at 0.45/0.60/0.75/0.90 and no misleading internal target edges.
+- [ ] Run/review Aerosol v5 and select or reject the scale strategy.
 - [ ] Define a fixed candidate-surplus policy and report attempts, class-wise
   acceptance rate, runtime, and rejection reasons.
 - [ ] Implement post-generation localization/annotation and automatic QC.

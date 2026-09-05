@@ -326,10 +326,22 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D032 - Remaining classes require prompt–silhouette subtype consistency
 
-- **Status:** Implemented for targeted SDXL pilot v4; GPU execution pending
+- **Status:** Executed; partly successful, wholesale promotion rejected
 - **Date:** 2026-09-05
 - **Finding:** V3 mixed incompatible semantic instructions and controls: cylindrical-battery prompts were paired with 9V silhouettes, open-laptop prompts with mostly closed-laptop silhouettes, and some selected plier silhouettes did not clearly expose the two-handle/pivot/jaw structure.
 - **Decision:** Select four visually explicit accepted silhouettes per unresolved class and bind each sample to a matching subtype phrase. Battery uses declared AA or 9V prompts matching its source shape; Laptop uses only open-laptop silhouettes and prompts; Pliers uses four clearly open plier silhouettes. Aerosol retains verified can crops with simplified cap/nozzle edges.
 - **Control policy:** Preserve zero rotation. Use class-specific ControlNet scales (Pliers/Battery/Laptop 1.1; Aerosol 0.9) and class-specific confusion negatives. The output still contains no source RGB/RGBA pixels.
 - **Scope:** `genai_remaining_classes_pilot_v4.yaml` schedules 16 diagnostic images: Pliers, Aerosol can, Battery, and Laptop in their four frozen scenes. It creates no labels/degradation and is forbidden from training until review.
 - **Run record:** Manifest format v2 must capture the clean Git revision, exact code/config/policy/model hashes, frozen and remotely resolved model revisions, package and CUDA/GPU environment, load/inference/wall time, peak VRAM, and every proxy/control/output hash.
+- **Execution:** 16/16 images completed at Git revision `2a5742c0a4e166db3e07ab2bba5e74a3929cfee5`. Wall time was 262.081 s; mean inference was 16.032 s/image; peak allocated/reserved VRAM was 7.735/10.379 GiB.
+- **Strict visual result:** Pliers 4/4, Aerosol can 0/4, Battery 2/4, and Laptop 2/4 passed, for 8/16 overall. The two successful Battery samples are the 9V subtype. One otherwise recognizable Laptop floated, and another remained book-like.
+- **Disposition:** Preserve the successful Pliers, 9V Battery, and Laptop settings. Do not promote v4 wholesale. Aerosol can requires a targeted change because candidate surplus cannot repair a measured zero-yield class.
+
+## D033 - Isolate Aerosol target-edge over-conditioning before production
+
+- **Status:** Implemented as pilot v5; GPU execution pending
+- **Date:** 2026-09-05
+- **Finding:** V4 used genuine aerosol-can silhouettes, but its artificial circle and horizontal internal edges were rendered as screws, straps, or fixture components. All four outputs failed class identity.
+- **Decision:** Remove the internal semantic overlay for Aerosol while retaining the genuine binary silhouette and scene Canny condition. Compare ControlNet scales 0.45, 0.60, 0.75, and 0.90 across the same four frozen scenes, with explicit freestanding aerosol prompts and fixture/device negatives.
+- **Scope:** `genai_aerosol_scale_pilot_v5.yaml` schedules 16 non-training images. It changes neither the class taxonomy nor target-test boundary and creates no annotations or degradations.
+- **Decision rule:** Select a scale only if it yields recognizable, freestanding aerosol cans across more than one scene. If all scales remain near zero yield, stop tuning silhouette Canny and change the conditioning design rather than generating surplus failures.

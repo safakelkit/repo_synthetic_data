@@ -95,9 +95,9 @@ must also be reported.
 
 ## Current stage
 
-1. Improve Pliers, Aerosol can, Battery, and Laptop generation.
-   A subtype-consistent 16-image SDXL v4 diagnostic is prepared and awaits GPU
-   execution/review.
+1. Resolve Aerosol can generation. V4 resolved Pliers and produced viable 9V
+   Battery/Laptop candidates, but Aerosol remained 0/4. A 16-image scale
+   diagnostic is prepared to test whether Canny over-conditioning is causal.
 2. Freeze post-generation annotation and QC rules using pilot data only.
 3. Validate candidate acceptance yield before canonical generation.
 4. Generate, annotate, degrade, and validate the 2,048-image SDXL canonical

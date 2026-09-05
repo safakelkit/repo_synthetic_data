@@ -220,11 +220,18 @@ def main() -> None:
     schedule: list[dict[str, Any]] = []
     selected_classes = config.get("pilot_scope", {}).get("class_ids")
     selected_ids = {int(value) for value in selected_classes} if selected_classes is not None else None
+    repeats = int(config.get("pilot_scope", {}).get("images_per_class_scene", 1))
+    if repeats < 1:
+        raise ValueError("images_per_class_scene must be positive")
     for class_id, target in scene_policy["class_policy"]["names"].items():
         if selected_ids is not None and int(class_id) not in selected_ids:
             continue
-        for scene_name in scene_policy["class_to_scene_families"][class_id]:
-            schedule.append({"class_id": int(class_id), "target": target, "scene_name": scene_name})
+        for repeat_index in range(repeats):
+            for scene_name in scene_policy["class_to_scene_families"][class_id]:
+                schedule.append({
+                    "class_id": int(class_id), "target": target,
+                    "scene_name": scene_name, "repeat_index": repeat_index,
+                })
     expected = int(config["pilot_scope"]["expected_images_per_backend"])
     if len(schedule) != expected:
         raise ValueError(f"Expected {expected} samples, got {len(schedule)}")
@@ -256,6 +263,9 @@ def main() -> None:
         prompt = prompt_for(config, scene_policy["scene_families"][sample["scene_name"]], sample["target"], sample["class_id"], index)
         generator = torch.Generator(device="cpu").manual_seed(int(config["seed"]) + index)
         class_scale = config.get("class_controlnet_conditioning_scale", {}).get(sample["class_id"], config["controlnet_conditioning_scale"])
+        scale_schedule = config.get("class_controlnet_conditioning_scales", {}).get(sample["class_id"])
+        if scale_schedule is not None:
+            class_scale = scale_schedule[sample["repeat_index"] % len(scale_schedule)]
         width, height = [int(value) for value in config["output_size"]]
         common = {"prompt": prompt, "negative_prompt": negative_prompt_for(config, sample["class_id"]), "height": height, "width": width, "num_inference_steps": int(config["inference_steps"]), "controlnet_conditioning_scale": float(class_scale), "generator": generator}
         started = time.monotonic()
