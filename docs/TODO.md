@@ -42,6 +42,8 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 - [ ] Validate a two-stage Aerosol path: generate the frozen scene first, then
   place/regenerate a target-only SDXL Aerosol inside a declared region while
   preserving scene pixels and recording the separate provenance of both stages.
+- [x] Implement and preflight the eight-image two-stage SDXL Aerosol v8 pilot;
+  keep its production use locked until visual review.
 - [ ] Choose and validate one method that can generate all 16 immutable classes;
   do not launch the blocked 2,592-candidate SDXL run.
 - [ ] Implement post-generation localization/annotation and automatic QC.

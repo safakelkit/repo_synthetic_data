@@ -318,3 +318,26 @@ progress and errors are written to the Git-ignored
   Canny proved that SDXL can render the class, while also showing that scene and
   target control must be separated into two stages or spatially conditioned.
 - **Review:** `data/synthetic/pilots/genai_aerosol_target_control_v7/sdxl/pilot_review.json`
+
+## SDXL-AERO-P08 - Two-stage Canny/inpainting diagnostic
+
+- **Status:** Prepared; GPU run and visual review pending
+- **Purpose:** Preserve a frozen correctional-facility scene while generating
+  Aerosol only inside a declared target region
+- **Stage 1:** SDXL + Canny generates the empty scene and support surface
+- **Stage 2:** SDXL ControlNet inpainting receives a real target-only Aerosol
+  contour and changes only a padded target mask
+- **Pixel rule:** The final compositor copies all pixels outside the feathered
+  inpaint mask from the Stage-1 scene
+- **Scope:** Eight training-forbidden images; two attempts in each frozen scene
+- **Release rule:** At least 6/8 valid images and success in all four scenes
+- **Config:** `configs/generation/genai_aerosol_two_stage_pilot_v8.yaml`
+- **Implementation:** `src/generation/run_aerosol_two_stage_pilot.py`
+- **Production:** Locked pending visual review
+
+## Superseded GenAI artifact cleanup (2026-09-06)
+
+- Removed approximately 119 MB of superseded SDXL canonical-test, scene-only,
+  v5, and v7 pixel/control/manifest outputs.
+- Preserved the tracked v7 review decision as compact evidence.
+- Preserved `data/synthetic/cp_v1_seed42` and every detector result.
