@@ -45,12 +45,6 @@ sdxl:
   guidance_scale: 5.0
   memory_strategy: single_gpu_model_cpu_offload
   use_refiner: false
-  inpaint_model:
-    id: diffusers/stable-diffusion-xl-1.0-inpainting-0.1
-    revision: d42a35f5ca880abddc9860204f7fcb26d16d634f
-    license: openrail++
-    source: https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1
-    pipeline_class: StableDiffusionXLControlNetInpaintPipeline
 
 qwen:
   accepted_for_feasibility: true

@@ -11,9 +11,9 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 - Every cut-paste quantity improved both target splits over E000.
 - The 2,048-image cut-paste dataset is accepted as a deliberately simple
   baseline with documented realism limitations.
-- SDXL/Qwen single-image feasibility passed. SDXL pilot findings are combined
-  in one class-specific candidate pipeline. Its 64-image canonical acceptance
-  test is ready; full production remains locked until that test is reviewed.
+- The GenAI pipeline has been restarted around one-pass full-image generation.
+  Fifteen successful SDXL/Canny class profiles are retained; Aerosol is tested
+  as a concise text-only full-scene branch. Production remains locked.
 - No GenAI pilot or acceptance-test image is training data. Canonical SDXL
   production, annotation, degradation, QC, and detector training have not started.
 
@@ -84,8 +84,8 @@ python src/training/train_copypaste_baselines.py --experiment 512 --preflight-on
 # Evaluate a source-validation-selected checkpoint
 python src/evaluate_yolo.py runs/train/<run-name>/weights/best.pt
 
-# Inspect or preflight the frozen SDXL candidate pipeline
-python src/generation/generate_sdxl_candidates.py --mode test --preflight-only
+# Preflight the restarted one-pass SDXL acceptance test
+python src/generation/generate_sdxl_dataset.py --preflight-only
 ```
 
 Exact commands, versions, hashes, and artifact paths belong in the traceability

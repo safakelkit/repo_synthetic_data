@@ -9,6 +9,7 @@ Use the smallest document that answers the current question.
 | Why a methodology choice was accepted | `DECISIONS.md` |
 | Exact parameters, versions, hashes, and code mapping | `METHODOLOGY_TRACEABILITY.md` |
 | Chronological run/pilot evidence | `EXPERIMENT_LOG.md` |
+| Active restarted GenAI pipeline | `GENERATION_PIPELINE.md` |
 | Verified detector metrics | `RESULTS_SUMMARY.md` |
 | Manuscript structure and planned figures | `PAPER_OUTLINE.md` |
 | Complete paper-writing source | `PAPER_TECHNICAL_RECORD_PRIVATE.md` (local, Git-ignored) |
