@@ -55,6 +55,8 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **Canonical acceptance test:** `sdxl_canonical_v1.yaml` and `generate_sdxl_candidates.py` schedule 64 deterministic non-training images (16 classes x four assigned scenes), with unique jittered controls and complete provenance. Production is locked pending review and annotation/finalizer preflight.
 - **Canonical acceptance-test execution/review:** Completed 64/64 with valid files/hashes, four images/class, and 64 unique output/proxy/control hashes. Aggregate inference was 1,012.524 s (15.821 s/image mean). Compact review accepted 54/64 (84.375%). Fifteen classes have usable yield; Aerosol was 0/4 and is the only systematic blocker. Other rejected counts were Lighter 2, Matches 1, Wrench 1, and Laptop 2. All test images remain forbidden from training.
 - **Minimal recheck:** Run only Aerosol's four assigned scenes with scene/support Canny and no target silhouette at scale 0.60. Do not rerun the other 60 images or unlock production before review.
+- **Aerosol scene-only execution/review:** Completed 4/4 at Git revision `c60f338`; wall time 71.144 s, model load 4.761 s, and peak allocated/reserved VRAM 7.735/10.379 GiB. Compact acceptance was 0/4: outputs depicted fixtures/plumbing, an empty work surface, or ventilation-like machinery, not a reliably boxable aerosol can.
+- **SDXL disposition:** Canonical acceptance failed because the immutable 16-class protocol cannot be satisfied. Keep the 2,592-candidate production run locked and stop further prompt/ControlNet micro-tuning in this architecture.
 
 ## E000 - Real-only baseline
 

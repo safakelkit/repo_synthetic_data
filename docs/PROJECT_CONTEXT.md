@@ -89,9 +89,11 @@ pilot output is eligible for detector training.
 The accepted SDXL candidate method combines the useful class-specific pilot
 settings, deterministic scene/layout diversity, and a compact annotation-first
 quality gate. A 64-image acceptance test is implemented and must be reviewed
-before production. The test accepted 54/64 images (84.375%): 15 classes have
-usable yield, while Aerosol at 0/4 requires one four-scene scene-only recheck.
-Production may then generate a modest surplus and retain
+before production. The test accepted 54/64 images (84.375%): 15 classes had
+usable yield, but Aerosol was 0/4. Its four-scene scene-only fallback also
+produced 0/4 recognizable aerosol cans. The current SDXL architecture therefore
+fails the immutable 16-class release condition and production remains locked.
+A future accepted method may generate a modest surplus and retain
 only recognizable, reliably annotatable images. Multiple instances of the same
 class are allowed when all are annotated. The four dataset quantities
 refer to accepted images, while generation attempts, acceptance rate, and cost
@@ -99,11 +101,11 @@ must also be reported.
 
 ## Current stage
 
-1. Run and review the four-image Aerosol scene-only recheck.
-2. Preflight post-generation annotation and finalization.
-3. Generate, annotate, degrade, and validate the 2,048-image SDXL canonical
-   dataset and nested prefixes.
-4. Train/evaluate SD-B*; then repeat the frozen process for Qwen.
+1. Select a generation architecture that can represent all 16 classes without
+   changing their names or IDs.
+2. Validate its Aerosol behavior before any full production launch.
+3. Preflight post-generation annotation and finalization.
+4. Generate, annotate, degrade, and validate the canonical dataset.
 
 ## Validity boundaries
 

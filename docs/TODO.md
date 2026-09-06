@@ -34,8 +34,10 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
   sharded production candidate scheduler.
 - [x] Run/review the 64-image canonical acceptance test: 54/64 accepted
   (84.375%); 15 classes have usable yield; test images remain forbidden from training.
-- [ ] Run/review the four-image Aerosol scene-only recheck; this is the sole
-  remaining SDXL production blocker from the visual test.
+- [x] Run/review the four-image Aerosol scene-only recheck: 0/4; reject this
+  fallback and stop SDXL prompt/ControlNet micro-tuning in the current architecture.
+- [ ] Choose and validate one method that can generate all 16 immutable classes;
+  do not launch the blocked 2,592-candidate SDXL run.
 - [ ] Implement post-generation localization/annotation and automatic QC.
 - [x] Freeze compact acceptance criteria using pilot outputs only.
 - [ ] Validate class-wise candidate yield before canonical production.
