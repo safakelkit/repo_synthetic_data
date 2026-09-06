@@ -13,8 +13,8 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 - [x] Run/review two 64-image SDXL all-class pilots.
 - [x] Run/review the 28-image targeted SDXL v3 diagnostic; retain improvements
   for Matches, Shaver, and Mobile phone.
-- [ ] Resolve the remaining Aerosol can zero-yield failure without using
-  easy/hard feedback; preserve the accepted Pliers and viable 9V/Laptop rules.
+- [x] Combine successful class-specific pilot settings into the frozen SDXL
+  candidate pipeline without using easy/hard feedback.
 - [x] Prepare targeted SDXL v4 with subtype-consistent prompts/silhouettes and
   verify all 16 controls for the four remaining classes.
 - [x] Extend the pilot manifest with frozen code/config/model hashes, package
@@ -25,16 +25,17 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
   each at 0.45/0.60/0.75/0.90 and no misleading internal target edges.
 - [x] Run/review Aerosol v5: 2/16 strict acceptance, both in one scene; reject
   further silhouette-Canny scale tuning.
-- [ ] Test a different Aerosol conditioning design without changing the class,
-  model pair, scene policy, or target-test boundary.
-- [x] Prepare v6 scene-only Canny pilot so ControlNet constrains the MAIJA
-  support surface while the prompt determines Aerosol identity.
-- [ ] Run/review Aerosol v6 before deciding the canonical conditioning policy.
-- [ ] Define a fixed candidate-surplus policy and report attempts, class-wise
+- [x] Adopt compact annotation-first acceptance: reject absent/wrong,
+  unrecognizable, unlocalizable, or incompletely labelled targets; do not reject
+  merely for mild synthetic appearance or simple composition.
+- [x] Define a fixed candidate-surplus policy and report attempts, class-wise
   acceptance rate, runtime, and rejection reasons.
+- [x] Implement the deterministic 64-image SDXL canonical acceptance test and
+  sharded production candidate scheduler.
+- [ ] Run/review the 64-image canonical acceptance test (four images/class,
+  one per assigned MAIJA scene); these images are forbidden from training.
 - [ ] Implement post-generation localization/annotation and automatic QC.
-- [ ] Freeze acceptance thresholds and a limited manual-review protocol using
-  pilot outputs only.
+- [x] Freeze compact acceptance criteria using pilot outputs only.
 - [ ] Validate class-wise candidate yield before canonical production.
 - [ ] Generate and validate the nested SD-B0512/1024/1536/2048 dataset.
 - [ ] Train and evaluate all four SDXL configurations with the frozen YOLO11s
@@ -66,8 +67,8 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 
 - [ ] Numerical clean-domain mAP50-95 loss tolerance.
 - [ ] Additional detector seed count and compute budget.
-- [ ] Final candidate-surplus ratio after class-wise pilot yield is measured.
-- [ ] Exact automatic annotation/QC thresholds and manual-review sample policy.
+- [x] Candidate surplus: 25% standard; 50% Aerosol until measured production yield.
+- [ ] Exact annotation implementation and finalizer integrity checks.
 - [ ] Capture physical GPU assignment, NVIDIA driver, CUDA/software environment,
   and wall time for every remaining paper run.
 

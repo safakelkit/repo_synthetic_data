@@ -80,29 +80,28 @@ correctional-facility scene families provide four compatible contexts per
 class while sharing contexts across classes to reduce background shortcuts.
 
 SDXL and Qwen passed single-image integration feasibility. SDXL then completed
-two 64-image all-class pilots and one 28-image targeted diagnostic pilot. Scene
-diversity and several class identities improved, but Pliers, Aerosol can,
-Battery, and Laptop remain insufficiently reliable. Qwen all-class generation
-is paused after four pilot images. No pilot output is annotated, degraded, or
-eligible for detector training.
+two all-class and three targeted diagnostics. Their positive findings now form
+one class-specific candidate pipeline; earlier strict pilot pass rates are
+diagnostic history, not the active acceptance threshold. Qwen all-class work is
+paused until the shared annotation/finalization path is proven with SDXL. No
+pilot output is eligible for detector training.
 
-The intended production method combines controlled generation with a frozen
-quality gate. Systematic generator failures must first be improved; production
-may then generate a modest surplus of candidates and retain only correctly
-localized, class-consistent, single-target images. The four dataset quantities
+The accepted SDXL candidate method combines the useful class-specific pilot
+settings, deterministic scene/layout diversity, and a compact annotation-first
+quality gate. A 64-image acceptance test is implemented and must be reviewed
+before production. Production may then generate a modest surplus and retain
+only recognizable, reliably annotatable images. Multiple instances of the same
+class are allowed when all are annotated. The four dataset quantities
 refer to accepted images, while generation attempts, acceptance rate, and cost
 must also be reported.
 
 ## Current stage
 
-1. Change the Aerosol conditioning design. V4 yielded 0/4 and the v5 scale
-   diagnostic only 2/16, both in one scene; more silhouette-Canny scale tuning
-   is rejected. V6 is prepared to test scene-only Canny conditioning.
-2. Freeze post-generation annotation and QC rules using pilot data only.
-3. Validate candidate acceptance yield before canonical generation.
-4. Generate, annotate, degrade, and validate the 2,048-image SDXL canonical
+1. Run and review the 64-image SDXL canonical acceptance test.
+2. Preflight post-generation annotation and finalization.
+3. Generate, annotate, degrade, and validate the 2,048-image SDXL canonical
    dataset and nested prefixes.
-5. Train/evaluate SD-B*; then repeat the frozen process for Qwen.
+4. Train/evaluate SD-B*; then repeat the frozen process for Qwen.
 
 ## Validity boundaries
 

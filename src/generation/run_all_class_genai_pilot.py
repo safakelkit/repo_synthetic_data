@@ -121,7 +121,13 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
     layout = config["control_layout"]
     proxy = np.full((height, width), int(layout["canvas_value"]), dtype=np.uint8)
     scene_layout = config["scene_layouts"][scene_name]
-    support = np.asarray(scene_layout["support_polygon"], dtype=np.int32)
+    variation_rng = np.random.default_rng(int(config.get("seed", 0)) + sample_index * 104729)
+    support = np.asarray(scene_layout["support_polygon"], dtype=np.int32).copy()
+    support_jitter = int(layout.get("support_jitter_px", 0))
+    if support_jitter:
+        support += variation_rng.integers(-support_jitter, support_jitter + 1, size=support.shape)
+        support[:, 0] = np.clip(support[:, 0], 0, width - 1)
+        support[:, 1] = np.clip(support[:, 1], 0, height - 1)
     cv2.fillPoly(proxy, [support], int(layout["support_value"]))
     mode = config.get("target_conditioning_mode", "silhouette")
     if mode == "scene_only":
@@ -133,6 +139,7 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
             "rotation_degrees": None,
             "scene_layout": scene_name,
             "rendered_box_xyxy": None,
+            "support_polygon": support.tolist(),
         }
     elif mode == "silhouette":
         if row is None:
@@ -147,15 +154,22 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
         binary = np.where(original[ys.min():ys.max() + 1, xs.min():xs.max() + 1] > 0, 255, 0).astype(np.uint8)
         class_rotations = config.get("class_rotation_degrees", {}).get(int(row["class_id"]))
         rotations = class_rotations if class_rotations is not None else (-24, -8, 8, 24)
-        angle = float(rotations[sample_index % len(rotations)])
+        angle = float(rotations[int(variation_rng.integers(0, len(rotations)))])
         binary = rotate_binary(binary, angle)
         x1, y1, x2, y2 = [int(value) for value in scene_layout["target_box_xyxy"]]
         box_width, box_height = x2 - x1, y2 - y1
-        scale = min(box_width / binary.shape[1], box_height / binary.shape[0]) * (0.82 + 0.06 * (sample_index % 3))
+        scale_range = layout.get("target_scale_factor")
+        factor = float(variation_rng.uniform(*scale_range)) if scale_range else 0.82 + 0.06 * (sample_index % 3)
+        scale = min(box_width / binary.shape[1], box_height / binary.shape[0]) * factor
         target_width, target_height = max(1, round(binary.shape[1] * scale)), max(1, round(binary.shape[0] * scale))
         binary = cv2.resize(binary, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
-        offset_x = (-28, 0, 28)[sample_index % 3]
-        offset_y = (-16, 0, 16)[(sample_index // 3) % 3]
+        center_jitter = layout.get("target_center_jitter_px")
+        if center_jitter:
+            offset_x = int(variation_rng.integers(-int(center_jitter[0]), int(center_jitter[0]) + 1))
+            offset_y = int(variation_rng.integers(-int(center_jitter[1]), int(center_jitter[1]) + 1))
+        else:
+            offset_x = (-28, 0, 28)[sample_index % 3]
+            offset_y = (-16, 0, 16)[(sample_index // 3) % 3]
         paste_x = max(0, min(width - target_width, x1 + (box_width - target_width) // 2 + offset_x))
         paste_y = max(0, min(height - target_height, y1 + (box_height - target_height) // 2 + offset_y))
         proxy[paste_y:paste_y + target_height, paste_x:paste_x + target_width][binary > 0] = int(layout["target_value"])
@@ -169,6 +183,9 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
             "rotation_degrees": angle,
             "scene_layout": scene_name,
             "rendered_box_xyxy": rendered_box,
+            "support_polygon": support.tolist(),
+            "target_scale_factor": round(factor, 6),
+            "target_center_offset_xy": [offset_x, offset_y],
         }
     else:
         raise ValueError(f"Unsupported target_conditioning_mode: {mode}")
@@ -183,7 +200,15 @@ def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class
     phrase = config.get("class_target_phrases", {}).get(class_id, target.lower())
     if isinstance(phrase, list):
         phrase = phrase[sample_index % len(phrase)]
-    return f"{config['prompt']['prefix']} {description}. {config['prompt']['suffix'].format(target=phrase)}"
+    variation = config.get("prompt_variation", {})
+    details = []
+    for offset, key in enumerate(("lighting", "camera", "material", "clutter")):
+        choices = variation.get(key, [])
+        if choices:
+            details.append(str(choices[(sample_index + offset * 3) % len(choices)]))
+    suffix = config['prompt']['suffix'].format(target=phrase)
+    extra = f" {'; '.join(details)}." if details else ""
+    return f"{config['prompt']['prefix']} {description}.{extra} {suffix}"
 
 
 def negative_prompt_for(config: dict[str, Any], class_id: int) -> str:

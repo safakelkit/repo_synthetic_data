@@ -1,6 +1,6 @@
 format_version: 1
 policy_id: genai_full_scene_generation_policy_v1
-status: accepted_design_pending_implementation_and_all_class_pilot
+status: sdxl_candidate_pipeline_implemented_pending_canonical_acceptance_test
 applies_to: [sdxl, qwen]
 
 content:
@@ -33,7 +33,7 @@ diversity:
   minimum_unique_layouts_per_class_scene_per_512_increment: 8
   minimum_control_shape_or_pose_variants_per_class: 4
   prohibit_identical_control_hashes_within_class_scene_block: true
-  source_scale_distribution: INSP_DET_train_class_specific_p10_p90
+  target_scale_policy: deterministic_jitter_within_frozen_scene_target_region
   semantic_rule: variation_must_not_change_class_id_or_class_meaning
   context_shortcut_rule: no_class_may_be_identified_by_a_unique_scene_or_layout_template
   cross_backend_rule: >-
@@ -42,15 +42,15 @@ diversity:
   duplicate_policy:
     exact_duplicate: reject
     perceptual_near_duplicate: reject_or_regenerate
-    threshold: pending_all_class_pilot
+    threshold: reject_exact_duplicates; review_obvious_near_duplicates
 
 conditioning:
   feasibility: canny_from_real_class_sam3_binary_silhouette
-  canonical: unique_real_class_sam3_binary_silhouette_layout_per_sample
+  canonical: class_specific_tested_silhouette_canny_profiles
   prohibit_single_line_object_skeletons: true
   prohibit_real_rgb_or_rgba_pixels: true
   allow_binary_shape_from_accepted_object_bank_mask: true
-  control_strength: 0.8
+  control_strength: class_specific_0.45_to_1.10
   all_class_shape_templates: available_from_accepted_object_bank_masks
   geometry_critical_classes_require_real_silhouette_without_fallback: true
 
@@ -65,8 +65,15 @@ generation_order:
 release_gate:
   canonical_generation_approved: false
   blockers:
-    - feasibility_v2_for_both_backends
-    - deterministic_all_class_prompt_and_control_templates
-    - sam3_annotation_thresholds
-    - automatic_and_manual_qc_thresholds
-    - perceptual_duplicate_threshold
+    - sdxl_64_image_canonical_acceptance_test
+    - annotation_pipeline_preflight
+    - finalizer_preflight
+
+candidate_policy:
+  source: configs/generation/sdxl_canonical_v1.yaml
+  compact_acceptance: >-
+    Accept a human-recognizable requested class when every visible project-class
+    instance can be reliably boxed and the image/annotation is technically valid.
+  standard_attempts_per_accepted_image: 1.25
+  aerosol_attempts_per_accepted_image: 1.50
+  exact_final_balance_required: true

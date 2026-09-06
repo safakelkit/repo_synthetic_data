@@ -29,8 +29,11 @@ configuration, implementation, and evidence. A value marked **planned** or
   ControlNet integration, and RTX 3090 execution. The hand-drawn scissors proxy
   remained semantically weak, especially for Qwen. Active v3 uses accepted
   class-matched SAM3 binary silhouettes; both v3 GPU feasibility runs passed.
-- **Not yet implemented or run:** canonical GenAI generation,
-  annotation/QC, dataset release, and eight detector runs.
+- **Implemented, not yet run:** the SDXL canonical candidate scheduler combines
+  the successful class-specific pilot profiles and defines a deterministic
+  64-image acceptance test plus sharded surplus production.
+- **Not yet implemented or run:** GenAI annotation/finalization, released
+  datasets, and eight detector runs.
 
 ## Dataset and evaluation values
 
@@ -197,7 +200,7 @@ implemented. Do not describe provisional values as executed methodology.
 | SDXL targeted pilot-v3 | Seven remaining problematic classes; binary SAM3 silhouette plus class-defining synthetic internal Canny edges, zero rotation, class-specific negatives, ControlNet scale 1.0 | Executed 28/28; Matches, Shaver, and Mobile phone materially improved, but Pliers/Aerosol/Battery/Laptop remain unreliable; rejected for canonical promotion |
 | SDXL remaining-class pilot-v4 | Four unresolved classes; subtype-matched prompts/silhouettes; explicit AA/9V and open-laptop controls; per-class ControlNet scales; no source RGB/RGBA pixels | Executed 16/16; strict acceptance Pliers 4/4, Aerosol 0/4, Battery 2/4, Laptop 2/4; retain successful class rules but reject wholesale promotion |
 | SDXL Aerosol pilot-v5 | Genuine aerosol silhouettes without internal pseudo-nozzle edges; four frozen scenes at ControlNet scales 0.45/0.60/0.75/0.90 | Executed 16/16; strict acceptance 1/4, 1/4, 0/4, 0/4 respectively; multi-scene rule failed, so scale tuning was rejected |
-| SDXL Aerosol pilot-v6 | Scene/support Canny only at scale 0.60; target identity and placement requested through text; no target silhouette or source pixels | Implemented in `genai_aerosol_scene_control_pilot_v6.yaml`; GPU run pending |
+| SDXL canonical acceptance test | Combined class-specific pilot profiles; 64 images covering every class in all four assigned scenes; compact annotation-first review | Implemented in `sdxl_canonical_v1.yaml` and `generate_sdxl_candidates.py`; GPU run pending; never training data |
 | GenAI pilot provenance | Git revision/dirty state; exact config, policy, model and script hashes; requested/resolved model revisions; package/CUDA/GPU environment; load/inference/wall time; peak VRAM; per-image proxy/control/output hashes | `run_all_class_genai_pilot.py` manifest format v2 |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |

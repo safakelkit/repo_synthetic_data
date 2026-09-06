@@ -22,7 +22,7 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 
 ### GenAI feasibility protocol (not a detector experiment)
 
-- **Status:** SDXL and Qwen single-image v3 feasibility complete; SDXL all-class pilots v1/v2 and targeted v3 complete; canonical generation remains blocked
+- **Status:** Feasibility and SDXL diagnostic pilots complete; combined SDXL canonical acceptance test ready; production remains locked
 - **Purpose:** Verify one exact model pair at a time on an RTX 3090 before the all-class pilot.
 - **Shared feasibility case:** Scissors (class 2), property-inspection station, seed 42, 1024x1024, 30 steps. Accepted v3 uses Canny derived from a class-matched binary SAM3 silhouette at ControlNet scale 0.8.
 - **SDXL:** `stabilityai/stable-diffusion-xl-base-1.0@462165984030d82259a11f4367a4eed129e94a7b` + `diffusers/controlnet-canny-sdxl-1.0@eb115a19a10d14909256db740ed109532ab1483c`; FP16; CFG 5.0; no refiner.
@@ -51,7 +51,8 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **SDXL Aerosol pilot-v5 prepared:** 16 outputs are scheduled without internal pseudo-nozzle edges: the same four accepted aerosol silhouettes and four frozen scenes are generated once at each ControlNet scale 0.45/0.60/0.75/0.90. This isolates whether target-edge over-conditioning caused v4's fixture/device interpretation. Static validation passed with 16 unique controls; GPU run/review pending.
 - **SDXL Aerosol pilot-v5 execution/review:** Complete, 16/16 outputs with valid manifest-v2 provenance. Wall time was 260.545 s including 5.004 s model load; aggregate inference was 255.110 s (15.944 s/image mean); peak allocated/reserved VRAM was 7.735/10.379 GiB. Strict acceptance was 1/4 at scale 0.45, 1/4 at 0.60, and 0/4 at both 0.75 and 0.90. Both accepted samples came from `cell_storage_area`, so the predeclared multi-scene rule failed. Stop silhouette-Canny scale tuning and change the Aerosol conditioning design.
 - **Local-output cleanup:** After review was recorded, superseded GenAI feasibility and pilot-v1--v4 output directories were deleted at researcher request. Their configs and methodology summaries remain reproducible in Git; only the current v5 output is retained locally.
-- **SDXL Aerosol pilot-v6 prepared:** The real target silhouette is removed from the Canny condition; ControlNet scale 0.60 constrains only the frozen MAIJA scene/support geometry, while the prompt specifies Aerosol identity and placement. Sixteen images cover four attempts in each assigned scene. No real pixels, labels, degradation, or training data are produced; GPU execution/review pending.
+- **Final SDXL candidate policy:** Successful pilot settings are combined by class. Standard classes use representative real-mask silhouette Canny; Matches/Shaver/Mobile phone retain useful semantic overlays; Pliers uses curated open silhouettes; Battery uses only verified 9V silhouettes; Laptop uses open-laptop silhouettes; Aerosol omits misleading internal edges and alternates scale 0.45/0.60. Acceptance is compact and annotation-first rather than the earlier strict visual rubric.
+- **Canonical acceptance test:** `sdxl_canonical_v1.yaml` and `generate_sdxl_candidates.py` schedule 64 deterministic non-training images (16 classes x four assigned scenes), with unique jittered controls and complete provenance. Production is locked pending review and annotation/finalizer preflight.
 
 ## E000 - Real-only baseline
 

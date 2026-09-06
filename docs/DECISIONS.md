@@ -212,7 +212,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D024 - GenAI baselines generate complete MAIJA-aligned scenes
 
-- **Status:** Method family, scene policy, and feasibility model pairs accepted; canonical implementation pending
+- **Status:** Method family and SDXL candidate implementation accepted; acceptance test pending
 - **Date:** 2026-09-02
 - **Decision:** Stable Diffusion and Qwen baselines generate both the background and target object as new image content. They do not reuse a real Places365 background or paste an object-bank RGBA crop into the generated image.
 - **Fixed taxonomy:** The existing 16 classes and IDs in `configs/data_insp.yaml` are immutable. GenAI generation may vary object appearance, subtype, viewpoint, and background, but must not add, remove, merge, rename, or reorder experimental classes.
@@ -275,7 +275,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D028 - GenAI diversity and degradation are controlled independently
 
-- **Status:** Accepted design; exercised in all-class pilots, canonical implementation pending
+- **Status:** Accepted and implemented for SDXL candidates; finalization pending
 - **Date:** 2026-09-02
 - **Source of truth:** `configs/generation/genai_generation_policy_v1.yaml` and `configs/generation/genai_degradation_v1.yaml`
 - **Diversity:** A single control image or layout must never be reused across the canonical dataset. Every class-scene block uses deterministic but distinct scene geometry, camera framing, target position/scale/orientation, lighting, clutter/material, prompt wording, and sample seed combinations. Each eight-image class-scene increment requires eight unique layouts and at least four class-specific shape/pose variants.
@@ -349,11 +349,14 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Strict result:** Scale 0.45 accepted 1/4, 0.60 accepted 1/4, and 0.75/0.90 accepted 0/4. Both passing images used `cell_storage_area`; the multi-scene decision rule failed.
 - **Disposition:** Do not choose a scale or generate candidate surplus from this design. Preserve the SDXL/ControlNet model pair and frozen class/scene policies, but replace target-silhouette conditioning for Aerosol.
 
-## D034 - Test scene-only ControlNet conditioning for Aerosol
+## D034 - Compact SDXL candidate policy and canonical acceptance test
 
-- **Status:** Implemented as pilot v6; GPU execution pending
+- **Status:** Accepted and implemented; 64-image acceptance test pending execution
 - **Date:** 2026-09-06
-- **Decision:** For Aerosol only, omit the target silhouette from the Canny condition. Retain SDXL, Canny ControlNet, the assigned MAIJA scenes, and scale 0.60; ControlNet constrains the support-surface geometry while the text prompt requests one freestanding aerosol can on that surface.
-- **Rationale:** V5 showed that weakening silhouette conditioning occasionally recovered semantics but failed across scenes. Removing the target outline is the smallest conditioning-design change that directly tests whether the outline itself causes fixture-like interpretation.
-- **Scope:** `genai_aerosol_scene_control_pilot_v6.yaml` schedules 16 diagnostic images, four per assigned scene. No real pixels, labels, degradation, or training use are allowed.
-- **Decision rule:** Require viable single aerosol cans in multiple scene families. If scene-only conditioning also fails, stop SDXL prompt/control tuning for this class and reconsider the generator architecture before canonical production.
+- **Source of truth:** `configs/generation/sdxl_canonical_v1.yaml` and `src/generation/generate_sdxl_candidates.py`
+- **Decision:** Stop serial micro-pilot tuning and combine the useful settings already observed. The immutable taxonomy, MAIJA scene matrix, SDXL/ControlNet revisions, and no-source-RGB rule remain unchanged.
+- **Class profiles:** Standard classes use accepted real-mask silhouette Canny. Matches, Shaver, and Mobile phone retain their successful semantic overlays; Pliers uses curated open silhouettes; Battery is restricted to verified 9V silhouettes; Laptop uses open-laptop silhouettes. Aerosol removes misleading internal pseudo-edges and alternates the two low scales that produced recognizable examples (0.45/0.60).
+- **Acceptance:** Accept when the requested class is human-recognizable, every visible project-class instance can be reliably boxed, and image/labels are technically valid. Reject absent/wrong, unrecognizable, unlocalizable, or incompletely labelled targets. Mild synthetic appearance, simple scenes, imperfect centering, minor artifacts, or multiple same-class objects are not automatic failures when all instances are annotated.
+- **Test gate:** Generate 64 non-training images: every class once in each of its four frozen scene families. Review class identity, annotatability, scene diversity, and control behavior before unlocking production.
+- **Candidate surplus:** Production proposes 10 candidates for each required group of eight (25% surplus), except Aerosol with 12 (50% surplus), totaling 2,592 clean candidates. Finalization must select exactly 2,048 accepted images, 128/class, preserving four balanced nested prefixes.
+- **Execution:** Candidate generation creates clean scenes, controls, provenance, and a review manifest only. Annotation, frozen degradation, post-degradation QC, and final manifests are separate gated stages. Acceptance-test images can never enter training.
