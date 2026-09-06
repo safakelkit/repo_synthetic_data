@@ -31,7 +31,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_feasibility_v3.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation_v1.yaml"
 EXPECTED_PACKAGES = {
     "diffusers": "0.40.0",
     "transformers": "5.5.4",
@@ -350,6 +350,10 @@ def generate(
 
 
 def main() -> None:
+    raise RuntimeError(
+        "This legacy feasibility entry point is retired. Run "
+        "src/generation/generate_sdxl_dataset.py instead."
+    )
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", choices=("sdxl", "qwen"), required=True)
     parser.add_argument("--gpu", type=int, default=0, help="Logical CUDA index after CUDA_VISIBLE_DEVICES")

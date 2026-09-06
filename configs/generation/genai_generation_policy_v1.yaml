@@ -70,7 +70,7 @@ release_gate:
     - finalizer_preflight
 
 candidate_policy:
-  source: configs/generation/sdxl_canonical_v1.yaml
+  source: configs/generation/sdxl_generation_v1.yaml
   compact_acceptance: >-
     Accept a human-recognizable requested class when every visible project-class
     instance can be reliably boxed and the image/annotation is technically valid.

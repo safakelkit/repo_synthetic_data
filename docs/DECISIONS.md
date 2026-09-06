@@ -269,9 +269,6 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Fair feasibility input:** Both backends receive the same programmatically drawn 1024x1024 Canny condition, class (`Scissors`, ID 2), scene (`property_inspection_station`), seed 42, 30 inference steps, and ControlNet scale 0.8. Model-specific guidance remains SDXL 5.0 and Qwen true-CFG 4.0.
 - **Boundary:** A generated feasibility image is not training data and has no automatic YOLO annotation. Canonical generation stays blocked until both outputs are visually reviewed and the all-class annotation/QC pilot is approved.
 - **Primary sources:** https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0 ; https://huggingface.co/diffusers/controlnet-canny-sdxl-1.0 ; https://huggingface.co/Qwen/Qwen-Image ; https://huggingface.co/InstantX/Qwen-Image-ControlNet-Union ; https://huggingface.co/docs/diffusers/quantization/bitsandbytes .
-- **V1 evidence:** SDXL loaded and generated successfully on an RTX 3090 at commit `957b8d9` (406.376 s wall time; 180.978 s inference; 7.735/10.379 GiB peak allocated/reserved). The single-line Canny drawing was interpreted as thin physical cords, so the output failed visual realism and is not training data.
-- **V2 correction:** Keep the same models/class/scene/seed/steps, derive Canny from filled table and object proxy regions, and reduce control scale from 0.9 to 0.8. This tests solid-object boundaries rather than line-art copying.
-- **V2 outcome:** SDXL produced a recognizable but imperfect scissors; Qwen followed the condition strongly but produced a forceps/hemostat-like object. Both runs proved technical integration, but the hand-drawn target proxy failed class-semantic review.
 
 ## D028 - GenAI diversity and degradation are controlled independently
 
@@ -285,81 +282,25 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Operations:** Gaussian or motion blur, downscale-upscale resolution loss, brightness/contrast, JPEG compression, and Gaussian sensor noise; every non-clean image receives at least one operation.
 - **Post-degradation QC:** Recheck target visibility and unchanged label geometry after degradation. Do not tune diversity or degradation using easy/hard results.
 
-## D029 - GenAI ControlNet target geometry uses real class silhouettes
+## D029 - Restart SDXL generation from retained successful profiles
 
-- **Status:** Accepted for single-image feasibility; all-class SDXL pilots completed but not promoted to canonical generation
-- **Date:** 2026-09-02
-- **Source of truth:** `configs/generation/genai_feasibility_v3.yaml` and `src/generation/run_full_scene_feasibility.py`
-- **Decision:** Construct the target portion of each Canny condition from a class-matched accepted SAM3 binary mask in the existing object bank. The background and target appearance remain newly generated.
-- **Pixel boundary:** Reuse binary shape only. Source RGB/RGBA pixels never enter the condition or generated scene.
-- **Coverage:** Real silhouettes are the default for all 16 classes. Geometry-critical hazard/tool classes have no programmatic-shape fallback.
-- **Reproducibility:** Record asset ID, class ID, mask path and SHA-256, audit-manifest SHA-256, selection seed, rendered box, proxy hash, and Canny hash. Corresponding SDXL and Qwen samples receive the same condition.
-- **Evidence:** All 16 class masks were selected and rendered successfully without GPU inference. The deterministic scissors case uses asset `02_IMG_0050121_obj_02_crop_000047`; its silhouette preserves blades, pivot, and asymmetric handles.
-- **Boundary:** A correct source silhouette does not prove generated class identity. Post-generation semantic review, SAM3 localization, annotation, and QC remain mandatory.
-- **V3 feasibility evidence:** SDXL produced a clear, plausible scissors. Qwen also produced a recognizable scissors with stronger noise/low-light character. Both resolved the V2 forceps-like semantic failure; Qwen remains subject to all-class quality review.
-
-## D030 - GenAI control suitability is distinct from copy-paste asset eligibility
-
-- **Status:** Design tested; SDXL pilot v2 rejected for canonical promotion
-- **Date:** 2026-09-03
-- **Decision:** All 2,750 audited assets remain eligible for the accepted copy-paste baseline. GenAI ControlNet conditioning separately requires silhouettes that visually communicate class geometry without RGB texture.
-- **Correction:** For Matches, Pliers, Shaver, Saw, Aerosol can, and Mobile phone, use four predeclared representative accepted masks and class-specific semantic phrases. This does not reject or relabel any source asset.
-- **Scene diversity:** Replace the one shared support polygon with one frozen support/target layout for each of the eight MAIJA scene families. Prompt text retains the complete scene-family description.
-- **Evidence boundary:** The correction was designed from source assets and pilot images only, without easy/hard feedback. It must pass a new 64-image SDXL pilot before canonical promotion.
-- **Pilot-v2 execution:** All 64 scheduled images were generated (four per class), with 64 unique outputs and controls. Aggregate inference was 1,018.154 seconds (15.909 seconds/image mean; 18.974 seconds maximum).
-- **Pilot-v2 visual outcome:** Scene-family layouts are more diverse and Saw improved relative to v1. Knife and Screwdriver remain consistently recognizable. Shaver still fails systematically; Matches and Pliers remain largely ambiguous; Aerosol can, Mobile phone, Battery, Laptop, and some Scissors/Wrench outputs contain ambiguity, wrong geometry, or additional-object violations.
-- **Disposition:** Reject pilot v2 for canonical use. Curated silhouettes and stronger semantic phrases did not provide a sufficiently reliable class-identity constraint. Do not generate the 2,048-image SDXL dataset or train on either pilot.
-
-## D031 - Diagnostic semantic ControlNet overlays for generic silhouettes
-
-- **Status:** Partly successful diagnostic; canonical promotion rejected
-- **Date:** 2026-09-03
-- **Problem:** A binary silhouette alone does not distinguish semantically generic shapes: a phone resembles a battery or remote, a closed laptop resembles a tablet, an aerosol can resembles a bottle, and a manual razor resembles a hammer-like tool.
-- **Decision:** For a non-training diagnostic pilot only, add predeclared class-defining internal edges to the synthetic proxy before Canny conversion: matchbox/matches, plier pivot/handles/jaws, razor head/handle, aerosol cap/nozzle, battery terminal, phone screen/camera, and laptop hinge/screen. The existing binary SAM3 silhouette remains part of each condition.
-- **Pixel boundary:** These overlays are programmatic geometry. They transfer no real source RGB/RGBA pixels and do not alter the fixed class taxonomy or copy-paste asset eligibility.
-- **Additional constraints:** The seven targeted classes use zero rotation so internal semantic geometry remains aligned. Class-specific negative terms explicitly reject common confusions. ControlNet scale is 1.0, compared with v2's 0.8.
-- **Scope:** `configs/generation/genai_problem_classes_pilot_v3.yaml` schedules exactly 28 SDXL images (seven classes times four frozen compatible scenes). The output is prohibited from training, annotation, degradation, and canonical promotion until visual review.
-- **Acceptance rule:** Every class must produce enough visually clear, single-target images across its assigned scenes to justify a later candidate-generation/QC workflow. A technical run alone is not acceptance.
-- **Execution:** 28/28 SDXL images, four per targeted class, completed with 28 unique controls and outputs. Aggregate inference was 444.317 seconds (15.868 seconds/image mean; 18.729 seconds maximum).
-- **Visual result:** Matches, Shaver, and Mobile phone are materially improved; the latter two now have multiple clearly recognizable examples. Pliers improved but remains inconsistent. Aerosol can and Battery remain generic device/bottle/remote-like forms. Laptop commonly contains an additional computer or lacks a clear laptop identity.
-- **Disposition:** Do not promote the v3 configuration to canonical generation. Retain the improvements for the three materially improved classes, but use a distinct next intervention for Pliers, Aerosol can, Battery, and Laptop.
-
-## D032 - Remaining classes require prompt–silhouette subtype consistency
-
-- **Status:** Executed; partly successful, wholesale promotion rejected
-- **Date:** 2026-09-05
-- **Finding:** V3 mixed incompatible semantic instructions and controls: cylindrical-battery prompts were paired with 9V silhouettes, open-laptop prompts with mostly closed-laptop silhouettes, and some selected plier silhouettes did not clearly expose the two-handle/pivot/jaw structure.
-- **Decision:** Select four visually explicit accepted silhouettes per unresolved class and bind each sample to a matching subtype phrase. Battery uses declared AA or 9V prompts matching its source shape; Laptop uses only open-laptop silhouettes and prompts; Pliers uses four clearly open plier silhouettes. Aerosol retains verified can crops with simplified cap/nozzle edges.
-- **Control policy:** Preserve zero rotation. Use class-specific ControlNet scales (Pliers/Battery/Laptop 1.1; Aerosol 0.9) and class-specific confusion negatives. The output still contains no source RGB/RGBA pixels.
-- **Scope:** `genai_remaining_classes_pilot_v4.yaml` schedules 16 diagnostic images: Pliers, Aerosol can, Battery, and Laptop in their four frozen scenes. It creates no labels/degradation and is forbidden from training until review.
-- **Run record:** Manifest format v2 must capture the clean Git revision, exact code/config/policy/model hashes, frozen and remotely resolved model revisions, package and CUDA/GPU environment, load/inference/wall time, peak VRAM, and every proxy/control/output hash.
-- **Execution:** 16/16 images completed at Git revision `2a5742c0a4e166db3e07ab2bba5e74a3929cfee5`. Wall time was 262.081 s; mean inference was 16.032 s/image; peak allocated/reserved VRAM was 7.735/10.379 GiB.
-- **Strict visual result:** Pliers 4/4, Aerosol can 0/4, Battery 2/4, and Laptop 2/4 passed, for 8/16 overall. The two successful Battery samples are the 9V subtype. One otherwise recognizable Laptop floated, and another remained book-like.
-- **Disposition:** Preserve the successful Pliers, 9V Battery, and Laptop settings. Do not promote v4 wholesale. Aerosol can requires a targeted change because candidate surplus cannot repair a measured zero-yield class.
-
-## D033 - Isolate Aerosol target-edge over-conditioning before production
-
-- **Status:** Executed; silhouette-Canny scale strategy rejected
-- **Date:** 2026-09-05
-- **Finding:** V4 used genuine aerosol-can silhouettes, but its artificial circle and horizontal internal edges were rendered as screws, straps, or fixture components. All four outputs failed class identity.
-- **Decision:** Remove the internal semantic overlay for Aerosol while retaining the genuine binary silhouette and scene Canny condition. Compare ControlNet scales 0.45, 0.60, 0.75, and 0.90 across the same four frozen scenes, with explicit freestanding aerosol prompts and fixture/device negatives.
-- **Scope:** `genai_aerosol_scale_pilot_v5.yaml` schedules 16 non-training images. It changes neither the class taxonomy nor target-test boundary and creates no annotations or degradations.
-- **Decision rule:** Select a scale only if it yields recognizable, freestanding aerosol cans across more than one scene. If all scales remain near zero yield, stop tuning silhouette Canny and change the conditioning design rather than generating surplus failures.
-- **Execution:** 16/16 images completed at Git revision `c50e2972922de2a0c15d917b7c9a00fb4003de1b`. Wall time was 260.545 s; mean inference was 15.944 s/image; peak allocated/reserved VRAM was 7.735/10.379 GiB.
-- **Strict result:** Scale 0.45 accepted 1/4, 0.60 accepted 1/4, and 0.75/0.90 accepted 0/4. Both passing images used `cell_storage_area`; the multi-scene decision rule failed.
-- **Disposition:** Do not choose a scale or generate candidate surplus from this design. Preserve the SDXL/ControlNet model pair and frozen class/scene policies, but replace target-silhouette conditioning for Aerosol.
-
-## D034 - Compact SDXL candidate policy and canonical acceptance test
-
-- **Status:** Rejected for canonical production after Aerosol recheck
+- **Status:** Accepted; acceptance test pending
 - **Date:** 2026-09-06
-- **Source of truth:** `configs/generation/sdxl_canonical_v1.yaml` and `src/generation/generate_sdxl_candidates.py`
-- **Decision:** Stop serial micro-pilot tuning and combine the useful settings already observed. The immutable taxonomy, MAIJA scene matrix, SDXL/ControlNet revisions, and no-source-RGB rule remain unchanged.
-- **Class profiles:** Standard classes use accepted real-mask silhouette Canny. Matches, Shaver, and Mobile phone retain their successful semantic overlays; Pliers uses curated open silhouettes; Battery is restricted to verified 9V silhouettes; Laptop uses open-laptop silhouettes. Aerosol removes misleading internal pseudo-edges and alternates the two low scales that produced recognizable examples (0.45/0.60).
-- **Acceptance:** Accept when the requested class is human-recognizable, every visible project-class instance can be reliably boxed, and image/labels are technically valid. Reject absent/wrong, unrecognizable, unlocalizable, or incompletely labelled targets. Mild synthetic appearance, simple scenes, imperfect centering, minor artifacts, or multiple same-class objects are not automatic failures when all instances are annotated.
-- **Test gate:** Generate 64 non-training images: every class once in each of its four frozen scene families. Review class identity, annotatability, scene diversity, and control behavior before unlocking production.
-- **Test evidence:** All structural checks passed; 54/64 images (84.375%) passed compact review. Fifteen classes have usable yield. Aerosol failed 0/4 and is the only systematic production blocker; test it once in four scenes with scene-only Canny at scale 0.60 before release.
-- **Recheck evidence:** Scene-only Aerosol conditioning also accepted 0/4. None of the four outputs contained a human-recognizable, reliably boxable aerosol can.
-- **Disposition:** Keep production locked. The experiment requires all 16 immutable classes, so a 15-class SDXL dataset is invalid. Stop prompt/Canny-ControlNet micro-tuning within this architecture and evaluate a materially different all-class generation method before production.
-- **Candidate surplus:** Production proposes 10 candidates for each required group of eight (25% surplus), except Aerosol with 12 (50% surplus), totaling 2,592 clean candidates. Finalization must select exactly 2,048 accepted images, 128/class, preserving four balanced nested prefixes.
-- **Execution:** Candidate generation creates clean scenes, controls, provenance, and a review manifest only. Annotation, frozen degradation, post-degradation QC, and final manifests are separate gated stages. Acceptance-test images can never enter training.
+- **Source of truth:** `configs/generation/sdxl_generation_v1.yaml` and
+  `src/generation/generate_sdxl_dataset.py`
+- **Decision:** Reset the experimental generation versions and remove failed
+  pilot histories while preserving reusable model, scene, diversity,
+  degradation, and class-profile decisions.
+- **Image construction:** Generate every output as one complete image in one
+  diffusion pass. Do not composite, paste, or inpaint generated foregrounds.
+- **Retained profiles:** Fifteen classes use the silhouette-Canny settings that
+  yielded usable canonical-test examples. Matches, Shaver, Mobile phone,
+  Pliers, 9V Battery, and open Laptop retain their validated specialized shapes.
+- **Aerosol branch:** Generate a complete scene from concise retail
+  spray-paint/body-spray prompts without target Canny. This branch must pass the
+  same predeclared class and scene review as every other class.
+- **Gate:** The 64-image acceptance run requires at least 3/4 accepted images
+  per class and at least 56/64 overall. Production remains locked.
+- **Preservation:** Their accepted class profiles and review decision remain as
+  design evidence. The earlier ignored PNG outputs had already been removed;
+  the restarted acceptance test creates the new retained visual evidence.

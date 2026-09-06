@@ -79,31 +79,21 @@ provide non-photographic ControlNet geometry. Eight frozen MAIJA-aligned
 correctional-facility scene families provide four compatible contexts per
 class while sharing contexts across classes to reduce background shortcuts.
 
-SDXL and Qwen passed single-image integration feasibility. SDXL then completed
-two all-class and three targeted diagnostics. Their positive findings now form
-one class-specific candidate pipeline; earlier strict pilot pass rates are
-diagnostic history, not the active acceptance threshold. Qwen all-class work is
-paused until the shared annotation/finalization path is proven with SDXL. No
-pilot output is eligible for detector training.
+SDXL and Qwen model integration is established. The generation pipeline was
+reset after development pilots. Reusable SDXL findings now form one clean
+class-specific pipeline: fifteen classes retain their successful Canny profiles,
+while Aerosol receives a concise one-pass full-scene text branch. No compositing
+or inpainting is used. Qwen work is paused until the shared annotation and
+finalization path is proven with SDXL.
 
-The accepted SDXL candidate method combines the useful class-specific pilot
-settings, deterministic scene/layout diversity, and a compact annotation-first
-quality gate. A 64-image acceptance test is implemented and must be reviewed
-before production. The test accepted 54/64 images (84.375%): 15 classes had
-usable yield, but Aerosol was 0/4. Its four-scene scene-only fallback also
-produced 0/4 recognizable aerosol cans. The current SDXL architecture therefore
-fails the immutable 16-class release condition and production remains locked.
-A future accepted method may generate a modest surplus and retain
-only recognizable, reliably annotatable images. Multiple instances of the same
-class are allowed when all are annotated. The four dataset quantities
-refer to accepted images, while generation attempts, acceptance rate, and cost
-must also be reported.
+The restarted 64-image acceptance test must pass before production. Every class
+must accept at least three of four images and the complete run must accept at
+least 56 of 64. Test images remain forbidden from detector training.
 
 ## Current stage
 
-1. Select a generation architecture that can represent all 16 classes without
-   changing their names or IDs.
-2. Validate its Aerosol behavior before any full production launch.
+1. Run and review `sdxl_generation_v1` on all 16 classes.
+2. Validate its one-pass Aerosol behavior before any production launch.
 3. Preflight post-generation annotation and finalization.
 4. Generate, annotate, degrade, and validate the canonical dataset.
 

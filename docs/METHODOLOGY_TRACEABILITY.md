@@ -183,8 +183,8 @@ manual cleaning decision, observations do not exclude assets.
 
 ## Planned full-scene GenAI values
 
-The following constraints are accepted, but the generator is not yet
-implemented. Do not describe provisional values as executed methodology.
+The active generator is implemented and preflighted. Production remains locked
+until the acceptance and annotation/QC gates pass.
 
 | Item | Accepted or pending value | Status |
 |---|---|---|
@@ -194,18 +194,12 @@ implemented. Do not describe provisional values as executed methodology.
 | Scene scope | Eight correctional-facility families: five detention living-space, one controlled property-inspection, and two supervised operational contexts | Accepted and frozen v1.1 |
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
-| Spatial conditioning | V3 Canny derived from class-matched accepted SAM3 binary silhouettes; no RGB/RGBA pixels; control scale 0.8 | Implemented for all 16 classes; single-image feasibility passed, but two SDXL all-class pilots show that silhouette conditioning does not reliably preserve class identity |
-| All-class pilot | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images/backend; distinct binary-silhouette control, seed, prompt, scale, rotation, and placement | SDXL 64/64 generated and reviewed; structural pass, visual reject pending class-specific controls and scene-specific layouts; Qwen paused at 4/64 |
-| SDXL pilot-v2 correction | Class-specific semantic phrases; four curated accepted control masks for each failed/mixed class; eight scene-family support layouts; copy-paste object eligibility unchanged | Executed 64/64; layout diversity and Saw improved, but systematic/important semantic failures remain; rejected for canonical promotion |
-| SDXL targeted pilot-v3 | Seven remaining problematic classes; binary SAM3 silhouette plus class-defining synthetic internal Canny edges, zero rotation, class-specific negatives, ControlNet scale 1.0 | Executed 28/28; Matches, Shaver, and Mobile phone materially improved, but Pliers/Aerosol/Battery/Laptop remain unreliable; rejected for canonical promotion |
-| SDXL remaining-class pilot-v4 | Four unresolved classes; subtype-matched prompts/silhouettes; explicit AA/9V and open-laptop controls; per-class ControlNet scales; no source RGB/RGBA pixels | Executed 16/16; strict acceptance Pliers 4/4, Aerosol 0/4, Battery 2/4, Laptop 2/4; retain successful class rules but reject wholesale promotion |
-| SDXL Aerosol pilot-v5 | Genuine aerosol silhouettes without internal pseudo-nozzle edges; four frozen scenes at ControlNet scales 0.45/0.60/0.75/0.90 | Executed 16/16; strict acceptance 1/4, 1/4, 0/4, 0/4 respectively; multi-scene rule failed, so scale tuning was rejected |
-| SDXL canonical acceptance test | Combined class-specific profiles; 64 images covering every class in four assigned scenes; compact annotation-first review | Executed 64/64; 54 accepted (84.375%); Aerosol 0/4 is the only systematic blocker; never training data |
-| SDXL Aerosol scene-only recheck | Four assigned scenes; support-only Canny at 0.60; no target silhouette | Executed 4/4; 0 accepted; current SDXL architecture rejected for canonical production |
-| GenAI pilot provenance | Git revision/dirty state; exact config, policy, model and script hashes; requested/resolved model revisions; package/CUDA/GPU environment; load/inference/wall time; peak VRAM; per-image proxy/control/output hashes | `run_all_class_genai_pilot.py` manifest format v2 |
+| Spatial conditioning | Class-specific silhouette Canny for 15 retained profiles; text-only complete-scene generation for Aerosol | Implemented in generation-v1 |
+| Acceptance run | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images; distinct control, seed, prompt, scale, rotation, and placement where applicable | Pending execution and review |
+| Restarted SDXL generation-v1 | One-pass complete images; retained successful profiles for 15 classes; text-only full-scene Aerosol branch; no compositing/inpainting | Implemented and preflighted; 64-image acceptance test pending |
+| GenAI run provenance | Git revision/dirty state; exact config, policy, model and script hashes; package/CUDA/GPU environment; inference/wall time; peak VRAM; per-image control/output hashes | `generate_sdxl_dataset.py` manifest format v1 |
 | Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
 | Extra target classes | Fully annotate or reject the image | Accepted |
-| Pilot | Deterministic 64 images/backend: all 16 classes × four assigned scene families | SDXL v1 and corrected v2 completed/rejected for canonical promotion; Qwen v1 paused at 4/64 |
 | Target-test boundary | No prompt, scene, model, or QC tuning from easy/hard results | Accepted |
 
 The frozen policy is `configs/generation/genai_scene_policy_v1.yaml`.
@@ -231,13 +225,8 @@ documents that pairing. Qwen's transformer and text encoder are configured for
 bitsandbytes NF4 4-bit quantization plus model CPU offload; RTX 3090 runtime and
 peak VRAM remain to be measured.
 
-`src/generation/run_full_scene_feasibility.py` creates one image/backend using
-the identical 1024x1024 synthetic Canny layout, Scissors class (ID 2), property
-inspection scene, seed 42, 30 steps, and active v2 ControlNet scale 0.8.
-Model-specific guidance is SDXL 5.0 and Qwen true-CFG 4.0. Outputs are local
-feasibility evidence, are not annotated automatically, and are not training
-data. V1's scale-0.9 single-line input produced a technical SDXL pass but a
-visual rejection; v2 instead computes edges from filled object/table regions.
+`src/generation/run_full_scene_feasibility.py` is retained only as reusable
+model-loading and environment-provenance support for the active generator.
 
 Canonical generation is intentionally more diverse than this integration
 case. `genai_generation_policy_v1.yaml` requires a unique deterministic layout

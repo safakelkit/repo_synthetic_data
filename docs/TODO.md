@@ -6,52 +6,17 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 
 ## Active — SDXL baseline
 
-- [x] Complete E000 and the four seed-0 cut-paste runs and evaluations.
-- [x] Freeze the 16-class, quantity, detector, MAIJA scene, diversity, and
-  degradation policies.
-- [x] Verify SDXL/Qwen model integration and real-silhouette ControlNet input.
-- [x] Run/review two 64-image SDXL all-class pilots.
-- [x] Run/review the 28-image targeted SDXL v3 diagnostic; retain improvements
-  for Matches, Shaver, and Mobile phone.
-- [x] Combine successful class-specific pilot settings into the frozen SDXL
-  candidate pipeline without using easy/hard feedback.
-- [x] Prepare targeted SDXL v4 with subtype-consistent prompts/silhouettes and
-  verify all 16 controls for the four remaining classes.
-- [x] Extend the pilot manifest with frozen code/config/model hashes, package
-  and GPU environment, runtime/VRAM, and per-image output/control hashes.
-- [x] Run/review targeted SDXL v4: Pliers 4/4, Aerosol can 0/4, Battery
-  2/4, Laptop 2/4; overall strict acceptance 8/16.
-- [x] Prepare Aerosol-only v5 conditioning-scale diagnostic with four samples
-  each at 0.45/0.60/0.75/0.90 and no misleading internal target edges.
-- [x] Run/review Aerosol v5: 2/16 strict acceptance, both in one scene; reject
-  further silhouette-Canny scale tuning.
-- [x] Adopt compact annotation-first acceptance: reject absent/wrong,
-  unrecognizable, unlocalizable, or incompletely labelled targets; do not reject
-  merely for mild synthetic appearance or simple composition.
-- [x] Define a fixed candidate-surplus policy and report attempts, class-wise
-  acceptance rate, runtime, and rejection reasons.
-- [x] Implement the deterministic 64-image SDXL canonical acceptance test and
-  sharded production candidate scheduler.
-- [x] Run/review the 64-image canonical acceptance test: 54/64 accepted
-  (84.375%); 15 classes have usable yield; test images remain forbidden from training.
-- [x] Run/review the four-image Aerosol scene-only recheck: 0/4; reject this
-  fallback and stop SDXL prompt/ControlNet micro-tuning in the current architecture.
-- [x] Run/review the eight-image SDXL Aerosol target-only Canny diagnostic. This
-  tests a new conditioning decomposition (target edges only), not another scale
-  sweep of the failed combined scene-and-target control.
-- [ ] Validate a two-stage Aerosol path: generate the frozen scene first, then
-  place/regenerate a target-only SDXL Aerosol inside a declared region while
-  preserving scene pixels and recording the separate provenance of both stages.
-- [x] Implement and preflight the eight-image two-stage SDXL Aerosol v8 pilot;
-  keep its production use locked until visual review.
-- [ ] Choose and validate one method that can generate all 16 immutable classes;
-  do not launch the blocked 2,592-candidate SDXL run.
-- [ ] Implement post-generation localization/annotation and automatic QC.
-- [x] Freeze compact acceptance criteria using pilot outputs only.
-- [ ] Validate class-wise candidate yield before canonical production.
-- [ ] Generate and validate the nested SD-B0512/1024/1536/2048 dataset.
-- [ ] Train and evaluate all four SDXL configurations with the frozen YOLO11s
-  protocol.
+- [x] Reset failed generation versions, outputs, and detailed failure logs while
+  preserving successful profiles and reusable methodology decisions.
+- [x] Build and preflight the one-pass `sdxl_generation_v1` pipeline.
+- [x] Preserve the successful class-specific SDXL/Canny profiles for 15 classes.
+- [ ] Run and review the 64-image acceptance test; require at least 3/4 per
+  class and at least 56/64 overall.
+- [ ] Define the next Aerosol intervention only if its full-scene text branch
+  fails the frozen acceptance rule.
+- [ ] Implement post-generation localization, annotation, degradation, and QC.
+- [ ] Generate and validate nested SD-B0512/1024/1536/2048 datasets.
+- [ ] Train and evaluate all four SDXL configurations with frozen YOLO11s.
 
 ## Next — Qwen baseline
 

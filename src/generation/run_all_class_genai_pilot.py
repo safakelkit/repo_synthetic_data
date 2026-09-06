@@ -26,7 +26,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/genai_remaining_classes_pilot_v4.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation_v1.yaml"
 FEASIBILITY_MODULE = REPO_ROOT / "src/generation/run_full_scene_feasibility.py"
 
 
@@ -225,6 +225,10 @@ def negative_prompt_for(config: dict[str, Any], class_id: int) -> str:
 
 
 def main() -> None:
+    raise RuntimeError(
+        "This legacy pilot entry point is retired. Run "
+        "src/generation/generate_sdxl_dataset.py instead."
+    )
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", choices=("sdxl", "qwen"), required=True)
     parser.add_argument("--gpu", type=int, default=0)
