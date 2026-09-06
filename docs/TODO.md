@@ -36,9 +36,12 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
   (84.375%); 15 classes have usable yield; test images remain forbidden from training.
 - [x] Run/review the four-image Aerosol scene-only recheck: 0/4; reject this
   fallback and stop SDXL prompt/ControlNet micro-tuning in the current architecture.
-- [ ] Run/review the eight-image SDXL Aerosol target-only Canny diagnostic. This
+- [x] Run/review the eight-image SDXL Aerosol target-only Canny diagnostic. This
   tests a new conditioning decomposition (target edges only), not another scale
   sweep of the failed combined scene-and-target control.
+- [ ] Validate a two-stage Aerosol path: generate the frozen scene first, then
+  place/regenerate a target-only SDXL Aerosol inside a declared region while
+  preserving scene pixels and recording the separate provenance of both stages.
 - [ ] Choose and validate one method that can generate all 16 immutable classes;
   do not launch the blocked 2,592-candidate SDXL run.
 - [ ] Implement post-generation localization/annotation and automatic QC.

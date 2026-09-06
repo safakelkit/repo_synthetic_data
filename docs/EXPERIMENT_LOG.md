@@ -292,7 +292,7 @@ progress and errors are written to the Git-ignored
 
 ## SDXL-AERO-P07 - Target-only Canny diagnostic
 
-- **Status:** Prepared; GPU run and visual review pending
+- **Status:** Complete; failed release gate
 - **Purpose:** Test whether the failed Aerosol path was caused by the target
   contour competing with the much larger scene/support contour, rather than by
   an SDXL class-capability limit
@@ -310,3 +310,11 @@ progress and errors are written to the Git-ignored
 - **Config:** `configs/generation/genai_aerosol_target_control_pilot_v7.yaml`
 - **Implementation:** `src/generation/run_all_class_genai_pilot.py`
 - **Safety:** Does not annotate, degrade, or produce detector-training images
+- **Runtime:** 148.225 s total; 7.735 GiB peak allocated GPU memory
+- **Result:** 3/8 contain an acceptable Aerosol object (indices 0, 6, 7),
+  but 0/8 retain their assigned correctional-facility scene
+- **Scale result:** 0.65 produced 2/4 acceptable objects; 0.80 produced 1/4
+- **Decision:** Reject this one-pass profile for canonical production. Target-only
+  Canny proved that SDXL can render the class, while also showing that scene and
+  target control must be separated into two stages or spatially conditioned.
+- **Review:** `data/synthetic/pilots/genai_aerosol_target_control_v7/sdxl/pilot_review.json`
