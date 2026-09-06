@@ -289,3 +289,24 @@ progress and errors are written to the Git-ignored
 - **Manifest SHA-256:** `c15243e14a888d284c84e0bce66d46998f14437ac8a3eb573c712bb3e8161f09`
 - **Finding:** No visible target instance confirmed in accepted backgrounds; small/occluded-instance risk remains a stated limitation
 - **Safety:** No synthetic image or detector run was produced
+
+## SDXL-AERO-P07 - Target-only Canny diagnostic
+
+- **Status:** Prepared; GPU run and visual review pending
+- **Purpose:** Test whether the failed Aerosol path was caused by the target
+  contour competing with the much larger scene/support contour, rather than by
+  an SDXL class-capability limit
+- **Scope:** Eight training-forbidden images; two attempts in each of the same
+  four frozen Aerosol scene families
+- **Control change:** Keep a real SAM3 Aerosol silhouette but remove the support
+  polygon from Canny, enlarge the target to roughly 400 px high, and end
+  ControlNet guidance at 65% of denoising
+- **Prompt change:** Put the product identity first; use concrete consumer terms
+  (`spray-paint can`, `deodorant body-spray can`); remove the ambiguous
+  `industrial aerosol` phrase and the semantically overlapping `bottle` ban
+- **Compared scales:** 0.65 and 0.80, deterministically assigned by repeat
+- **Release rule:** At least 6/8 valid Aerosol images with at least one valid
+  image in every scene; otherwise SDXL production remains locked
+- **Config:** `configs/generation/genai_aerosol_target_control_pilot_v7.yaml`
+- **Implementation:** `src/generation/run_all_class_genai_pilot.py`
+- **Safety:** Does not annotate, degrade, or produce detector-training images

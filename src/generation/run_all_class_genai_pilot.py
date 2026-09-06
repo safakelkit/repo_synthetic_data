@@ -128,8 +128,9 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
         support += variation_rng.integers(-support_jitter, support_jitter + 1, size=support.shape)
         support[:, 0] = np.clip(support[:, 0], 0, width - 1)
         support[:, 1] = np.clip(support[:, 1], 0, height - 1)
-    cv2.fillPoly(proxy, [support], int(layout["support_value"]))
     mode = config.get("target_conditioning_mode", "silhouette")
+    if mode != "target_only":
+        cv2.fillPoly(proxy, [support], int(layout["support_value"]))
     if mode == "scene_only":
         silhouette = {
             "source_type": "none_scene_only_control",
@@ -141,7 +142,7 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
             "rendered_box_xyxy": None,
             "support_polygon": support.tolist(),
         }
-    elif mode == "silhouette":
+    elif mode in ("silhouette", "target_only"):
         if row is None:
             raise ValueError("Silhouette conditioning requires an object-mask row")
         mask_path = repo_path(row["mask_path"])
@@ -176,7 +177,11 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
         rendered_box = [paste_x, paste_y, paste_x + target_width, paste_y + target_height]
         draw_semantic_overlay(proxy, int(row["class_id"]), sample_index, rendered_box, config)
         silhouette = {
-            "source_type": "real_class_sam3_binary_mask",
+            "source_type": (
+                "real_class_sam3_binary_mask_target_only"
+                if mode == "target_only"
+                else "real_class_sam3_binary_mask"
+            ),
             "asset_id": row["asset_id"],
             "mask_path": str(mask_path.relative_to(REPO_ROOT)),
             "mask_sha256": sha256(mask_path),
@@ -208,6 +213,8 @@ def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class
             details.append(str(choices[(sample_index + offset * 3) % len(choices)]))
     suffix = config['prompt']['suffix'].format(target=phrase)
     extra = f" {'; '.join(details)}." if details else ""
+    if config.get("prompt_order", "scene_first") == "target_first":
+        return f"{suffix} {config['prompt']['prefix']} {description}.{extra}"
     return f"{config['prompt']['prefix']} {description}.{extra} {suffix}"
 
 
@@ -316,8 +323,11 @@ def main() -> None:
             class_scale = scale_schedule[sample["repeat_index"] % len(scale_schedule)]
         width, height = [int(value) for value in config["output_size"]]
         common = {"prompt": prompt, "negative_prompt": negative_prompt_for(config, sample["class_id"]), "height": height, "width": width, "num_inference_steps": int(config["inference_steps"]), "controlnet_conditioning_scale": float(class_scale), "generator": generator}
+        if args.backend == "sdxl":
+            common["control_guidance_start"] = float(config.get("control_guidance_start", 0.0))
+            common["control_guidance_end"] = float(config.get("control_guidance_end", 1.0))
         started = time.monotonic()
-        result = pipe(image=control, guidance_scale=float(models["sdxl"]["guidance_scale"]), **common) if args.backend == "sdxl" else pipe(control_image=control, true_cfg_scale=float(models["qwen"]["true_cfg_scale"]), **common)
+        result = pipe(image=control, guidance_scale=float(config.get("guidance_scale", models["sdxl"]["guidance_scale"])), **common) if args.backend == "sdxl" else pipe(control_image=control, true_cfg_scale=float(models["qwen"]["true_cfg_scale"]), **common)
         torch.cuda.synchronize(args.gpu)
         image_name = f"{index:03d}_c{sample['class_id']:02d}_{sample['scene_name']}.png"
         output_path = output_dir / "images" / image_name
@@ -326,7 +336,7 @@ def main() -> None:
         result.images[0].save(output_path)
         proxy.save(proxy_path)
         control.save(control_path)
-        records.append({**sample, "index": index, "seed": int(config["seed"]) + index, "prompt": prompt, "negative_prompt": common["negative_prompt"], "controlnet_conditioning_scale": float(class_scale), "output": str(output_path.relative_to(REPO_ROOT)), "output_sha256": sha256(output_path), "silhouette": silhouette, "proxy_sha256": sha256(proxy_path), "control_sha256": sha256(control_path), "inference_seconds": round(time.monotonic() - started, 3), "annotation_performed": False, "degradation_applied": False, "training_use_forbidden": True})
+        records.append({**sample, "index": index, "seed": int(config["seed"]) + index, "prompt": prompt, "negative_prompt": common["negative_prompt"], "controlnet_conditioning_scale": float(class_scale), "control_guidance_start": common.get("control_guidance_start"), "control_guidance_end": common.get("control_guidance_end"), "output": str(output_path.relative_to(REPO_ROOT)), "output_sha256": sha256(output_path), "silhouette": silhouette, "proxy_sha256": sha256(proxy_path), "control_sha256": sha256(control_path), "inference_seconds": round(time.monotonic() - started, 3), "annotation_performed": False, "degradation_applied": False, "training_use_forbidden": True})
         print(json.dumps(records[-1], ensure_ascii=False))
     torch.cuda.synchronize(args.gpu)
     manifest = {
