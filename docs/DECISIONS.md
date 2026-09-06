@@ -351,12 +351,13 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D034 - Compact SDXL candidate policy and canonical acceptance test
 
-- **Status:** Accepted and implemented; 64-image acceptance test pending execution
+- **Status:** 64-image test executed; Aerosol-only recheck pending
 - **Date:** 2026-09-06
 - **Source of truth:** `configs/generation/sdxl_canonical_v1.yaml` and `src/generation/generate_sdxl_candidates.py`
 - **Decision:** Stop serial micro-pilot tuning and combine the useful settings already observed. The immutable taxonomy, MAIJA scene matrix, SDXL/ControlNet revisions, and no-source-RGB rule remain unchanged.
 - **Class profiles:** Standard classes use accepted real-mask silhouette Canny. Matches, Shaver, and Mobile phone retain their successful semantic overlays; Pliers uses curated open silhouettes; Battery is restricted to verified 9V silhouettes; Laptop uses open-laptop silhouettes. Aerosol removes misleading internal pseudo-edges and alternates the two low scales that produced recognizable examples (0.45/0.60).
 - **Acceptance:** Accept when the requested class is human-recognizable, every visible project-class instance can be reliably boxed, and image/labels are technically valid. Reject absent/wrong, unrecognizable, unlocalizable, or incompletely labelled targets. Mild synthetic appearance, simple scenes, imperfect centering, minor artifacts, or multiple same-class objects are not automatic failures when all instances are annotated.
 - **Test gate:** Generate 64 non-training images: every class once in each of its four frozen scene families. Review class identity, annotatability, scene diversity, and control behavior before unlocking production.
+- **Test evidence:** All structural checks passed; 54/64 images (84.375%) passed compact review. Fifteen classes have usable yield. Aerosol failed 0/4 and is the only systematic production blocker; test it once in four scenes with scene-only Canny at scale 0.60 before release.
 - **Candidate surplus:** Production proposes 10 candidates for each required group of eight (25% surplus), except Aerosol with 12 (50% surplus), totaling 2,592 clean candidates. Finalization must select exactly 2,048 accepted images, 128/class, preserving four balanced nested prefixes.
 - **Execution:** Candidate generation creates clean scenes, controls, provenance, and a review manifest only. Annotation, frozen degradation, post-degradation QC, and final manifests are separate gated stages. Acceptance-test images can never enter training.

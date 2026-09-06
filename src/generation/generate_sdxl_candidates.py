@@ -116,6 +116,7 @@ def main() -> None:
     parser.add_argument("--num-shards", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--aerosol-scene-only-recheck", action="store_true")
     parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
     if args.num_shards < 1 or not 0 <= args.shard_index < args.num_shards:
@@ -149,8 +150,19 @@ def main() -> None:
     if mismatches:
         raise RuntimeError(f"Package-version mismatch: {json.dumps(mismatches, indent=2)}")
     schedule = build_schedule(config, scene, args.mode)
+    if args.aerosol_scene_only_recheck:
+        if args.mode != "test":
+            raise ValueError("Aerosol scene-only recheck is only valid in test mode")
+        recheck = config["test"]["aerosol_scene_only_recheck"]
+        if not recheck["enabled"]:
+            raise RuntimeError("Aerosol scene-only recheck is disabled")
+        schedule = [row for row in schedule if row["class_id"] == int(recheck["class_id"])]
+        if len(schedule) != int(recheck["expected_candidates"]):
+            raise ValueError("Unexpected Aerosol recheck schedule size")
     shard_schedule = [row for row in schedule if row["global_index"] % args.num_shards == args.shard_index]
     output_root = pilot.repo_path(config["output_roots"][args.mode])
+    if args.aerosol_scene_only_recheck:
+        output_root = output_root / config["test"]["aerosol_scene_only_recheck"]["output_subdirectory"]
     output_dir = output_root / f"shard_{args.shard_index:02d}_of_{args.num_shards:02d}"
     if output_dir.exists():
         raise FileExistsError(f"Refusing to overwrite existing output: {output_dir}")
@@ -163,6 +175,7 @@ def main() -> None:
         "shard_candidates": len(shard_schedule),
         "shard_index": args.shard_index,
         "num_shards": args.num_shards,
+        "aerosol_scene_only_recheck": args.aerosol_scene_only_recheck,
         "output": str(output_dir.relative_to(REPO_ROOT)),
         "git": git,
         "packages": versions,
@@ -191,11 +204,17 @@ def main() -> None:
 
     for shard_position, sample in enumerate(shard_schedule, start=1):
         index = int(sample["global_index"])
-        row = choose_row(pilot, config, manifest_path, sample)
-        proxy, control, condition = pilot.build_control(config, row, index, sample["scene_name"])
+        scene_only = args.aerosol_scene_only_recheck
+        row = None if scene_only else choose_row(pilot, config, manifest_path, sample)
+        control_config = config
+        if scene_only:
+            control_config = dict(config)
+            control_config["target_conditioning_mode"] = "scene_only"
+        proxy, control, condition = pilot.build_control(control_config, row, index, sample["scene_name"])
         prompt = pilot.prompt_for(config, scene["scene_families"][sample["scene_name"]], sample["target"], sample["class_id"], index)
         negative = pilot.negative_prompt_for(config, sample["class_id"])
-        scale = class_scale(config, sample)
+        scale = (float(config["test"]["aerosol_scene_only_recheck"]["controlnet_conditioning_scale"])
+                 if scene_only else class_scale(config, sample))
         seed = int(config["seed"]) + index
         generator = torch.Generator(device="cpu").manual_seed(seed)
         started = time.monotonic()
@@ -256,6 +275,7 @@ def main() -> None:
         "remote_revisions": remote_revisions,
         "shard_index": args.shard_index,
         "num_shards": args.num_shards,
+        "aerosol_scene_only_recheck": args.aerosol_scene_only_recheck,
         "config_sha256": {
             "canonical": pilot.sha256(config_path),
             "models": pilot.sha256(models_path),

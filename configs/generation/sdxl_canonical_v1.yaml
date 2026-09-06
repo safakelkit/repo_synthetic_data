@@ -18,6 +18,13 @@ test:
   images_per_class_scene: 1
   expected_candidates: 64
   training_use_forbidden: true
+  aerosol_scene_only_recheck:
+    enabled: true
+    class_id: 11
+    expected_candidates: 4
+    output_subdirectory: aerosol_scene_only_recheck
+    controlnet_conditioning_scale: 0.60
+    training_use_forbidden: true
 
 production:
   approved: false
@@ -175,7 +182,8 @@ prompt:
     logo, watermark, illustration, cartoon, CGI
 
 release_gate:
-  canonical_test_approved: true
+  canonical_test_launch_approved: true
+  canonical_test_review_approved: false
   production_approved: false
   production_requires:
     - canonical_test_visual_review

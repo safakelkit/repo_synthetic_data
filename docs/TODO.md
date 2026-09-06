@@ -32,8 +32,10 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
   acceptance rate, runtime, and rejection reasons.
 - [x] Implement the deterministic 64-image SDXL canonical acceptance test and
   sharded production candidate scheduler.
-- [ ] Run/review the 64-image canonical acceptance test (four images/class,
-  one per assigned MAIJA scene); these images are forbidden from training.
+- [x] Run/review the 64-image canonical acceptance test: 54/64 accepted
+  (84.375%); 15 classes have usable yield; test images remain forbidden from training.
+- [ ] Run/review the four-image Aerosol scene-only recheck; this is the sole
+  remaining SDXL production blocker from the visual test.
 - [ ] Implement post-generation localization/annotation and automatic QC.
 - [x] Freeze compact acceptance criteria using pilot outputs only.
 - [ ] Validate class-wise candidate yield before canonical production.
