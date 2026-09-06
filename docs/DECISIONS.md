@@ -339,9 +339,21 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D033 - Isolate Aerosol target-edge over-conditioning before production
 
-- **Status:** Implemented as pilot v5; GPU execution pending
+- **Status:** Executed; silhouette-Canny scale strategy rejected
 - **Date:** 2026-09-05
 - **Finding:** V4 used genuine aerosol-can silhouettes, but its artificial circle and horizontal internal edges were rendered as screws, straps, or fixture components. All four outputs failed class identity.
 - **Decision:** Remove the internal semantic overlay for Aerosol while retaining the genuine binary silhouette and scene Canny condition. Compare ControlNet scales 0.45, 0.60, 0.75, and 0.90 across the same four frozen scenes, with explicit freestanding aerosol prompts and fixture/device negatives.
 - **Scope:** `genai_aerosol_scale_pilot_v5.yaml` schedules 16 non-training images. It changes neither the class taxonomy nor target-test boundary and creates no annotations or degradations.
 - **Decision rule:** Select a scale only if it yields recognizable, freestanding aerosol cans across more than one scene. If all scales remain near zero yield, stop tuning silhouette Canny and change the conditioning design rather than generating surplus failures.
+- **Execution:** 16/16 images completed at Git revision `c50e2972922de2a0c15d917b7c9a00fb4003de1b`. Wall time was 260.545 s; mean inference was 15.944 s/image; peak allocated/reserved VRAM was 7.735/10.379 GiB.
+- **Strict result:** Scale 0.45 accepted 1/4, 0.60 accepted 1/4, and 0.75/0.90 accepted 0/4. Both passing images used `cell_storage_area`; the multi-scene decision rule failed.
+- **Disposition:** Do not choose a scale or generate candidate surplus from this design. Preserve the SDXL/ControlNet model pair and frozen class/scene policies, but replace target-silhouette conditioning for Aerosol.
+
+## D034 - Test scene-only ControlNet conditioning for Aerosol
+
+- **Status:** Implemented as pilot v6; GPU execution pending
+- **Date:** 2026-09-06
+- **Decision:** For Aerosol only, omit the target silhouette from the Canny condition. Retain SDXL, Canny ControlNet, the assigned MAIJA scenes, and scale 0.60; ControlNet constrains the support-surface geometry while the text prompt requests one freestanding aerosol can on that surface.
+- **Rationale:** V5 showed that weakening silhouette conditioning occasionally recovered semantics but failed across scenes. Removing the target outline is the smallest conditioning-design change that directly tests whether the outline itself causes fixture-like interpretation.
+- **Scope:** `genai_aerosol_scene_control_pilot_v6.yaml` schedules 16 diagnostic images, four per assigned scene. No real pixels, labels, degradation, or training use are allowed.
+- **Decision rule:** Require viable single aerosol cans in multiple scene families. If scene-only conditioning also fails, stop SDXL prompt/control tuning for this class and reconsider the generator architecture before canonical production.

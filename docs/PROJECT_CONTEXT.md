@@ -95,9 +95,9 @@ must also be reported.
 
 ## Current stage
 
-1. Resolve Aerosol can generation. V4 resolved Pliers and produced viable 9V
-   Battery/Laptop candidates, but Aerosol remained 0/4. A 16-image scale
-   diagnostic is prepared to test whether Canny over-conditioning is causal.
+1. Change the Aerosol conditioning design. V4 yielded 0/4 and the v5 scale
+   diagnostic only 2/16, both in one scene; more silhouette-Canny scale tuning
+   is rejected. V6 is prepared to test scene-only Canny conditioning.
 2. Freeze post-generation annotation and QC rules using pilot data only.
 3. Validate candidate acceptance yield before canonical generation.
 4. Generate, annotate, degrade, and validate the 2,048-image SDXL canonical

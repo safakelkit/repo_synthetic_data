@@ -116,46 +116,66 @@ def draw_semantic_overlay(
         cv2.circle(proxy, point(*center), max(2, round(min(width, height) * radius_ratio)), edge, thickness=thickness, lineType=cv2.LINE_AA)
 
 
-def build_control(config: dict[str, Any], row: dict[str, str], sample_index: int, scene_name: str) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
+def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_index: int, scene_name: str) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     width, height = [int(value) for value in config["output_size"]]
     layout = config["control_layout"]
     proxy = np.full((height, width), int(layout["canvas_value"]), dtype=np.uint8)
     scene_layout = config["scene_layouts"][scene_name]
     support = np.asarray(scene_layout["support_polygon"], dtype=np.int32)
     cv2.fillPoly(proxy, [support], int(layout["support_value"]))
-    mask_path = repo_path(row["mask_path"])
-    original = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
-    if original is None:
-        raise ValueError(f"Unreadable mask: {mask_path}")
-    ys, xs = np.where(original > 0)
-    if xs.size == 0:
-        raise ValueError(f"Empty mask: {mask_path}")
-    binary = np.where(original[ys.min():ys.max() + 1, xs.min():xs.max() + 1] > 0, 255, 0).astype(np.uint8)
-    class_rotations = config.get("class_rotation_degrees", {}).get(int(row["class_id"]))
-    rotations = class_rotations if class_rotations is not None else (-24, -8, 8, 24)
-    angle = float(rotations[sample_index % len(rotations)])
-    binary = rotate_binary(binary, angle)
-    x1, y1, x2, y2 = [int(value) for value in scene_layout["target_box_xyxy"]]
-    box_width, box_height = x2 - x1, y2 - y1
-    scale = min(box_width / binary.shape[1], box_height / binary.shape[0]) * (0.82 + 0.06 * (sample_index % 3))
-    target_width, target_height = max(1, round(binary.shape[1] * scale)), max(1, round(binary.shape[0] * scale))
-    binary = cv2.resize(binary, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
-    offset_x = (-28, 0, 28)[sample_index % 3]
-    offset_y = (-16, 0, 16)[(sample_index // 3) % 3]
-    paste_x = max(0, min(width - target_width, x1 + (box_width - target_width) // 2 + offset_x))
-    paste_y = max(0, min(height - target_height, y1 + (box_height - target_height) // 2 + offset_y))
-    proxy[paste_y:paste_y + target_height, paste_x:paste_x + target_width][binary > 0] = int(layout["target_value"])
-    rendered_box = [paste_x, paste_y, paste_x + target_width, paste_y + target_height]
-    draw_semantic_overlay(proxy, int(row["class_id"]), sample_index, rendered_box, config)
+    mode = config.get("target_conditioning_mode", "silhouette")
+    if mode == "scene_only":
+        silhouette = {
+            "source_type": "none_scene_only_control",
+            "asset_id": None,
+            "mask_path": None,
+            "mask_sha256": None,
+            "rotation_degrees": None,
+            "scene_layout": scene_name,
+            "rendered_box_xyxy": None,
+        }
+    elif mode == "silhouette":
+        if row is None:
+            raise ValueError("Silhouette conditioning requires an object-mask row")
+        mask_path = repo_path(row["mask_path"])
+        original = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+        if original is None:
+            raise ValueError(f"Unreadable mask: {mask_path}")
+        ys, xs = np.where(original > 0)
+        if xs.size == 0:
+            raise ValueError(f"Empty mask: {mask_path}")
+        binary = np.where(original[ys.min():ys.max() + 1, xs.min():xs.max() + 1] > 0, 255, 0).astype(np.uint8)
+        class_rotations = config.get("class_rotation_degrees", {}).get(int(row["class_id"]))
+        rotations = class_rotations if class_rotations is not None else (-24, -8, 8, 24)
+        angle = float(rotations[sample_index % len(rotations)])
+        binary = rotate_binary(binary, angle)
+        x1, y1, x2, y2 = [int(value) for value in scene_layout["target_box_xyxy"]]
+        box_width, box_height = x2 - x1, y2 - y1
+        scale = min(box_width / binary.shape[1], box_height / binary.shape[0]) * (0.82 + 0.06 * (sample_index % 3))
+        target_width, target_height = max(1, round(binary.shape[1] * scale)), max(1, round(binary.shape[0] * scale))
+        binary = cv2.resize(binary, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
+        offset_x = (-28, 0, 28)[sample_index % 3]
+        offset_y = (-16, 0, 16)[(sample_index // 3) % 3]
+        paste_x = max(0, min(width - target_width, x1 + (box_width - target_width) // 2 + offset_x))
+        paste_y = max(0, min(height - target_height, y1 + (box_height - target_height) // 2 + offset_y))
+        proxy[paste_y:paste_y + target_height, paste_x:paste_x + target_width][binary > 0] = int(layout["target_value"])
+        rendered_box = [paste_x, paste_y, paste_x + target_width, paste_y + target_height]
+        draw_semantic_overlay(proxy, int(row["class_id"]), sample_index, rendered_box, config)
+        silhouette = {
+            "source_type": "real_class_sam3_binary_mask",
+            "asset_id": row["asset_id"],
+            "mask_path": str(mask_path.relative_to(REPO_ROOT)),
+            "mask_sha256": sha256(mask_path),
+            "rotation_degrees": angle,
+            "scene_layout": scene_name,
+            "rendered_box_xyxy": rendered_box,
+        }
+    else:
+        raise ValueError(f"Unsupported target_conditioning_mode: {mode}")
     blurred = cv2.GaussianBlur(proxy, (0, 0), sigmaX=float(layout["pre_canny_blur_sigma"]))
     low, high = [int(value) for value in layout["canny_thresholds"]]
     canny = cv2.Canny(blurred, low, high)
-    return Image.fromarray(cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)), Image.fromarray(cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)), {
-        "asset_id": row["asset_id"], "mask_path": str(mask_path.relative_to(REPO_ROOT)),
-        "mask_sha256": sha256(mask_path), "rotation_degrees": angle,
-        "scene_layout": scene_name,
-        "rendered_box_xyxy": rendered_box,
-    }
+    return Image.fromarray(cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)), Image.fromarray(cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)), silhouette
 
 
 def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class_id: int, sample_index: int) -> str:
@@ -249,16 +269,19 @@ def main() -> None:
     (output_dir / "controls").mkdir()
     records: list[dict[str, Any]] = []
     for index, sample in enumerate(schedule):
-        rows = read_masks(manifest_path, sample["class_id"])
-        preferred = config["silhouette_source"].get("preferred_stems", {}).get(sample["class_id"])
-        if preferred:
-            stem = preferred[index % len(preferred)]
-            matches = [candidate for candidate in rows if candidate["stem"] == stem]
-            if len(matches) != 1:
-                raise ValueError(f"Preferred silhouette is not unique/accepted: class={sample['class_id']} stem={stem}")
-            row = matches[0]
+        if config.get("target_conditioning_mode", "silhouette") == "scene_only":
+            row = None
         else:
-            row = rows[(int(config["seed"]) + int(config["silhouette_source"]["selection_seed_offset"]) + index) % len(rows)]
+            rows = read_masks(manifest_path, sample["class_id"])
+            preferred = config["silhouette_source"].get("preferred_stems", {}).get(sample["class_id"])
+            if preferred:
+                stem = preferred[index % len(preferred)]
+                matches = [candidate for candidate in rows if candidate["stem"] == stem]
+                if len(matches) != 1:
+                    raise ValueError(f"Preferred silhouette is not unique/accepted: class={sample['class_id']} stem={stem}")
+                row = matches[0]
+            else:
+                row = rows[(int(config["seed"]) + int(config["silhouette_source"]["selection_seed_offset"]) + index) % len(rows)]
         proxy, control, silhouette = build_control(config, row, index, sample["scene_name"])
         prompt = prompt_for(config, scene_policy["scene_families"][sample["scene_name"]], sample["target"], sample["class_id"], index)
         generator = torch.Generator(device="cpu").manual_seed(int(config["seed"]) + index)

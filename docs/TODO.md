@@ -23,7 +23,13 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
   2/4, Laptop 2/4; overall strict acceptance 8/16.
 - [x] Prepare Aerosol-only v5 conditioning-scale diagnostic with four samples
   each at 0.45/0.60/0.75/0.90 and no misleading internal target edges.
-- [ ] Run/review Aerosol v5 and select or reject the scale strategy.
+- [x] Run/review Aerosol v5: 2/16 strict acceptance, both in one scene; reject
+  further silhouette-Canny scale tuning.
+- [ ] Test a different Aerosol conditioning design without changing the class,
+  model pair, scene policy, or target-test boundary.
+- [x] Prepare v6 scene-only Canny pilot so ControlNet constrains the MAIJA
+  support surface while the prompt determines Aerosol identity.
+- [ ] Run/review Aerosol v6 before deciding the canonical conditioning policy.
 - [ ] Define a fixed candidate-surplus policy and report attempts, class-wise
   acceptance rate, runtime, and rejection reasons.
 - [ ] Implement post-generation localization/annotation and automatic QC.
