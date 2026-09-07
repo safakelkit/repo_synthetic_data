@@ -1,0 +1,86 @@
+format_version: 3
+base_config: configs/generation/sdxl_generation_v2.yaml
+pipeline_id: sdxl_generation_v3
+status: ready_for_acceptance_test
+output_root: data/synthetic/sdxl_generation_v3/acceptance_test
+seed: 55000
+
+# Keep descriptions complete: clipping v2 profiles at 16 words removed their
+# visual anchor and produced flat, generic rooms.
+scene_prompt_profile_max_words: 22
+
+# Architectural depth, worn materials and directional light make the setting
+# read as a lived-in physical space.  Profiles deliberately avoid loose items
+# that could be confused with project target classes.
+scene_prompt_profiles:
+  cell_sleeping_area:
+    - "warm side light, scuffed cream walls, blue steel bunk frame, worn vinyl floor, barred window depth"
+    - "late-afternoon window light, chipped painted concrete, bolted bunk, faded floor markings, recessed locker"
+    - "soft fluorescent light, scratched laminate desk, aged plaster wall, steel bed frame, narrow high window"
+    - "cool dawn light, brushed metal shelf, weathered wall paint, closed locker, textured institutional floor"
+  cell_desk_area:
+    - "warm overhead light, scratched laminate desk, bolted stool, faded pinboard, worn concrete wall depth"
+    - "side window light, aged cream plaster, fixed metal desk, recessed cubby, scuffed vinyl flooring"
+    - "soft fluorescent light, blue-gray desk surface, chipped wall paint, locked drawers, high secure window"
+    - "muted daylight, worn wooden-look tabletop, steel chair frame, deep alcove, subtle wall texture"
+  cell_storage_area:
+    - "cool aisle light, blue locker doors, worn concrete floor, wire-mesh partition, deep shelving perspective"
+    - "warm utility light, chipped storage cabinets, folded linen shelves, painted cinderblock wall, rolling cart"
+    - "side daylight, aged steel lockers, textured rubber floor, open storage alcove, muted corridor depth"
+    - "fluorescent warehouse light, pale shelving, faded safety stripes, scuffed floor, distant secured doorway"
+  cell_wash_area:
+    - "diffused window light, aged pale tiles, porcelain basin, brushed steel rail, damp grout texture"
+    - "warm overhead light, cracked ceramic tiles, deep mirror recess, worn stainless counter, blue-gray floor"
+    - "cool fluorescent light, tiled backsplash, porcelain sink edge, painted concrete wall, subtle water marks"
+    - "side daylight, matte tile wall, metal shelf, aged grout, narrow secure window and floor depth"
+  communal_day_room:
+    - "late-afternoon light, worn linoleum floor, bolted benches, faded painted walls, tall secure windows"
+    - "soft ceiling light, scuffed communal table, blue molded seats, textured wall panels, deep room perspective"
+    - "muted daylight, aged noticeboard, warm gray plaster, fixed seating, polished vinyl floor reflections"
+    - "cool fluorescent light, chipped paint, bolted dining benches, wide corridor opening, distant window light"
+  property_inspection_station:
+    - "directional desk light, brushed stainless table, frosted pass-through window, worn cabinet paint, deep counter space"
+    - "soft overhead light, scratched search counter, blue-gray drawers, textured wall panels, secure corridor depth"
+    - "side window light, aged laminate worktop, clear acrylic dividers, faded floor markings, closed cabinets"
+    - "cool task lighting, metal inspection table, muted cinderblock wall, rolling cart silhouette, warm doorway light"
+  correctional_workshop:
+    - "high workshop light, worn timber workbench, painted brick wall, empty pegboard, dusty concrete floor depth"
+    - "side skylight, scratched steel bench, faded safety lines, industrial cabinet fronts, wire partition behind"
+    - "warm task light, aged laminated worktable, chipped blue paint, closed parts drawers, broad workshop aisle"
+    - "cool overhead light, textured concrete wall, steel storage rack, scuffed floor, distant loading door"
+  maintenance_service_area:
+    - "warm utility light, brushed metal counter, chipped blue cabinets, exposed conduit, worn concrete floor depth"
+    - "side window light, aged service door, textured wall paint, steel shelving, muted yellow safety markings"
+    - "cool fluorescent light, scratched maintenance bench, painted cinderblock, deep utility corridor, rolling cart silhouette"
+    - "directional task light, worn cabinet faces, metal service counter, cable conduit, weathered vinyl floor"
+
+# Aerosol is text-only, so its shape needs explicit named parts.  “Spray paint”
+# is retained only as a product category; it is not used as a scene attribute.
+aerosol_full_scene:
+  prompt_variants:
+    - >-
+      One upright aerosol spray can in the center foreground, product evidence
+      photograph. Tall cylindrical aluminum body, flat circular base, matte
+      gray label, narrow plastic overcap, recessed push-button nozzle. Large,
+      sharp focus, one third image height. {background}.
+    - >-
+      One upright deodorant aerosol can, product evidence photograph. Tall
+      straight aluminum cylinder, round metal base rim, gray label, fitted
+      plastic cap, press-down aerosol actuator. Single centered product, large
+      and sharply focused. {background}.
+    - >-
+      One isolated upright aerosol spray can on the inspection table. Tall
+      cylindrical metal body, circular base rim, plain gray wrapper, removable
+      plastic overcap, visible push-button nozzle. Only foreground product,
+      centered and large. {background}.
+    - >-
+      One large upright personal aerosol spray can, forensic property
+      photograph. Recognizable aluminum cylinder, flat base, gray label,
+      rounded plastic cap, spray actuator; no pump, trigger, tube, or handle.
+      Center foreground. {background}.
+  negative_prompt: >-
+    pump bottle, trigger sprayer, glass bottle, beverage can, thermos, cup,
+    jar, pipe, faucet, plumbing, ventilation equipment, paint splatter,
+    paint-stained furniture, paint brush, workshop tool, distant product,
+    empty room, duplicate product, malformed cylinder, cropped object, hand,
+    person, readable words, watermark, illustration, cartoon, CGI

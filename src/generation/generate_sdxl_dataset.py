@@ -80,15 +80,21 @@ def merge_config(base: dict[str, Any], override: dict[str, Any]) -> dict[str, An
 
 
 def load_generation_config(helper, config_path: Path) -> tuple[dict[str, Any], Path | None]:
+    def resolve(path: Path, ancestry: set[Path]) -> dict[str, Any]:
+        resolved_path = path.resolve()
+        if resolved_path in ancestry:
+            chain = " -> ".join(str(item) for item in [*ancestry, resolved_path])
+            raise ValueError(f"Cyclic generation-config inheritance: {chain}")
+        override = helper.load_yaml(path)
+        base_reference = override.get("base_config")
+        if base_reference is None:
+            return override
+        base_path = helper.repo_path(base_reference)
+        return merge_config(resolve(base_path, ancestry | {resolved_path}), override)
+
     override = helper.load_yaml(config_path)
     base_reference = override.get("base_config")
-    if base_reference is None:
-        return override, None
-    base_path = helper.repo_path(base_reference)
-    base = helper.load_yaml(base_path)
-    if base.get("base_config") is not None:
-        raise ValueError("Only one generation-config inheritance level is supported")
-    return merge_config(base, override), base_path
+    return resolve(config_path, set()), helper.repo_path(base_reference) if base_reference else None
 
 
 def main() -> None:
