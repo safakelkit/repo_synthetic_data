@@ -170,6 +170,70 @@ def internal_object_edges(
     }
 
 
+def draw_scene_structure(
+    proxy: np.ndarray,
+    config: dict[str, Any],
+    scene_name: str,
+    sample_index: int,
+    target_box_xyxy: list[int],
+) -> dict[str, Any] | None:
+    """Draw fixed room architecture into the Canny proxy.
+
+    The configured primitives describe large installed fixtures such as beds,
+    cabinets, windows, sinks and doors.  They intentionally avoid small loose
+    objects that could be mistaken for one of the detection classes.
+    """
+    variants = config.get("scene_structure_variants", {}).get(scene_name, [])
+    if not variants:
+        return None
+    variant = variants[sample_index % len(variants)]
+    height, width = proxy.shape
+    before = proxy.copy()
+    default_value = int(config.get("scene_structure_value", 72))
+    default_thickness = int(config.get("scene_structure_thickness_px", 7))
+
+    def point(value: list[float]) -> tuple[int, int]:
+        return (
+            int(round(float(value[0]) * (width - 1))),
+            int(round(float(value[1]) * (height - 1))),
+        )
+
+    for primitive in variant.get("primitives", []):
+        kind = str(primitive["type"])
+        value = int(primitive.get("value", default_value))
+        thickness = int(primitive.get("thickness", default_thickness))
+        if kind == "line":
+            cv2.line(proxy, point(primitive["points"][0]), point(primitive["points"][1]), value, thickness, cv2.LINE_AA)
+        elif kind == "polyline":
+            points = np.asarray([point(item) for item in primitive["points"]], dtype=np.int32)
+            cv2.polylines(proxy, [points], bool(primitive.get("closed", False)), value, thickness, cv2.LINE_AA)
+        elif kind == "rectangle":
+            cv2.rectangle(proxy, point(primitive["xyxy"][:2]), point(primitive["xyxy"][2:]), value, thickness, cv2.LINE_AA)
+        elif kind == "ellipse":
+            center = point(primitive["center"])
+            axes = (
+                max(1, int(round(float(primitive["axes"][0]) * width))),
+                max(1, int(round(float(primitive["axes"][1]) * height))),
+            )
+            cv2.ellipse(proxy, center, axes, 0, 0, 360, value, thickness, cv2.LINE_AA)
+        else:
+            raise ValueError(f"Unsupported scene structure primitive: {kind}")
+
+    # Keep the object placement area free of architectural control edges. This
+    # preserves the successful target silhouette behavior for every class.
+    padding = int(config.get("scene_structure_target_clearance_px", 28))
+    x1, y1, x2, y2 = [int(value) for value in target_box_xyxy]
+    x1, y1 = max(0, x1 - padding), max(0, y1 - padding)
+    x2, y2 = min(width, x2 + padding), min(height, y2 + padding)
+    proxy[y1:y2, x1:x2] = before[y1:y2, x1:x2]
+    return {
+        "variant": str(variant.get("name", sample_index % len(variants))),
+        "variant_index": sample_index % len(variants),
+        "primitive_count": len(variant.get("primitives", [])),
+        "target_clearance_xyxy": [x1, y1, x2, y2],
+    }
+
+
 def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_index: int, scene_name: str) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     width, height = [int(value) for value in config["output_size"]]
     class_id = int(row["class_id"]) if row is not None else None
@@ -198,6 +262,15 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
     mode = config.get("target_conditioning_mode", "silhouette")
     if mode != "target_only":
         cv2.fillPoly(proxy, [support], int(layout["support_value"]))
+        scene_structure = draw_scene_structure(
+            proxy,
+            config,
+            scene_name,
+            sample_index,
+            [int(value) for value in scene_layout["target_box_xyxy"]],
+        )
+    else:
+        scene_structure = None
     if mode == "scene_only":
         silhouette = {
             "source_type": "none_scene_only_control",
@@ -208,6 +281,7 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
             "scene_layout": scene_name,
             "rendered_box_xyxy": None,
             "support_polygon": support.tolist(),
+            "scene_structure": scene_structure,
         }
     elif mode in ("silhouette", "target_only"):
         if row is None:
@@ -264,6 +338,7 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
             "scene_layout": scene_name,
             "rendered_box_xyxy": rendered_box,
             "support_polygon": support.tolist(),
+            "scene_structure": scene_structure,
             "target_scale_factor": round(factor, 6),
             "target_center_offset_xy": [offset_x, offset_y],
             "internal_edges": internal_metadata,

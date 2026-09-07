@@ -1,9 +1,9 @@
 """Generate the clean, one-pass SDXL acceptance dataset.
 
-Every output is synthesized as one complete image. Classes with accepted Canny
-profiles keep those profiles; Aerosol uses a concise text-only full-scene branch
-until a semantic layout controller is adopted. No compositing or inpainting is
-performed here.
+Every output is synthesized as one complete image. Class silhouettes and fixed
+scene architecture share one Canny condition; Aerosol additionally uses blurred
+internal object edges to preserve its cap and actuator. No compositing or
+inpainting is performed here.
 """
 
 from __future__ import annotations

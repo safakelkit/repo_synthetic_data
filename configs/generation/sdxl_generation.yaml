@@ -346,6 +346,228 @@ scene_layouts:
     - 460
     - 675
     - 750
+scene_structure_value: 68
+scene_structure_thickness_px: 7
+scene_structure_target_clearance_px: 30
+scene_structure_variants:
+  cell_sleeping_area:
+  - name: bunk_window_floor
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.20, 0.27, 0.68]}
+    - {type: line, points: [[0.04, 0.43], [0.27, 0.43]]}
+    - {type: rectangle, xyxy: [0.72, 0.13, 0.92, 0.33]}
+    - {type: line, points: [[0.00, 0.76], [1.00, 0.69]], value: 190}
+  - name: locker_bunk_recess
+    primitives:
+    - {type: rectangle, xyxy: [0.05, 0.16, 0.23, 0.62]}
+    - {type: line, points: [[0.14, 0.16], [0.14, 0.62]]}
+    - {type: polyline, points: [[0.72, 0.64], [0.93, 0.61], [0.97, 0.79]], closed: false}
+    - {type: rectangle, xyxy: [0.72, 0.12, 0.91, 0.29]}
+    - {type: line, points: [[0.00, 0.74], [1.00, 0.70]], value: 190}
+  - name: bed_frame_high_window
+    primitives:
+    - {type: polyline, points: [[0.03, 0.62], [0.27, 0.58], [0.31, 0.77], [0.02, 0.80]], closed: true}
+    - {type: line, points: [[0.06, 0.60], [0.06, 0.84]]}
+    - {type: rectangle, xyxy: [0.73, 0.11, 0.94, 0.28]}
+    - {type: rectangle, xyxy: [0.76, 0.39, 0.94, 0.65]}
+  - name: shelf_locker_depth
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.19, 0.25, 0.66]}
+    - {type: line, points: [[0.04, 0.39], [0.25, 0.39]]}
+    - {type: rectangle, xyxy: [0.74, 0.10, 0.94, 0.26]}
+    - {type: line, points: [[0.00, 0.72], [0.47, 0.54]], value: 190}
+    - {type: line, points: [[1.00, 0.75], [0.57, 0.54]], value: 190}
+  cell_desk_area:
+  - name: stool_pinboard_drawers
+    primitives:
+    - {type: rectangle, xyxy: [0.05, 0.15, 0.29, 0.37]}
+    - {type: rectangle, xyxy: [0.72, 0.40, 0.94, 0.72]}
+    - {type: line, points: [[0.72, 0.51], [0.94, 0.51]]}
+    - {type: polyline, points: [[0.09, 0.67], [0.22, 0.62], [0.26, 0.82]], closed: false}
+  - name: window_cubby_chair
+    primitives:
+    - {type: rectangle, xyxy: [0.06, 0.12, 0.27, 0.30]}
+    - {type: rectangle, xyxy: [0.75, 0.20, 0.95, 0.48]}
+    - {type: polyline, points: [[0.76, 0.66], [0.90, 0.61], [0.94, 0.81]], closed: false}
+    - {type: line, points: [[0.00, 0.78], [1.00, 0.72]], value: 190}
+  - name: shelf_locked_drawers
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.17, 0.30, 0.28]}
+    - {type: rectangle, xyxy: [0.74, 0.37, 0.95, 0.73]}
+    - {type: line, points: [[0.74, 0.49], [0.95, 0.49]]}
+    - {type: line, points: [[0.74, 0.61], [0.95, 0.61]]}
+    - {type: rectangle, xyxy: [0.07, 0.42, 0.25, 0.62]}
+  - name: alcove_chair_depth
+    primitives:
+    - {type: polyline, points: [[0.03, 0.18], [0.28, 0.18], [0.25, 0.55], [0.06, 0.55]], closed: true}
+    - {type: polyline, points: [[0.76, 0.61], [0.91, 0.58], [0.94, 0.79]], closed: false}
+    - {type: line, points: [[0.00, 0.76], [0.45, 0.53]], value: 190}
+    - {type: line, points: [[1.00, 0.76], [0.58, 0.53]], value: 190}
+  cell_storage_area:
+  - name: lockers_mesh_aisle
+    primitives:
+    - {type: rectangle, xyxy: [0.03, 0.10, 0.27, 0.69]}
+    - {type: line, points: [[0.15, 0.10], [0.15, 0.69]]}
+    - {type: rectangle, xyxy: [0.75, 0.13, 0.96, 0.61]}
+    - {type: line, points: [[0.00, 0.79], [0.46, 0.51]], value: 190}
+    - {type: line, points: [[1.00, 0.79], [0.57, 0.51]], value: 190}
+  - name: cabinets_linen_cart
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.14, 0.28, 0.64]}
+    - {type: line, points: [[0.04, 0.39], [0.28, 0.39]]}
+    - {type: rectangle, xyxy: [0.75, 0.18, 0.95, 0.54]}
+    - {type: polyline, points: [[0.76, 0.66], [0.92, 0.62], [0.95, 0.80]], closed: false}
+  - name: locker_alcove_corridor
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.11, 0.25, 0.67]}
+    - {type: line, points: [[0.145, 0.11], [0.145, 0.67]]}
+    - {type: polyline, points: [[0.73, 0.12], [0.96, 0.18], [0.92, 0.66], [0.76, 0.61]], closed: true}
+    - {type: line, points: [[0.00, 0.80], [0.46, 0.50]], value: 190}
+  - name: shelves_door_safety_line
+    primitives:
+    - {type: rectangle, xyxy: [0.03, 0.12, 0.29, 0.65]}
+    - {type: line, points: [[0.03, 0.29], [0.29, 0.29]]}
+    - {type: line, points: [[0.03, 0.47], [0.29, 0.47]]}
+    - {type: rectangle, xyxy: [0.77, 0.13, 0.95, 0.64]}
+    - {type: line, points: [[0.00, 0.82], [1.00, 0.73]], value: 190}
+  cell_wash_area:
+  - name: basin_mirror_tiles
+    primitives:
+    - {type: ellipse, center: [0.16, 0.58], axes: [0.13, 0.07]}
+    - {type: rectangle, xyxy: [0.05, 0.14, 0.28, 0.39]}
+    - {type: line, points: [[0.00, 0.44], [1.00, 0.44]], value: 190}
+    - {type: line, points: [[0.72, 0.08], [0.72, 0.45]], value: 190}
+    - {type: rectangle, xyxy: [0.77, 0.12, 0.94, 0.23]}
+  - name: sink_recess_counter
+    primitives:
+    - {type: ellipse, center: [0.84, 0.57], axes: [0.12, 0.065]}
+    - {type: rectangle, xyxy: [0.72, 0.12, 0.95, 0.38]}
+    - {type: line, points: [[0.00, 0.47], [1.00, 0.47]], value: 190}
+    - {type: rectangle, xyxy: [0.04, 0.18, 0.25, 0.34]}
+  - name: backsplash_sink_vent
+    primitives:
+    - {type: ellipse, center: [0.15, 0.59], axes: [0.12, 0.065]}
+    - {type: line, points: [[0.00, 0.40], [1.00, 0.40]], value: 190}
+    - {type: line, points: [[0.29, 0.08], [0.29, 0.47]], value: 190}
+    - {type: rectangle, xyxy: [0.78, 0.12, 0.94, 0.23]}
+    - {type: line, points: [[0.78, 0.175], [0.94, 0.175]]}
+  - name: shelf_window_floor
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.20, 0.27, 0.31]}
+    - {type: rectangle, xyxy: [0.74, 0.10, 0.94, 0.29]}
+    - {type: line, points: [[0.00, 0.43], [1.00, 0.43]], value: 190}
+    - {type: line, points: [[0.00, 0.80], [0.47, 0.51]], value: 190}
+    - {type: line, points: [[1.00, 0.80], [0.58, 0.51]], value: 190}
+  communal_day_room:
+  - name: benches_windows
+    primitives:
+    - {type: polyline, points: [[0.03, 0.57], [0.29, 0.53], [0.31, 0.72], [0.02, 0.76]], closed: true}
+    - {type: polyline, points: [[0.72, 0.52], [0.96, 0.56], [0.98, 0.75], [0.70, 0.71]], closed: true}
+    - {type: rectangle, xyxy: [0.08, 0.12, 0.28, 0.32]}
+    - {type: rectangle, xyxy: [0.73, 0.12, 0.93, 0.32]}
+  - name: seating_panels_depth
+    primitives:
+    - {type: polyline, points: [[0.03, 0.60], [0.25, 0.55], [0.28, 0.76]], closed: false}
+    - {type: polyline, points: [[0.76, 0.55], [0.96, 0.59], [0.93, 0.77]], closed: false}
+    - {type: rectangle, xyxy: [0.05, 0.14, 0.27, 0.39]}
+    - {type: line, points: [[0.00, 0.80], [0.47, 0.51]], value: 190}
+    - {type: line, points: [[1.00, 0.80], [0.58, 0.51]], value: 190}
+  - name: noticeboard_fixed_seating
+    primitives:
+    - {type: rectangle, xyxy: [0.05, 0.15, 0.30, 0.37]}
+    - {type: polyline, points: [[0.03, 0.59], [0.29, 0.54], [0.31, 0.75]], closed: false}
+    - {type: polyline, points: [[0.73, 0.54], [0.96, 0.59], [0.94, 0.76]], closed: false}
+    - {type: line, points: [[0.00, 0.81], [1.00, 0.73]], value: 190}
+  - name: dining_benches_doorway
+    primitives:
+    - {type: polyline, points: [[0.02, 0.58], [0.27, 0.54], [0.30, 0.73]], closed: false}
+    - {type: rectangle, xyxy: [0.76, 0.12, 0.95, 0.57]}
+    - {type: rectangle, xyxy: [0.07, 0.13, 0.28, 0.30]}
+    - {type: line, points: [[0.00, 0.79], [0.47, 0.52]], value: 190}
+  property_inspection_station:
+  - name: pass_through_drawers
+    primitives:
+    - {type: rectangle, xyxy: [0.07, 0.12, 0.31, 0.34]}
+    - {type: rectangle, xyxy: [0.73, 0.42, 0.96, 0.76]}
+    - {type: line, points: [[0.73, 0.53], [0.96, 0.53]]}
+    - {type: line, points: [[0.73, 0.64], [0.96, 0.64]]}
+    - {type: line, points: [[0.00, 0.82], [1.00, 0.76]], value: 190}
+  - name: cabinet_corridor
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.39, 0.27, 0.74]}
+    - {type: line, points: [[0.04, 0.51], [0.27, 0.51]]}
+    - {type: rectangle, xyxy: [0.77, 0.11, 0.96, 0.59]}
+    - {type: line, points: [[0.00, 0.82], [0.47, 0.53]], value: 190}
+  - name: divider_cabinets_marking
+    primitives:
+    - {type: rectangle, xyxy: [0.05, 0.11, 0.28, 0.36]}
+    - {type: line, points: [[0.16, 0.11], [0.16, 0.36]]}
+    - {type: rectangle, xyxy: [0.75, 0.41, 0.96, 0.74]}
+    - {type: line, points: [[0.75, 0.57], [0.96, 0.57]]}
+    - {type: line, points: [[0.00, 0.84], [1.00, 0.76]], value: 190}
+  - name: cart_doorway
+    primitives:
+    - {type: polyline, points: [[0.04, 0.57], [0.26, 0.54], [0.29, 0.76]], closed: false}
+    - {type: rectangle, xyxy: [0.74, 0.11, 0.95, 0.58]}
+    - {type: rectangle, xyxy: [0.07, 0.13, 0.29, 0.34]}
+    - {type: line, points: [[0.00, 0.82], [0.46, 0.54]], value: 190}
+  correctional_workshop:
+  - name: pegboard_bench_floor
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.12, 0.30, 0.39]}
+    - {type: rectangle, xyxy: [0.74, 0.39, 0.96, 0.72]}
+    - {type: line, points: [[0.74, 0.55], [0.96, 0.55]]}
+    - {type: line, points: [[0.00, 0.82], [1.00, 0.74]], value: 190}
+  - name: cabinet_partition
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.17, 0.27, 0.69]}
+    - {type: line, points: [[0.155, 0.17], [0.155, 0.69]]}
+    - {type: rectangle, xyxy: [0.75, 0.12, 0.96, 0.63]}
+    - {type: line, points: [[0.75, 0.29], [0.96, 0.29]]}
+    - {type: line, points: [[0.75, 0.46], [0.96, 0.46]]}
+  - name: drawers_workshop_aisle
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.39, 0.28, 0.73]}
+    - {type: line, points: [[0.04, 0.50], [0.28, 0.50]]}
+    - {type: line, points: [[0.04, 0.61], [0.28, 0.61]]}
+    - {type: rectangle, xyxy: [0.76, 0.14, 0.95, 0.64]}
+    - {type: line, points: [[0.00, 0.83], [0.47, 0.52]], value: 190}
+  - name: rack_loading_door
+    primitives:
+    - {type: rectangle, xyxy: [0.03, 0.13, 0.29, 0.66]}
+    - {type: line, points: [[0.03, 0.31], [0.29, 0.31]]}
+    - {type: line, points: [[0.03, 0.49], [0.29, 0.49]]}
+    - {type: rectangle, xyxy: [0.76, 0.11, 0.96, 0.63]}
+    - {type: line, points: [[0.00, 0.82], [1.00, 0.75]], value: 190}
+  maintenance_service_area:
+  - name: cabinets_conduit_floor
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.37, 0.28, 0.73]}
+    - {type: line, points: [[0.04, 0.55], [0.28, 0.55]]}
+    - {type: polyline, points: [[0.05, 0.18], [0.32, 0.18], [0.32, 0.08], [0.72, 0.08]], closed: false}
+    - {type: rectangle, xyxy: [0.78, 0.14, 0.94, 0.26]}
+    - {type: line, points: [[0.00, 0.82], [1.00, 0.75]], value: 190}
+  - name: service_door_shelving
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.12, 0.25, 0.64]}
+    - {type: rectangle, xyxy: [0.75, 0.13, 0.96, 0.66]}
+    - {type: line, points: [[0.75, 0.31], [0.96, 0.31]]}
+    - {type: line, points: [[0.75, 0.49], [0.96, 0.49]]}
+    - {type: line, points: [[0.00, 0.82], [0.47, 0.52]], value: 190}
+  - name: utility_corridor_cart
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.16, 0.27, 0.68]}
+    - {type: polyline, points: [[0.76, 0.58], [0.93, 0.54], [0.96, 0.75]], closed: false}
+    - {type: polyline, points: [[0.74, 0.10], [0.95, 0.10], [0.95, 0.50]], closed: false}
+    - {type: line, points: [[0.00, 0.83], [0.46, 0.52]], value: 190}
+    - {type: line, points: [[1.00, 0.82], [0.58, 0.52]], value: 190}
+  - name: counter_conduit_vent
+    primitives:
+    - {type: rectangle, xyxy: [0.04, 0.39, 0.29, 0.72]}
+    - {type: polyline, points: [[0.05, 0.18], [0.34, 0.18], [0.34, 0.08], [0.72, 0.08]], closed: false}
+    - {type: rectangle, xyxy: [0.77, 0.13, 0.95, 0.26]}
+    - {type: line, points: [[0.77, 0.195], [0.95, 0.195]]}
+    - {type: line, points: [[0.00, 0.81], [1.00, 0.74]], value: 190}
 control_layout:
   canvas_value: 32
   support_value: 128
