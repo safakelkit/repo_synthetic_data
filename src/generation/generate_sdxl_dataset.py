@@ -150,6 +150,18 @@ def main() -> None:
     started_utc = feasibility.utc_now()
     started = time.monotonic()
     pipe = feasibility.load_pipeline("sdxl", models, args.gpu)
+    reference_config = config.get("reference_conditioning")
+    reference_class_ids: set[int] = set()
+    if reference_config:
+        reference_class_ids = {int(value) for value in reference_config["class_ids"]}
+        adapter = reference_config["adapter"]
+        pipe.load_ip_adapter(
+            adapter["repo_id"],
+            subfolder=adapter["subfolder"],
+            weight_name=adapter["weight_name"],
+            image_encoder_folder=adapter["image_encoder_folder"],
+        )
+        pipe.set_ip_adapter_scale(float(reference_config["scale"]))
     images_dir = output_dir / "images"
     controls_dir = output_dir / "controls"
     images_dir.mkdir(parents=True)
@@ -182,18 +194,47 @@ def main() -> None:
             negative = helper.negative_prompt_for(
                 config, sample["class_id"], sample["scene_name"]
             )
+        reference_image = None
+        reference_metadata = None
+        if sample["class_id"] in reference_class_ids:
+            if mode == "text_only_full_scene":
+                raise ValueError("Reference conditioning requires a selected object asset")
+            reference_path = helper.repo_path(row["rgba_path"])
+            with Image.open(reference_path).convert("RGBA") as source:
+                reference_image = Image.new("RGBA", source.size, "white")
+                reference_image.alpha_composite(source)
+            reference_metadata = {
+                "source_type": "sam3_rgba_ip_adapter_reference",
+                "asset_id": row["asset_id"],
+                "rgba_path": str(reference_path.relative_to(REPO_ROOT)),
+                "rgba_sha256": helper.sha256(reference_path),
+                "scale": float(reference_config["scale"]),
+            }
         scale = float(scales.get(sample["class_id"], config["controlnet_conditioning_scale"]["default"]))
         seed = int(config["seed"]) + sample["index"]
         generator = torch.Generator(device="cpu").manual_seed(seed)
         inference_started = time.monotonic()
-        result = pipe(prompt=prompt, negative_prompt=negative, image=control, width=width, height=height, num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]), controlnet_conditioning_scale=scale, generator=generator).images[0]
+        call = {
+            "prompt": prompt,
+            "negative_prompt": negative,
+            "image": control,
+            "width": width,
+            "height": height,
+            "num_inference_steps": int(config["inference_steps"]),
+            "guidance_scale": float(config["guidance_scale"]),
+            "controlnet_conditioning_scale": scale,
+            "generator": generator,
+        }
+        if reference_image is not None:
+            call["ip_adapter_image"] = reference_image
+        result = pipe(**call).images[0]
         torch.cuda.synchronize(args.gpu)
         name = f"g{sample['index']:05d}_c{sample['class_id']:02d}_{sample['scene_name']}.png"
         image_path = images_dir / name
         control_path = controls_dir / name.replace(".png", "_canny.png")
         result.save(image_path)
         control.save(control_path)
-        record = {**sample, "generation_mode": mode, "seed": seed, "background_profile": context["profile"], "background_description": context["description"], "prompt": prompt, "negative_prompt": negative, "controlnet_conditioning_scale": scale, "condition": condition, "output": str(image_path.relative_to(REPO_ROOT)), "output_sha256": helper.sha256(image_path), "control_sha256": helper.sha256(control_path), "inference_seconds": round(time.monotonic() - inference_started, 3), "annotation_performed": False, "degradation_applied": False, "training_use_forbidden": True}
+        record = {**sample, "generation_mode": mode, "seed": seed, "background_profile": context["profile"], "background_description": context["description"], "prompt": prompt, "negative_prompt": negative, "controlnet_conditioning_scale": scale, "condition": condition, "reference_condition": reference_metadata, "output": str(image_path.relative_to(REPO_ROOT)), "output_sha256": helper.sha256(image_path), "control_sha256": helper.sha256(control_path), "inference_seconds": round(time.monotonic() - inference_started, 3), "annotation_performed": False, "degradation_applied": False, "training_use_forbidden": True}
         records.append(record)
         review_rows.append({"index": sample["index"], "class_id": sample["class_id"], "class_name": sample["class_name"], "scene_name": sample["scene_name"], "generation_mode": mode, "image_path": record["output"], "review_status": "pending", "review_reason": ""})
         print(f"[{position}/{len(shard_schedule)}] {name} {record['inference_seconds']:.3f}s", flush=True)

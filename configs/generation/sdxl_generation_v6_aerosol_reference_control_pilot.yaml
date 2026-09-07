@@ -1,0 +1,37 @@
+format_version: 6
+base_config: configs/generation/sdxl_generation_v3.yaml
+pipeline_id: sdxl_generation_v6_aerosol_reference_control_pilot
+status: ready_for_acceptance_test
+output_root: data/synthetic/sdxl_generation_v6_aerosol_reference_control_pilot/acceptance_test
+seed: 58000
+
+# Invoked with --class-id 11.  The image is a reference embedding only; no
+# source pixels are pasted into the generated scene.
+generation_modes:
+  class_overrides: {11: silhouette_canny}
+
+controlnet_conditioning_scale:
+  class_overrides: {11: 0.80}
+
+silhouette_source:
+  preferred_stems:
+    11:
+      - IMG_0428new_obj_00_crop_000116
+      - IMG_0495new_obj_01_crop_000136
+      - IMG_20240807_095809160_obj_00_crop_000206
+      - IMG_20240807_100444835_obj_00_crop_000227
+
+class_rotation_degrees: {11: [0]}
+class_target_phrases:
+  11: [one upright aerosol spray can, aluminum cylinder, gray cap, visible nozzle]
+class_negative_additions:
+  11: [pump bottle, trigger sprayer, industrial machine, wall light, pipe, faucet, duplicate aerosol can]
+
+reference_conditioning:
+  class_ids: [11]
+  scale: 0.60
+  adapter:
+    repo_id: h94/IP-Adapter
+    subfolder: sdxl_models
+    weight_name: ip-adapter_sdxl.bin
+    image_encoder_folder: models/image_encoder
