@@ -200,6 +200,18 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
     return Image.fromarray(cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)), Image.fromarray(cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)), silhouette
 
 
+def scene_prompt_context(
+    config: dict[str, Any], scene_name: str, scene: dict[str, Any], sample_index: int
+) -> dict[str, str]:
+    """Select a deterministic, scene-compatible background description."""
+    base = str(scene["description"]).rstrip(".")
+    profiles = config.get("scene_prompt_profiles", {}).get(scene_name, [])
+    if not profiles:
+        return {"base": base, "profile": "", "description": base}
+    profile = str(profiles[sample_index % len(profiles)]).rstrip(".")
+    return {"base": base, "profile": profile, "description": f"{base}. {profile}"}
+
+
 def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class_id: int, sample_index: int) -> str:
     description = str(scene["description"]).rstrip(".")
     phrase = config.get("class_target_phrases", {}).get(class_id, target.lower())
@@ -218,10 +230,19 @@ def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class
     return f"{config['prompt']['prefix']} {description}.{extra} {suffix}"
 
 
-def negative_prompt_for(config: dict[str, Any], class_id: int) -> str:
+def negative_prompt_for(
+    config: dict[str, Any], class_id: int, scene_name: str | None = None
+) -> str:
     base = str(config["prompt"]["negative"]).rstrip().rstrip(",")
     additions = config.get("class_negative_additions", {}).get(class_id, [])
-    return ", ".join([base, *[str(value) for value in additions]])
+    scene_additions = (
+        config.get("scene_negative_additions", {}).get(scene_name, [])
+        if scene_name is not None
+        else []
+    )
+    return ", ".join(
+        [base, *[str(value) for value in additions], *[str(value) for value in scene_additions]]
+    )
 
 
 def main() -> None:

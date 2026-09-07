@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import copy
 import importlib.util
 import json
 import os
@@ -66,6 +67,30 @@ def select_mask(helper, config: dict[str, Any], manifest: Path, sample: dict[str
     return rows[(int(config["seed"]) + offset + sample["class_attempt_index"]) % len(rows)]
 
 
+def merge_config(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = copy.deepcopy(base)
+    for key, value in override.items():
+        if key == "base_config":
+            continue
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = merge_config(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def load_generation_config(helper, config_path: Path) -> tuple[dict[str, Any], Path | None]:
+    override = helper.load_yaml(config_path)
+    base_reference = override.get("base_config")
+    if base_reference is None:
+        return override, None
+    base_path = helper.repo_path(base_reference)
+    base = helper.load_yaml(base_path)
+    if base.get("base_config") is not None:
+        raise ValueError("Only one generation-config inheritance level is supported")
+    return merge_config(base, override), base_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -80,7 +105,7 @@ def main() -> None:
     helper = load_helpers()
     feasibility = helper.feasibility_module()
     config_path = helper.repo_path(args.config)
-    config = helper.load_yaml(config_path)
+    config, base_config_path = load_generation_config(helper, config_path)
     models_path = helper.repo_path(config["models_config"])
     scenes_path = helper.repo_path(config["scene_policy"])
     manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
@@ -99,7 +124,7 @@ def main() -> None:
     output_dir = output_root / f"shard_{args.shard_index:02d}_of_{args.num_shards:02d}"
     if output_dir.exists():
         raise FileExistsError(f"Refusing to overwrite existing output: {output_dir}")
-    preflight = {"status": "ready", "pipeline_id": config["pipeline_id"], "total": len(full_schedule), "shard_total": len(shard_schedule), "output": str(output_dir.relative_to(REPO_ROOT)), "git": git, "packages": versions, "config_sha256": helper.sha256(config_path), "mask_manifest_sha256": helper.sha256(manifest_path)}
+    preflight = {"status": "ready", "pipeline_id": config["pipeline_id"], "total": len(full_schedule), "shard_total": len(shard_schedule), "output": str(output_dir.relative_to(REPO_ROOT)), "git": git, "packages": versions, "config_sha256": helper.sha256(config_path), "base_config_sha256": helper.sha256(base_config_path) if base_config_path else None, "mask_manifest_sha256": helper.sha256(manifest_path)}
     if args.preflight_only:
         print(json.dumps(preflight, indent=2))
         return
@@ -122,18 +147,27 @@ def main() -> None:
     width, height = config["output_size"]
     for position, sample in enumerate(shard_schedule, start=1):
         mode = modes.get(sample["class_id"], config["generation_modes"]["default"])
-        scene = scenes["scene_families"][sample["scene_name"]]
+        base_scene = scenes["scene_families"][sample["scene_name"]]
+        context = helper.scene_prompt_context(
+            config, sample["scene_name"], base_scene, sample["index"]
+        )
+        scene = {**base_scene, "description": context["description"]}
         if mode == "text_only_full_scene":
             control_config = {**config, "target_conditioning_mode": "scene_only"}
             _, control, condition = helper.build_control(control_config, None, sample["index"], sample["scene_name"])
             variants = config["aerosol_full_scene"]["prompt_variants"]
-            prompt = variants[sample["class_attempt_index"] % len(variants)].format(scene=scene["description"].rstrip("."))
+            prompt = variants[sample["class_attempt_index"] % len(variants)].format(
+                scene=scene["description"].rstrip("."),
+                background=context["description"].rstrip("."),
+            )
             negative = config["aerosol_full_scene"]["negative_prompt"]
         else:
             row = select_mask(helper, config, manifest_path, sample)
             _, control, condition = helper.build_control(config, row, sample["index"], sample["scene_name"])
             prompt = helper.prompt_for(config, scene, sample["class_name"], sample["class_id"], sample["index"])
-            negative = helper.negative_prompt_for(config, sample["class_id"])
+            negative = helper.negative_prompt_for(
+                config, sample["class_id"], sample["scene_name"]
+            )
         scale = float(scales.get(sample["class_id"], config["controlnet_conditioning_scale"]["default"]))
         seed = int(config["seed"]) + sample["index"]
         generator = torch.Generator(device="cpu").manual_seed(seed)
@@ -145,12 +179,12 @@ def main() -> None:
         control_path = controls_dir / name.replace(".png", "_canny.png")
         result.save(image_path)
         control.save(control_path)
-        record = {**sample, "generation_mode": mode, "seed": seed, "prompt": prompt, "negative_prompt": negative, "controlnet_conditioning_scale": scale, "condition": condition, "output": str(image_path.relative_to(REPO_ROOT)), "output_sha256": helper.sha256(image_path), "control_sha256": helper.sha256(control_path), "inference_seconds": round(time.monotonic() - inference_started, 3), "annotation_performed": False, "degradation_applied": False, "training_use_forbidden": True}
+        record = {**sample, "generation_mode": mode, "seed": seed, "background_profile": context["profile"], "background_description": context["description"], "prompt": prompt, "negative_prompt": negative, "controlnet_conditioning_scale": scale, "condition": condition, "output": str(image_path.relative_to(REPO_ROOT)), "output_sha256": helper.sha256(image_path), "control_sha256": helper.sha256(control_path), "inference_seconds": round(time.monotonic() - inference_started, 3), "annotation_performed": False, "degradation_applied": False, "training_use_forbidden": True}
         records.append(record)
         review_rows.append({"index": sample["index"], "class_id": sample["class_id"], "class_name": sample["class_name"], "scene_name": sample["scene_name"], "generation_mode": mode, "image_path": record["output"], "review_status": "pending", "review_reason": ""})
         print(f"[{position}/{len(shard_schedule)}] {name} {record['inference_seconds']:.3f}s", flush=True)
 
-    manifest = {"format_version": 1, "pipeline_id": config["pipeline_id"], "status": "generated_pending_review", "started_utc": started_utc, "completed_utc": feasibility.utc_now(), "wall_time_seconds": round(time.monotonic() - started, 3), "git": git, "packages": versions, "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"), "gpu_name": torch.cuda.get_device_name(args.gpu), "peak_allocated_gib": round(torch.cuda.max_memory_allocated(args.gpu) / 1024**3, 3), "models": {"base": models["sdxl"]["base_model"], "controlnet": models["sdxl"]["controlnet"]}, "config_sha256": {"generation": helper.sha256(config_path), "models": helper.sha256(models_path), "scenes": helper.sha256(scenes_path), "mask_manifest": helper.sha256(manifest_path), "script": helper.sha256(Path(__file__).resolve())}, "records": records}
+    manifest = {"format_version": 2, "pipeline_id": config["pipeline_id"], "status": "generated_pending_review", "started_utc": started_utc, "completed_utc": feasibility.utc_now(), "wall_time_seconds": round(time.monotonic() - started, 3), "git": git, "packages": versions, "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"), "gpu_name": torch.cuda.get_device_name(args.gpu), "peak_allocated_gib": round(torch.cuda.max_memory_allocated(args.gpu) / 1024**3, 3), "models": {"base": models["sdxl"]["base_model"], "controlnet": models["sdxl"]["controlnet"]}, "config_sha256": {"generation": helper.sha256(config_path), "base_generation": helper.sha256(base_config_path) if base_config_path else None, "models": helper.sha256(models_path), "scenes": helper.sha256(scenes_path), "mask_manifest": helper.sha256(manifest_path), "script": helper.sha256(Path(__file__).resolve())}, "records": records}
     with (output_dir / "manifest.json").open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, ensure_ascii=False, indent=2)
     with (output_dir / "review.csv").open("w", encoding="utf-8", newline="") as handle:
