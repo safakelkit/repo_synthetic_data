@@ -1,0 +1,53 @@
+format_version: 5
+base_config: configs/generation/sdxl_generation_v3.yaml
+pipeline_id: sdxl_generation_v5_aerosol_surface_control_pilot
+status: ready_for_acceptance_test
+output_root: data/synthetic/sdxl_generation_v5_aerosol_surface_control_pilot/acceptance_test
+seed: 57000
+
+# This is a four-image --class-id 11 pilot.  The real binary mask enters only
+# as Canny geometry, while the support plane prevents the outline being read as
+# a wall-mounted light fixture.
+generation_modes:
+  class_overrides: {11: silhouette_canny}
+
+controlnet_conditioning_scale:
+  class_overrides: {11: 0.85}
+
+silhouette_source:
+  preferred_stems:
+    11:
+      - IMG_0428new_obj_00_crop_000116
+      - IMG_0495new_obj_01_crop_000136
+      - IMG_20240807_095809160_obj_00_crop_000206
+      - IMG_20240807_100444835_obj_00_crop_000227
+
+class_rotation_degrees: {11: [0]}
+control_layout:
+  target_scale_factor: [0.88, 0.96]
+  target_center_jitter_px: [20, 16]
+
+scene_layouts:
+  cell_storage_area: {target_box_xyxy: [395, 350, 640, 780]}
+  cell_wash_area: {target_box_xyxy: [405, 490, 650, 900]}
+  property_inspection_station: {target_box_xyxy: [390, 420, 640, 850]}
+  maintenance_service_area: {target_box_xyxy: [390, 380, 640, 800]}
+
+class_target_phrases:
+  11:
+    - >-
+      exactly one upright aerosol spray can with a tall cylindrical aluminum
+      body, flat circular base, fitted plastic overcap, and recessed
+      push-button nozzle
+
+class_negative_additions:
+  11:
+    - pump bottle
+    - trigger sprayer
+    - industrial machine
+    - wall-mounted light
+    - pipe
+    - faucet
+    - duplicate aerosol can
+    - paint splatter
+    - paint-stained furniture
