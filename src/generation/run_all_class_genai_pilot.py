@@ -209,7 +209,11 @@ def scene_prompt_context(
     if not profiles:
         return {"base": base, "profile": "", "description": base}
     profile = str(profiles[sample_index % len(profiles)]).rstrip(".")
-    return {"base": base, "profile": profile, "description": f"{base}. {profile}"}
+    max_words = config.get("scene_prompt_profile_max_words")
+    if max_words is not None:
+        profile = " ".join(profile.split()[:int(max_words)])
+    description = f"{base}. {profile}" if config.get("scene_prompt_include_base", True) else profile
+    return {"base": base, "profile": profile, "description": description}
 
 
 def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class_id: int, sample_index: int) -> str:
@@ -226,7 +230,10 @@ def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class
     suffix = config['prompt']['suffix'].format(target=phrase)
     extra = f" {'; '.join(details)}." if details else ""
     if config.get("prompt_order", "scene_first") == "target_first":
-        return f"{suffix} {config['prompt']['prefix']} {description}.{extra}"
+        target_first = str(config["prompt"].get("target_first_template", "{target}")).format(
+            target=phrase
+        )
+        return f"{target_first}. {description}. {suffix} {config['prompt']['prefix']}{extra}"
     return f"{config['prompt']['prefix']} {description}.{extra} {suffix}"
 
 

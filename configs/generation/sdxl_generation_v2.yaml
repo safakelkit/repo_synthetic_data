@@ -9,15 +9,14 @@ guidance_scale: 6.0
 # Put the requested object before the setting.  The existing Canny geometry
 # continues to control the 15 silhouette-conditioned classes.
 prompt_order: target_first
+scene_prompt_include_base: false
+scene_prompt_profile_max_words: 16
 
 prompt:
-  prefix: >-
-    A realistic handheld evidence photograph inside a correctional facility.
+  target_first_template: "{target}"
+  prefix: "Documentary evidence photo."
   suffix: >-
-    {target} is the only prominent foreground object, centered on a horizontal
-    support surface, fully visible, and large enough for a reliable bounding
-    box. Natural perspective, documentary photography, no people and no
-    readable text.
+    Centered, fully visible, useful detection scale, no people or readable text.
   negative: >-
     duplicate target, wrong primary object, deformed target, floating object,
     cropped target, hidden target, hand, person, readable text, logo,
@@ -152,26 +151,21 @@ scene_prompt_profiles:
 aerosol_full_scene:
   prompt_variants:
     - >-
-      A single upright spray paint can is the only prominent foreground object,
-      centered on a clean inspection tray and filling about one quarter of the
-      image height. It has a cylindrical metal body, a removable plastic cap,
-      and a clearly visible spray nozzle. {background}. Realistic documentary
-      evidence photograph, natural indoor light, no people.
+      One upright spray paint can, centered and large on a clean inspection
+      tray. Cylindrical metal body, plastic cap, visible spray nozzle.
+      {background}. Documentary evidence photo, no people.
     - >-
-      A single upright deodorant spray can stands at the center of a clean
-      inspection surface. The product is large and fully visible, with a metal
-      cylinder, rounded cap, and distinct spray actuator. {background}.
-      Realistic correctional-facility evidence photograph, no people.
+      One upright deodorant spray can, centered and fully visible on a clean
+      inspection surface. Metal cylinder, rounded cap, distinct spray actuator.
+      {background}. Documentary evidence photo, no people.
     - >-
-      Centered close-medium evidence photo of one spray paint can on a plain
-      horizontal tray. The can has a colored consumer wrapper, metal base,
-      plastic overcap, and visible push-button nozzle; it is the only salient
-      product in frame. {background}. Documentary photography, no people.
+      One spray paint can on a plain central tray, large and fully visible.
+      Colored wrapper, metal base, plastic overcap, push-button nozzle.
+      {background}. Documentary evidence photo, no people.
     - >-
-      One full-size personal body-spray can is upright and clearly recognizable
-      in the center foreground on an inspection table. Show the cylindrical
-      can, cap, and spray button at a useful detection scale. {background}.
-      Natural perspective, realistic institutional interior, no people.
+      One upright personal body-spray can in the center foreground on an
+      inspection table. Clear cylinder, cap, and spray button at useful scale.
+      {background}. Documentary evidence photo, no people.
   negative_prompt: >-
     bottle, beverage container, thermos, pipe, faucet, plumbing fixture,
     ventilation equipment, distant product, empty room, duplicate foreground
