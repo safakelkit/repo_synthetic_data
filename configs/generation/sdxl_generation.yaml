@@ -115,9 +115,8 @@ class_target_phrases:
   - one modern rectangular smartphone with a glass screen bezel and camera
   15:
   - one open laptop with one hinged screen keyboard and trackpad
-  11: A single upright consumer deodorant aerosol can on an inspection table. Cylindrical metal body,
-    colored label, rounded plastic cap, press-down spray actuator. Fully visible product photograph, not
-    spraying
+  11: One upright deodorant aerosol spray can. Cylindrical metal body, colored label, rounded plastic cap,
+    push-button nozzle. Fully visible product photograph, not spraying
 class_negative_additions:
   1:
   - single wooden stick
@@ -229,9 +228,9 @@ scene_layouts:
   cell_sleeping_area:
     support_polygon:
     - - 90
-      - 500
+      - 520
     - - 850
-      - 460
+      - 500
     - - 1000
       - 990
     - - 20
@@ -244,9 +243,9 @@ scene_layouts:
   cell_desk_area:
     support_polygon:
     - - 180
-      - 430
+      - 510
     - - 900
-      - 470
+      - 520
     - - 930
       - 930
     - - 100
@@ -259,9 +258,9 @@ scene_layouts:
   cell_storage_area:
     support_polygon:
     - - 120
-      - 360
+      - 500
     - - 870
-      - 360
+      - 500
     - - 900
       - 760
     - - 100
@@ -274,9 +273,9 @@ scene_layouts:
   cell_wash_area:
     support_polygon:
     - - 80
-      - 520
+      - 540
     - - 930
-      - 500
+      - 520
     - - 1010
       - 940
     - - 20
@@ -289,9 +288,9 @@ scene_layouts:
   communal_day_room:
     support_polygon:
     - - 240
-      - 470
+      - 520
     - - 850
-      - 430
+      - 500
     - - 980
       - 900
     - - 90
@@ -304,9 +303,9 @@ scene_layouts:
   property_inspection_station:
     support_polygon:
     - - 130
-      - 440
+      - 520
     - - 894
-      - 440
+      - 520
     - - 1010
       - 1010
     - - 14
@@ -319,9 +318,9 @@ scene_layouts:
   correctional_workshop:
     support_polygon:
     - - 70
-      - 460
+      - 520
     - - 950
-      - 460
+      - 520
     - - 980
       - 880
     - - 40
@@ -334,9 +333,9 @@ scene_layouts:
   maintenance_service_area:
     support_polygon:
     - - 160
-      - 390
+      - 500
     - - 880
-      - 420
+      - 520
     - - 940
       - 850
     - - 90
@@ -614,7 +613,8 @@ release_gate:
   success_rule: every_class_at_least_3_of_4_and_overall_at_least_56_of_64
 prompt_order: target_first
 scene_prompt_include_base: false
-scene_prompt_profile_max_words: 22
+scene_prompt_profile_max_words: 18
+scene_composition_prompt: Eye-level room view, visible back wall, fixtures, perspective depth
 scene_prompt_profiles:
   cell_sleeping_area:
   - warm side light, scuffed cream walls, blue steel bunk frame, worn vinyl floor, barred window depth

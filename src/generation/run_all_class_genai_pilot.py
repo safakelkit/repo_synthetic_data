@@ -368,7 +368,15 @@ def scene_prompt_context(
     if max_words is not None:
         profile = " ".join(profile.split()[:int(max_words)])
     description = f"{base}. {profile}" if config.get("scene_prompt_include_base", True) else profile
-    return {"base": base, "profile": profile, "description": description}
+    composition = str(config.get("scene_composition_prompt", "")).strip().rstrip(".")
+    if composition:
+        description = f"{composition}. {description}"
+    return {
+        "base": base,
+        "profile": profile,
+        "composition": composition,
+        "description": description,
+    }
 
 
 def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class_id: int, sample_index: int) -> str:
