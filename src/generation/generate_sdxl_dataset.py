@@ -23,7 +23,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation.yaml"
 HELPERS = REPO_ROOT / "src/generation/run_all_class_genai_pilot.py"
 
 

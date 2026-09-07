@@ -26,7 +26,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation.yaml"
 FEASIBILITY_MODULE = REPO_ROOT / "src/generation/run_full_scene_feasibility.py"
 
 
@@ -172,9 +172,22 @@ def internal_object_edges(
 
 def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_index: int, scene_name: str) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     width, height = [int(value) for value in config["output_size"]]
-    layout = config["control_layout"]
+    class_id = int(row["class_id"]) if row is not None else None
+    class_layouts = config.get("class_control_layout_overrides", {})
+    layout = {
+        **config["control_layout"],
+        **(class_layouts.get(class_id, {}) if class_id is not None else {}),
+    }
     proxy = np.full((height, width), int(layout["canvas_value"]), dtype=np.uint8)
-    scene_layout = config["scene_layouts"][scene_name]
+    class_scenes = config.get("class_scene_layout_overrides", {})
+    scene_layout = {
+        **config["scene_layouts"][scene_name],
+        **(
+            class_scenes.get(class_id, {}).get(scene_name, {})
+            if class_id is not None
+            else {}
+        ),
+    }
     variation_rng = np.random.default_rng(int(config.get("seed", 0)) + sample_index * 104729)
     support = np.asarray(scene_layout["support_polygon"], dtype=np.int32).copy()
     support_jitter = int(layout.get("support_jitter_px", 0))

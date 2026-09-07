@@ -31,7 +31,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_generation.yaml"
 EXPECTED_PACKAGES = {
     "diffusers": "0.40.0",
     "transformers": "5.5.4",
