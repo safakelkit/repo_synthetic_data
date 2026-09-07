@@ -116,6 +116,60 @@ def draw_semantic_overlay(
         cv2.circle(proxy, point(*center), max(2, round(min(width, height) * radius_ratio)), edge, thickness=thickness, lineType=cv2.LINE_AA)
 
 
+def internal_object_edges(
+    row: dict[str, str],
+    original_mask: np.ndarray,
+    crop_bounds: tuple[int, int, int, int],
+    angle: float,
+    target_size: tuple[int, int],
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Extract non-textural object edges from the accepted RGB crop.
+
+    This is condition-map construction only.  The RGB crop is converted to a
+    blurred, masked edge map and is never passed to SDXL or composited into an
+    output image.
+    """
+    source_path = repo_path(row["rgb_path"])
+    source = cv2.imread(str(source_path), cv2.IMREAD_COLOR)
+    if source is None or source.shape[:2] != original_mask.shape:
+        raise ValueError(f"Unreadable or misaligned source RGB crop: {source_path}")
+    y1, y2, x1, x2 = crop_bounds
+    source = source[y1:y2, x1:x2]
+    mask = np.where(original_mask[y1:y2, x1:x2] > 0, 255, 0).astype(np.uint8)
+    settings = config["internal_edge_control"]
+    # A bilateral pass preserves large cap/base seams; the subsequent Gaussian
+    # pass deliberately removes printed labels and fine source texture.
+    filtered = cv2.bilateralFilter(
+        source,
+        int(settings.get("bilateral_diameter", 7)),
+        float(settings.get("bilateral_sigma_color", 45)),
+        float(settings.get("bilateral_sigma_space", 45)),
+    )
+    filtered = cv2.GaussianBlur(
+        filtered, (0, 0), sigmaX=float(settings.get("gaussian_sigma", 3.0))
+    )
+    grayscale = cv2.cvtColor(filtered, cv2.COLOR_BGR2GRAY)
+    low, high = [int(value) for value in settings.get("canny_thresholds", [24, 72])]
+    edges = cv2.Canny(grayscale, low, high)
+    erosion = max(1, int(settings.get("mask_erosion_px", 2)))
+    inside = cv2.erode(mask, np.ones((erosion * 2 + 1, erosion * 2 + 1), np.uint8))
+    edges = cv2.bitwise_and(edges, inside)
+    edges = rotate_binary(edges, angle)
+    edges = cv2.resize(edges, target_size, interpolation=cv2.INTER_NEAREST)
+    if int(settings.get("dilate_px", 0)):
+        radius = int(settings["dilate_px"])
+        edges = cv2.dilate(edges, np.ones((radius * 2 + 1, radius * 2 + 1), np.uint8))
+    return edges, {
+        "source_type": "accepted_rgb_masked_blurred_internal_edges_only",
+        "rgb_path": str(source_path.relative_to(REPO_ROOT)),
+        "rgb_sha256": sha256(source_path),
+        "gaussian_sigma": float(settings.get("gaussian_sigma", 3.0)),
+        "canny_thresholds": [low, high],
+        "mask_erosion_px": erosion,
+    }
+
+
 def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_index: int, scene_name: str) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     width, height = [int(value) for value in config["output_size"]]
     layout = config["control_layout"]
@@ -152,7 +206,8 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
         ys, xs = np.where(original > 0)
         if xs.size == 0:
             raise ValueError(f"Empty mask: {mask_path}")
-        binary = np.where(original[ys.min():ys.max() + 1, xs.min():xs.max() + 1] > 0, 255, 0).astype(np.uint8)
+        crop_bounds = (ys.min(), ys.max() + 1, xs.min(), xs.max() + 1)
+        binary = np.where(original[crop_bounds[0]:crop_bounds[1], crop_bounds[2]:crop_bounds[3]] > 0, 255, 0).astype(np.uint8)
         class_rotations = config.get("class_rotation_degrees", {}).get(int(row["class_id"]))
         rotations = class_rotations if class_rotations is not None else (-24, -8, 8, 24)
         angle = float(rotations[int(variation_rng.integers(0, len(rotations)))])
@@ -176,6 +231,13 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
         proxy[paste_y:paste_y + target_height, paste_x:paste_x + target_width][binary > 0] = int(layout["target_value"])
         rendered_box = [paste_x, paste_y, paste_x + target_width, paste_y + target_height]
         draw_semantic_overlay(proxy, int(row["class_id"]), sample_index, rendered_box, config)
+        internal_edges = None
+        internal_metadata = None
+        internal_classes = {int(value) for value in config.get("internal_edge_control", {}).get("class_ids", [])}
+        if int(row["class_id"]) in internal_classes:
+            internal_edges, internal_metadata = internal_object_edges(
+                row, original, crop_bounds, angle, (target_width, target_height), config
+            )
         silhouette = {
             "source_type": (
                 "real_class_sam3_binary_mask_target_only"
@@ -191,12 +253,17 @@ def build_control(config: dict[str, Any], row: dict[str, str] | None, sample_ind
             "support_polygon": support.tolist(),
             "target_scale_factor": round(factor, 6),
             "target_center_offset_xy": [offset_x, offset_y],
+            "internal_edges": internal_metadata,
         }
     else:
         raise ValueError(f"Unsupported target_conditioning_mode: {mode}")
     blurred = cv2.GaussianBlur(proxy, (0, 0), sigmaX=float(layout["pre_canny_blur_sigma"]))
     low, high = [int(value) for value in layout["canny_thresholds"]]
     canny = cv2.Canny(blurred, low, high)
+    if mode in ("silhouette", "target_only") and internal_edges is not None:
+        canny[paste_y:paste_y + target_height, paste_x:paste_x + target_width] = cv2.bitwise_or(
+            canny[paste_y:paste_y + target_height, paste_x:paste_x + target_width], internal_edges
+        )
     return Image.fromarray(cv2.cvtColor(proxy, cv2.COLOR_GRAY2RGB)), Image.fromarray(cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)), silhouette
 
 
@@ -221,6 +288,9 @@ def prompt_for(config: dict[str, Any], scene: dict[str, Any], target: str, class
     phrase = config.get("class_target_phrases", {}).get(class_id, target.lower())
     if isinstance(phrase, list):
         phrase = phrase[sample_index % len(phrase)]
+    class_templates = config.get("class_prompt_templates", {})
+    if class_id in class_templates:
+        return str(class_templates[class_id]).format(target=phrase, scene=description)
     variation = config.get("prompt_variation", {})
     details = []
     for offset, key in enumerate(("lighting", "camera", "material", "clutter")):

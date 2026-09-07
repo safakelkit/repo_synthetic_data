@@ -1,0 +1,80 @@
+format_version: 8
+base_config: configs/generation/sdxl_generation_v3.yaml
+pipeline_id: sdxl_generation_v8_aerosol_internal_edges_final_pilot
+status: ready_for_acceptance_test
+output_root: data/synthetic/sdxl_generation_v8_aerosol_internal_edges_final_pilot/acceptance_test
+seed: 60000
+
+# Final four-image class-11 validation.  SDXL receives one complete Canny
+# scene condition; no source RGB/RGBA is passed to the generator or copied to
+# an output image.
+generation_modes:
+  class_overrides: {11: silhouette_canny}
+
+controlnet_conditioning_scale:
+  class_overrides: {11: 0.65}
+
+silhouette_source:
+  preferred_stems:
+    11:
+      - IMG_0428new_obj_00_crop_000116
+      - IMG_0495new_obj_01_crop_000136
+      - IMG_20240807_095809160_obj_00_crop_000206
+      - IMG_20240807_100444835_obj_00_crop_000227
+
+class_rotation_degrees: {11: [0]}
+control_layout:
+  target_scale_factor: [0.88, 0.94]
+  target_center_jitter_px: [12, 10]
+
+scene_layouts:
+  cell_storage_area: {target_box_xyxy: [395, 350, 640, 780]}
+  cell_wash_area: {target_box_xyxy: [405, 490, 650, 900]}
+  property_inspection_station: {target_box_xyxy: [390, 420, 640, 850]}
+  maintenance_service_area: {target_box_xyxy: [390, 380, 640, 800]}
+
+# The accepted RGB crop is masked, heavily smoothed, then reduced to Canny
+# edges inside the true silhouette.  This retains cap/base geometry while
+# suppressing label text; only the resulting edge map enters ControlNet.
+internal_edge_control:
+  class_ids: [11]
+  bilateral_diameter: 7
+  bilateral_sigma_color: 45
+  bilateral_sigma_space: 45
+  gaussian_sigma: 5.0
+  canny_thresholds: [32, 96]
+  mask_erosion_px: 2
+  dilate_px: 1
+
+prompt_order: target_first
+scene_prompt_include_base: false
+scene_prompt_profile_max_words: 12
+prompt:
+  prefix: "Documentary inspection photograph."
+  suffix: "No people or readable text."
+  target_first_template: "{target}"
+
+class_target_phrases:
+  11: >-
+    A single upright consumer deodorant aerosol can on an inspection table.
+    Cylindrical metal body, colored label, rounded plastic cap, press-down
+    spray actuator. Fully visible product photograph, not spraying
+class_prompt_templates:
+  11: "{target}."
+
+class_negative_additions:
+  11:
+    - wall light
+    - flashlight
+    - fluorescent tube
+    - pipe
+    - thermos
+    - drinking bottle
+    - pump bottle
+    - trigger sprayer
+    - industrial machine
+    - filter
+    - electrical device
+    - spray cloud
+    - multiple cans
+    - floating object
