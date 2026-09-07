@@ -1,0 +1,50 @@
+format_version: 4
+base_config: configs/generation/sdxl_generation_v3.yaml
+pipeline_id: sdxl_generation_v4_aerosol_control_pilot
+status: ready_for_acceptance_test
+output_root: data/synthetic/sdxl_generation_v4_aerosol_control_pilot/acceptance_test
+seed: 56000
+
+# This pilot is invoked with --class-id 11.  It remains a single SDXL pass:
+# the source RGB never enters the model, only a transformed binary-mask Canny
+# outline does.
+generation_modes:
+  class_overrides: {11: silhouette_canny}
+target_conditioning_mode: target_only
+
+controlnet_conditioning_scale:
+  class_overrides: {11: 1.10}
+
+silhouette_source:
+  preferred_stems:
+    11:
+      - IMG_0428new_obj_00_crop_000116
+      - IMG_0495new_obj_01_crop_000136
+      - IMG_20240807_095809160_obj_00_crop_000206
+      - IMG_20240807_100444835_obj_00_crop_000227
+
+class_rotation_degrees: {11: [0]}
+control_layout:
+  target_scale_factor: [0.82, 0.92]
+  target_center_jitter_px: [24, 18]
+
+class_target_phrases:
+  11:
+    - >-
+      exactly one upright aerosol spray can with a tall cylindrical aluminum
+      body, flat circular base, fitted plastic overcap, and recessed
+      push-button nozzle
+
+class_negative_additions:
+  11:
+    - pump bottle
+    - trigger sprayer
+    - industrial machine
+    - pipe
+    - faucet
+    - duplicate aerosol can
+    - paint splatter
+    - paint-stained furniture
+
+# Target-only Canny leaves the model free to render a real room around the
+# object.  The v3 scene profiles supply the setting without loose confounders.

@@ -103,6 +103,7 @@ def main() -> None:
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--num-shards", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--class-id", type=int, action="append", dest="class_ids")
     parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
     if args.num_shards < 1 or not 0 <= args.shard_index < args.num_shards:
@@ -118,6 +119,13 @@ def main() -> None:
     models = helper.load_yaml(models_path)
     scenes = helper.load_yaml(scenes_path)
     full_schedule = schedule(config, scenes)
+    if args.class_ids:
+        available = {int(row["class_id"]) for row in full_schedule}
+        requested = set(args.class_ids)
+        unknown = sorted(requested - available)
+        if unknown:
+            raise ValueError(f"Unknown class ids: {unknown}")
+        full_schedule = [row for row in full_schedule if int(row["class_id"]) in requested]
     shard_schedule = [row for row in full_schedule if row["index"] % args.num_shards == args.shard_index]
     versions = feasibility.installed_versions()
     mismatches = {name: {"expected": expected, "actual": versions.get(name)} for name, expected in feasibility.EXPECTED_PACKAGES.items() if versions.get(name) != expected}
