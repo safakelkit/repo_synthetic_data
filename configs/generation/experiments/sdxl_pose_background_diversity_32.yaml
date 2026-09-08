@@ -8,6 +8,7 @@ plate_seed_overrides:
   "property_inspection_station:2": 23842
   "correctional_workshop:0": 23843
   "correctional_workshop:2": 23844
+  "maintenance_service_area:3": 23845
 
 # Variants 0-1 retain the successful pilot compositions. Variants 2-3 change
 # viewpoint, fixture layout and lighting while retaining a clear support plane.
@@ -163,10 +164,10 @@ scene_plate_prompts:
       storage, broad unobstructed foreground floor, cool industrial lighting and
       deep perspective.
     - >-
-      Photorealistic doorway view along an institutional maintenance corridor,
-      stainless service sink, locked wall cabinets, exposed conduit, utility door
-      and equipment alcoves, clear empty foreground floor, warm fluorescent pools
-      and natural asymmetry.
+      Empty secure prison maintenance corridor, photorealistic doorway view. Closed
+      steel service cabinets line one side, exposed conduit, ventilation grilles,
+      locked utility doors and recessed equipment bays create depth. Broad clear
+      foreground floor, warm fluorescent pools and natural asymmetry.
 
 plate_negative_prompt: >-
   people, hand, loose objects, aerosol can, bottle, scissors, knife, saw, hammer,
