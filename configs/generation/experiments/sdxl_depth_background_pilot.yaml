@@ -66,16 +66,15 @@ target_prompts:
     and push-button nozzle, flat base visibly touching a horizontal surface with
     a natural contact shadow, fully visible, not spraying.
 direct_aerosol_prompt: >-
-  Photo of exactly one capped deodorant aerosol spray can {support}, one quarter
-  of image height. Cylindrical metal body, colored printed label, rounded plastic
-  cap, flat base touching the support, contact shadow.
+  Photo of one standard deodorant aerosol spray can {support}. Hand-sized can,
+  matte printed metal body, colored plastic cap, flat base touching the support,
+  small contact shadow.
   {scene}. Empty fixed furniture. No people.
 direct_aerosol_negative_prompt: >-
   thermos, vacuum flask, insulated bottle, water bottle, dispenser, fire
-  extinguisher, multiple cans, duplicate can, extra aerosol, bottles, jars, tiny
-  target, distant target, floating target, cropped target, wall-mounted target,
-  hand, person, spray cloud, readable text, logo, watermark, illustration,
-  cartoon, CGI
+  extinguisher, tower, multiple cans, duplicate can, bottles, jars, toiletries,
+  tiny target, floating target, wall-mounted target, hand, person, spray cloud,
+  readable text, logo, watermark, illustration, cartoon, CGI
 inpaint_aerosol_support_prompts:
   cell_storage_area: standing upright on the worn floor in the foreground aisle
   cell_wash_area: standing upright on the dry rear sink ledge
