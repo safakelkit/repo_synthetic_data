@@ -382,7 +382,7 @@ def run_direct_aerosol(generator, helper, config: dict[str, Any], models: dict[s
     write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
 
 
-def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str) -> None:
+def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str, sample_indices: set[int] | None) -> None:
     """Diffuse aerosol into a plate region while preserving installed scenery."""
     from diffusers import ControlNetModel, StableDiffusionXLControlNetInpaintPipeline
 
@@ -406,6 +406,11 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
     manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
     target_control_config = {**config, "target_conditioning_mode": "target_only"}
     schedule = [row for row in compact_schedule(generator, config, scenes) if int(row["class_id"]) == 11]
+    if sample_indices is not None:
+        schedule = [row for row in schedule if int(row["index"]) in sample_indices]
+        missing = sample_indices - {int(row["index"]) for row in schedule}
+        if missing:
+            raise ValueError(f"Requested aerosol sample indices are unavailable: {sorted(missing)}")
     records = []
     for position, sample in enumerate(schedule, start=1):
         row = generator.select_mask(helper, config, manifest_path, sample)
@@ -487,7 +492,8 @@ def main() -> None:
                            output_root, args.final_name)
     else:
         run_inpaint_aerosol(generator, helper, config, models, scenes, args.gpu,
-                            output_root, args.final_name)
+                            output_root, args.final_name,
+                            set(args.sample_indices) if args.sample_indices else None)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ class_scene_layout_overrides:
     property_inspection_station:
       target_box_xyxy: [400, 280, 650, 650]
     maintenance_service_area:
-      target_box_xyxy: [690, 250, 930, 620]
+      target_box_xyxy: [100, 180, 350, 520]
 plate_variants_per_scene: 2
 plate_seed: 71000
 plate_inference_steps: 30
