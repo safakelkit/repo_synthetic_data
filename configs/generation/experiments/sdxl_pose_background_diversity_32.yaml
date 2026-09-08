@@ -95,10 +95,10 @@ scene_plate_prompts:
       seating, wall panels, distant corridor opening and window light, clear
       foreground tabletop, realistic asymmetry and room depth.
     - >-
-      Photorealistic corner view of a secure communal room, several spaced bolted
-      square tables, molded fixed seats, protected television enclosure, tall side
-      windows and an empty foreground table, afternoon daylight and long room
-      depth.
+      Photorealistic corner view of a correctional day room inside a secure prison,
+      two heavy steel tables bolted to the floor, attached molded seats, barred high
+      windows, mesh security divider, solid controlled door, scuffed linoleum and a
+      completely empty foreground table, long room depth and cool daylight.
     - >-
       Photorealistic doorway view through an older correctional day room, fixed
       benches around a central column, two heavy tables, radiator cover, secure
@@ -114,10 +114,10 @@ scene_plate_prompts:
       worn laminate counter, fixed cabinet doors, acrylic divider and corridor
       doorway, clear horizontal foreground worktop, realistic institutional wear.
     - >-
-      Photorealistic side view along a correctional property intake inspection
-      counter, long bare stainless search surface, secure pass-through glazing,
-      numbered locked property lockers, wall-mounted empty cubbies and distant
-      barred door, completely empty near worktop under directional fluorescent light.
+      Photorealistic side view inside a correctional property search room, one long
+      bare stainless inspection counter prominent across the foreground, secure
+      pass-through window behind it, numbered property lockers, mesh partition and
+      barred door, completely empty worktop under directional fluorescent light.
     - >-
       Photorealistic opposite-angle view of a correctional belongings search room,
       L-shaped bare inspection counter, fixed transparent security divider, sealed
@@ -134,15 +134,15 @@ scene_plate_prompts:
       steel cabinets, timber bench, wire partition, loading door and scuffed floor,
       clear foreground work surface, realistic depth.
     - >-
-      Photorealistic view from the end of a secure institutional workshop after
-      cleanup, completely bare central timber bench, locked wall cabinets, empty
-      shadow board, lumber stored in closed racks, extraction duct and mesh security
-      partition, unobstructed near work surface and window light across a deep aisle.
+      Photorealistic view inside a secure correctional repair workshop after cleanup,
+      one large completely bare timber workbench prominent in the foreground, locked
+      steel wall cabinets, empty shadow board, mesh security partition, extraction
+      duct and barred high windows, unobstructed surface and deep aisle perspective.
     - >-
-      Photorealistic diagonal view across a locked correctional repair workshop
-      after cleanup, completely bare steel fabrication tables, closed parts drawers,
-      sealed equipment cabinets, caged storage, overhead conduit and worn concrete
-      floor, empty foreground bench, uneven fluorescent light and strong perspective.
+      Photorealistic diagonal view inside a locked correctional repair workshop after
+      cleanup, one large completely bare steel workbench prominent in the foreground,
+      closed parts drawers, sealed equipment cabinets, caged storage, overhead conduit,
+      worn concrete floor and strong perspective under uneven fluorescent light.
 
   maintenance_service_area:
     - >-
@@ -165,9 +165,7 @@ scene_plate_prompts:
       and natural asymmetry.
 
 plate_negative_prompt: >-
-  people, person, hand, loose handheld objects, tools, hand tools, power tools,
-  aerosol can, spray can, bottle, scissors, knife, saw, hammer, pliers, wrench,
-  screwdriver, drill, computer, laptop, monitor, keyboard, phone, office cubicle,
-  food, produce, commercial kitchen, restaurant, readable text, logo, watermark,
-  surreal architecture, impossible geometry, floating furniture, illustration,
-  cartoon, CGI
+  people, hand, loose objects, aerosol can, bottle, scissors, knife, saw, hammer,
+  pliers, wrench, screwdriver, drill, computer, laptop, monitor, keyboard, phone,
+  food, produce, kitchen, office cubicle, readable text, logo, impossible geometry,
+  floating furniture, illustration, cartoon, CGI
