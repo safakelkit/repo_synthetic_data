@@ -209,14 +209,14 @@ pose_plane_placements:
       depth_compression: 0.46
   maintenance_service_area:
     0:
-      center_xy: [800, 575]
-      upright_anchor_xy: [800, 605]
+      center_xy: [520, 735]
+      upright_anchor_xy: [520, 735]
       surface_axis_u: [1.0, 0.0]
-      surface_axis_v: [-0.08, 1.0]
-      depth_compression: 0.44
+      surface_axis_v: [-0.05, 1.0]
+      depth_compression: 0.55
     1:
-      center_xy: [750, 650]
-      upright_anchor_xy: [750, 675]
-      surface_axis_u: [1.0, -0.04]
-      surface_axis_v: [-0.08, 1.0]
-      depth_compression: 0.44
+      center_xy: [560, 740]
+      upright_anchor_xy: [560, 740]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.05, 1.0]
+      depth_compression: 0.55
