@@ -627,6 +627,12 @@ def pose_condition(
     sizes = {int(key): float(value) for key, value in config["pose_target_size_px"].items()}
     mode = modes[class_id]
     placement = dict(config["pose_plane_placements"][scene_name][variant])
+    depth_overrides = {
+        int(key): float(value)
+        for key, value in config.get("pose_depth_compression_overrides", {}).items()
+    }
+    if class_id in depth_overrides:
+        placement["depth_compression"] = depth_overrides[class_id]
     offsets = {
         int(key): [float(v) for v in value]
         for key, value in config.get("pose_anchor_offset_xy", {}).items()
