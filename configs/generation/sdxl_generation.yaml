@@ -16,7 +16,7 @@ training_use_forbidden: true
 generation_modes:
   default: silhouette_canny
   class_overrides:
-    11: silhouette_canny
+    11: source_initialized_inpaint
 controlnet_conditioning_scale:
   default: 0.8
   class_overrides:
@@ -65,10 +65,7 @@ silhouette_source:
     - IMG_0006_obj_03_crop_000003
     - IMG_0011_obj_00_crop_000004
     11:
-    - IMG_0428new_obj_00_crop_000116
     - IMG_0495new_obj_01_crop_000136
-    - IMG_20240807_095809160_obj_00_crop_000206
-    - IMG_20240807_100444835_obj_00_crop_000227
 class_rotation_degrees:
   1:
   - 0
@@ -589,24 +586,58 @@ prompt:
   negative: wrong object, duplicate target, deformed target, floating object, cropped target, hidden target,
     hand, person, readable text, logo, watermark, illustration, cartoon, CGI
   target_first_template: '{target}'
-aerosol_full_scene:
-  prompt_variants:
-  - One upright aerosol spray can in the center foreground, product evidence photograph. Tall cylindrical
-    aluminum body, flat circular base, matte gray label, narrow plastic overcap, recessed push-button
-    nozzle. Large, sharp focus, one third image height. {background}.
-  - One upright deodorant aerosol can, product evidence photograph. Tall straight aluminum cylinder, round
-    metal base rim, gray label, fitted plastic cap, press-down aerosol actuator. Single centered product,
-    large and sharply focused. {background}.
-  - One isolated upright aerosol spray can on the inspection table. Tall cylindrical metal body, circular
-    base rim, plain gray wrapper, removable plastic overcap, visible push-button nozzle. Only foreground
-    product, centered and large. {background}.
-  - One large upright personal aerosol spray can, forensic property photograph. Recognizable aluminum
-    cylinder, flat base, gray label, rounded plastic cap, spray actuator; no pump, trigger, tube, or handle.
-    Center foreground. {background}.
-  negative_prompt: pump bottle, trigger sprayer, glass bottle, beverage can, thermos, cup, jar, pipe,
-    faucet, plumbing, ventilation equipment, paint splatter, paint-stained furniture, paint brush, workshop
-    tool, distant product, empty room, duplicate product, malformed cylinder, cropped object, hand, person,
-    readable words, watermark, illustration, cartoon, CGI
+aerosol_inpaint:
+  strength: 0.75
+  mask_padding_px: 24
+  canny_scale: 0.9
+  canny_keep_largest_components: 1
+  plate_inference_steps: 30
+  plate_guidance_scale: 6.0
+  plate_negative_prompt: >-
+    people, person, hand, loose handheld objects, tools, aerosol can, bottle,
+    readable text, logo, watermark, surreal architecture, impossible geometry,
+    floating furniture, illustration, cartoon, CGI
+  prompt_template: >-
+    Photo of exactly one deodorant spray can centered on a foreground counter,
+    one quarter of image height. Cylindrical metal body, colored label, rounded
+    cap, visible push-button nozzle, flat base touching counter, contact shadow.
+    {scene}. Empty fixed furniture. No people.
+  negative_prompt: >-
+    multiple cans, duplicate can, extra aerosol, bottles, jars, containers,
+    toiletries, stocked shelves, clutter of products, tiny target, distant target,
+    floating target, cropped target, wall-mounted target, hand, person, spray
+    cloud, readable text, logo, watermark, illustration, cartoon, CGI
+  scene_descriptions:
+    cell_storage_area: photorealistic correctional storage room with fixed lockers, shelves and aisle depth
+    cell_wash_area: photorealistic institutional wash area with fixed sinks, tiles, mirror and room depth
+    property_inspection_station: photorealistic secure inspection station with fixed counter, cabinets and room depth
+    maintenance_service_area: photorealistic maintenance room with fixed counters, cabinets, conduit and room depth
+  backgrounds:
+    cell_storage_area:
+      seed: 71004
+      prompt: >-
+        Photorealistic eye-level view down a correctional storage area, fixed
+        locker banks, deep shelving bays, wire partition, secured doorway and
+        worn floor, clear horizontal foreground counter, natural perspective.
+    cell_wash_area:
+      seed: 71007
+      prompt: >-
+        Photorealistic three-quarter view of an institutional washbasin alcove,
+        stainless sink, aged tiles, fixed wall shelf, high secure window and
+        floor junction, clear horizontal foreground counter.
+    property_inspection_station:
+      seed: 71010
+      prompt: >-
+        Photorealistic eye-level view of a correctional property inspection
+        station, brushed metal counter, closed drawers, frosted pass-through
+        window, rolling cart in the distance, clear foreground inspection
+        surface, natural depth.
+    maintenance_service_area:
+      seed: 71015
+      prompt: >-
+        Photorealistic three-quarter view down an institutional utility room,
+        closed service cabinets, steel shelving, cable conduit and corridor
+        depth, clear foreground maintenance bench, realistic wear and asymmetry.
 release_gate:
   acceptance_test_approved: true
   production_approved: true
@@ -700,28 +731,28 @@ class_scene_layout_overrides:
   11:
     cell_storage_area:
       target_box_xyxy:
-      - 395
-      - 350
-      - 640
-      - 780
+      - 420
+      - 600
+      - 600
+      - 800
     cell_wash_area:
       target_box_xyxy:
-      - 405
-      - 490
       - 650
-      - 900
+      - 390
+      - 850
+      - 600
     property_inspection_station:
       target_box_xyxy:
-      - 390
+      - 400
       - 420
-      - 640
-      - 850
+      - 650
+      - 650
     maintenance_service_area:
       target_box_xyxy:
-      - 390
+      - 100
       - 380
-      - 640
-      - 800
+      - 350
+      - 600
 internal_edge_control:
   class_ids:
   - 11
