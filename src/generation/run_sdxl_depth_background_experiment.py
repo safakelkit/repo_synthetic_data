@@ -635,6 +635,14 @@ def pose_condition(
     sizes = {int(key): float(value) for key, value in config["pose_target_size_px"].items()}
     mode = modes[class_id]
     placement = dict(config["pose_plane_placements"][scene_name][variant])
+    scene_size_overrides = config.get("pose_target_size_scene_overrides", {})
+    class_sizes = scene_size_overrides.get(
+        class_id, scene_size_overrides.get(str(class_id), {})
+    )
+    scene_sizes = class_sizes.get(scene_name, {})
+    target_size = float(
+        scene_sizes.get(variant, scene_sizes.get(str(variant), sizes[class_id]))
+    )
     depth_overrides = {
         int(key): float(value)
         for key, value in config.get("pose_depth_compression_overrides", {}).items()
@@ -658,10 +666,10 @@ def pose_condition(
     if anchor_override is not None:
         placement["upright_anchor_xy"] = [float(anchor_override[0]), float(anchor_override[1])]
     if mode == "flat":
-        layer, metadata = warp_flat_rgba(source, canvas_size, placement, sizes[class_id])
+        layer, metadata = warp_flat_rgba(source, canvas_size, placement, target_size)
     elif mode in ("upright", "hinged"):
         layer, metadata = place_supported_upright_rgba(
-            source, canvas_size, placement, sizes[class_id]
+            source, canvas_size, placement, target_size
         )
         metadata["mode"] = "hinged_bottom_anchored" if mode == "hinged" else metadata["mode"]
     else:
