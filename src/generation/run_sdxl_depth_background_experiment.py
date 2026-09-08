@@ -76,7 +76,7 @@ def load_base_pipeline(models: dict[str, Any], gpu: int):
         variant=models["sdxl"].get("variant"), use_safetensors=True,
     )
     pipe.enable_model_cpu_offload(gpu_id=gpu)
-    pipe.enable_vae_slicing()
+    pipe.vae.enable_slicing()
     return pipe
 
 
@@ -224,7 +224,7 @@ def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any],
         torch_dtype=torch.float16, variant="fp16", use_safetensors=True,
     )
     pipe.enable_model_cpu_offload(gpu_id=gpu)
-    pipe.enable_vae_slicing()
+    pipe.vae.enable_slicing()
     manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
     target_control_config = {**config, "target_conditioning_mode": "target_only"}
     scales = {int(k): v for k, v in config["controlnet_conditioning_scale"]["class_overrides"].items()}
