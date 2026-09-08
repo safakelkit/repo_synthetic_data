@@ -174,3 +174,129 @@ plate_negative_prompt: >-
   pliers, wrench, screwdriver, drill, computer, laptop, monitor, keyboard, phone,
   food, produce, kitchen, office cubicle, readable text, logo, impossible geometry,
   floating furniture, illustration, cartoon, CGI
+
+# V0-v1 inherit placements from the validated pose-plane pilot unless the plate
+# was replaced below. V2-v3 and replaced plates use visually reviewed supports.
+pose_plane_placements:
+  cell_sleeping_area:
+    2:
+      center_xy: [310, 820]
+      upright_anchor_xy: [310, 850]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [545, 855]
+      upright_anchor_xy: [545, 880]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  cell_desk_area:
+    0:
+      center_xy: [830, 640]
+      upright_anchor_xy: [830, 675]
+      surface_axis_u: [1.0, 0.08]
+      surface_axis_v: [-0.20, 1.0]
+      depth_compression: 0.47
+    1:
+      center_xy: [405, 610]
+      upright_anchor_xy: [405, 635]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.46
+    2:
+      center_xy: [215, 700]
+      upright_anchor_xy: [215, 745]
+      surface_axis_u: [1.0, -0.10]
+      surface_axis_v: [0.12, 1.0]
+      depth_compression: 0.48
+    3:
+      center_xy: [790, 820]
+      upright_anchor_xy: [790, 850]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  cell_storage_area:
+    2:
+      center_xy: [515, 845]
+      upright_anchor_xy: [515, 875]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [500, 830]
+      upright_anchor_xy: [500, 860]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  cell_wash_area:
+    2:
+      center_xy: [515, 825]
+      upright_anchor_xy: [515, 855]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [445, 845]
+      upright_anchor_xy: [445, 875]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  communal_day_room:
+    2:
+      center_xy: [405, 630]
+      upright_anchor_xy: [405, 690]
+      surface_axis_u: [1.0, 0.02]
+      surface_axis_v: [-0.16, 1.0]
+      depth_compression: 0.48
+    3:
+      center_xy: [770, 815]
+      upright_anchor_xy: [770, 845]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  property_inspection_station:
+    2:
+      center_xy: [650, 515]
+      upright_anchor_xy: [650, 555]
+      surface_axis_u: [1.0, 0.05]
+      surface_axis_v: [-0.18, 1.0]
+      depth_compression: 0.46
+    3:
+      center_xy: [650, 610]
+      upright_anchor_xy: [650, 660]
+      surface_axis_u: [1.0, 0.03]
+      surface_axis_v: [-0.16, 1.0]
+      depth_compression: 0.47
+  correctional_workshop:
+    0:
+      center_xy: [760, 640]
+      upright_anchor_xy: [760, 690]
+      surface_axis_u: [1.0, 0.02]
+      surface_axis_v: [-0.14, 1.0]
+      depth_compression: 0.47
+    2:
+      center_xy: [770, 735]
+      upright_anchor_xy: [770, 795]
+      surface_axis_u: [1.0, 0.04]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.48
+    3:
+      center_xy: [500, 520]
+      upright_anchor_xy: [500, 575]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.46
+  maintenance_service_area:
+    2:
+      center_xy: [545, 830]
+      upright_anchor_xy: [545, 860]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [515, 820]
+      upright_anchor_xy: [515, 850]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
