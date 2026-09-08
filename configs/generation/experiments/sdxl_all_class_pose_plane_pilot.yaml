@@ -42,7 +42,7 @@ pose_target_size_px:
   12: 95
   13: 140
   14: 130
-  15: 145
+  15: 135
 
 pose_mask_padding_px: 20
 pose_strength_by_mode:
@@ -57,17 +57,19 @@ pose_strength_overrides:
   5: 0.25
   8: 0.25
   11: 0.75
-  12: 0.25
-  14: 0.25
+  12: 0.15
+  14: 0.10
+  15: 0.18
 pose_canny_scale_overrides:
   5: 0.95
   8: 0.95
   11: 0.90
-  12: 0.95
-  14: 0.95
+  12: 1.00
+  14: 1.00
+  15: 0.98
 pose_anchor_offset_xy:
-  15: [0, 20]
-pose_internal_edge_class_ids: [5, 8, 12, 14]
+  15: [0, 65]
+pose_internal_edge_class_ids: [5, 8, 12, 14, 15]
 
 # These accepted sources have a clear class silhouette and useful internal
 # structure for the low-strength identity-preserving branch.
@@ -76,6 +78,7 @@ silhouette_source:
     5: [IMG_0375new_obj_00_crop_000045]
     8: [IMG_20240806_105616745_obj_00_crop_000036]
     14: [IMG_0494new_obj_00_crop_000044]
+    15: [IMG_0011_obj_00_crop_000004]
 
 # The accepted real assets inside these semantic classes include multiple valid
 # forms. These prompts describe the selected silhouette instead of contradicting it.
