@@ -112,6 +112,10 @@ def plate_records(config: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def make_contact_sheet(paths: list[Path], output: Path, labels: list[str]) -> None:
+    if len(paths) > 64:
+        indices = np.linspace(0, len(paths) - 1, num=64, dtype=int).tolist()
+        paths = [paths[index] for index in indices]
+        labels = [labels[index] for index in indices]
     thumb = 320
     caption = 36
     rows = max(1, (len(paths) + 3) // 4)
