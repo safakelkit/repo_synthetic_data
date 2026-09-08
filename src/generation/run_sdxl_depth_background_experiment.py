@@ -523,6 +523,148 @@ def rotate_rgba_like_control(source: Image.Image, angle: float) -> Image.Image:
     return Image.fromarray(rotated, mode="RGBA")
 
 
+def crop_rgba(source: Image.Image) -> Image.Image:
+    """Crop transparent margins without changing the object's camera pose."""
+    rgba = np.asarray(source.convert("RGBA"))
+    ys, xs = np.where(rgba[:, :, 3] > 0)
+    if not xs.size:
+        raise ValueError("Source RGBA has an empty alpha channel")
+    return Image.fromarray(rgba[ys.min():ys.max()+1, xs.min():xs.max()+1], mode="RGBA")
+
+
+def _unit(vector: list[float]) -> np.ndarray:
+    value = np.asarray(vector, dtype=np.float32)
+    norm = float(np.linalg.norm(value))
+    if norm <= 1e-6:
+        raise ValueError(f"Zero-length placement axis: {vector}")
+    return value / norm
+
+
+def warp_flat_rgba(
+    source: Image.Image,
+    canvas_size: tuple[int, int],
+    placement: dict[str, Any],
+    long_px: float,
+) -> tuple[Image.Image, dict[str, Any]]:
+    """Lay an RGBA crop onto a photographed support plane using a homography."""
+    target = crop_rgba(source)
+    if target.height > target.width:
+        target = target.transpose(Image.Transpose.ROTATE_90)
+    rgba = np.asarray(target)
+    height, width = rgba.shape[:2]
+    center = np.asarray(placement["center_xy"], dtype=np.float32)
+    axis_u = _unit(placement["surface_axis_u"])
+    axis_v = _unit(placement["surface_axis_v"])
+    compression = float(placement.get("depth_compression", 0.55))
+    short_px = np.clip(long_px * height / max(width, 1) * compression, 22.0, long_px * 0.58)
+    half_u, half_v = axis_u * (long_px / 2.0), axis_v * (short_px / 2.0)
+    quad = np.asarray([
+        center - half_u - half_v,
+        center + half_u - half_v,
+        center + half_u + half_v,
+        center - half_u + half_v,
+    ], dtype=np.float32)
+    source_quad = np.asarray(
+        [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]],
+        dtype=np.float32,
+    )
+    matrix = cv2.getPerspectiveTransform(source_quad, quad)
+    canvas_width, canvas_height = canvas_size
+    warped = cv2.warpPerspective(
+        rgba, matrix, (canvas_width, canvas_height), flags=cv2.INTER_LANCZOS4,
+        borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0),
+    )
+    return Image.fromarray(warped, mode="RGBA"), {
+        "mode": "lying_flat_homography",
+        "center_xy": center.round(2).tolist(),
+        "destination_quad_xy": quad.round(2).tolist(),
+        "surface_axis_u": axis_u.round(6).tolist(),
+        "surface_axis_v": axis_v.round(6).tolist(),
+        "long_px": round(float(long_px), 3),
+        "short_px": round(float(short_px), 3),
+        "depth_compression": compression,
+    }
+
+
+def place_supported_upright_rgba(
+    source: Image.Image,
+    canvas_size: tuple[int, int],
+    placement: dict[str, Any],
+    target_height: float,
+) -> tuple[Image.Image, dict[str, Any]]:
+    """Resize an upright/hinged object and pin its bottom edge to the support."""
+    target = crop_rgba(source)
+    scale = float(target_height) / target.height
+    width = max(1, round(target.width * scale))
+    height = max(1, round(target.height * scale))
+    max_width = int(placement.get("upright_max_width_px", 320))
+    if width > max_width:
+        scale = max_width / target.width
+        width, height = max_width, max(1, round(target.height * scale))
+    target = target.resize((width, height), Image.Resampling.LANCZOS)
+    canvas_width, canvas_height = canvas_size
+    anchor_x, baseline_y = [int(round(v)) for v in placement["center_xy"]]
+    paste_x = int(np.clip(anchor_x - width // 2, 0, canvas_width - width))
+    paste_y = int(np.clip(baseline_y - height, 0, canvas_height - height))
+    canvas = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
+    canvas.alpha_composite(target, dest=(paste_x, paste_y))
+    return canvas, {
+        "mode": "upright_bottom_anchored",
+        "support_anchor_xy": [anchor_x, baseline_y],
+        "rendered_box_xyxy": [paste_x, paste_y, paste_x + width, paste_y + height],
+        "target_height_px": height,
+    }
+
+
+def pose_condition(
+    config: dict[str, Any], source: Image.Image, class_id: int,
+    scene_name: str, variant: int, canvas_size: tuple[int, int],
+) -> tuple[Image.Image, Image.Image, Image.Image, dict[str, Any]]:
+    """Build a pose-aware source layer, alpha mask and target-only Canny."""
+    modes = {int(key): str(value) for key, value in config["pose_class_modes"].items()}
+    sizes = {int(key): float(value) for key, value in config["pose_target_size_px"].items()}
+    mode = modes[class_id]
+    placement = config["pose_plane_placements"][scene_name][variant]
+    if mode == "flat":
+        layer, metadata = warp_flat_rgba(source, canvas_size, placement, sizes[class_id])
+    elif mode in ("upright", "hinged"):
+        layer, metadata = place_supported_upright_rgba(
+            source, canvas_size, placement, sizes[class_id]
+        )
+        metadata["mode"] = "hinged_bottom_anchored" if mode == "hinged" else metadata["mode"]
+    else:
+        raise ValueError(f"Unsupported pose mode for class {class_id}: {mode}")
+
+    rgba = np.asarray(layer)
+    alpha = rgba[:, :, 3]
+    binary = np.where(alpha > 8, 255, 0).astype(np.uint8)
+    if not np.any(binary):
+        raise ValueError(f"Pose rendering produced an empty object for class {class_id}")
+    canny = cv2.Canny(cv2.GaussianBlur(binary, (0, 0), sigmaX=0.8), 32, 96)
+    padding = int(config.get("pose_mask_padding_px", 20))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (padding * 2 + 1, padding * 2 + 1))
+    mask = cv2.dilate(binary, kernel)
+    mask = cv2.GaussianBlur(mask, (0, 0), sigmaX=4)
+    ys, xs = np.where(binary > 0)
+    metadata["alpha_box_xyxy"] = [int(xs.min()), int(ys.min()), int(xs.max()+1), int(ys.max()+1)]
+    metadata["class_pose_mode"] = mode
+    return layer, Image.fromarray(mask), Image.fromarray(cv2.cvtColor(canny, cv2.COLOR_GRAY2RGB)), metadata
+
+
+def composite_pose_layer(plate: Image.Image, layer: Image.Image, mode: str) -> Image.Image:
+    """Add a restrained contact shadow before compositing the real RGBA pixels."""
+    canvas = plate.convert("RGBA")
+    alpha = np.asarray(layer)[:, :, 3]
+    shadow = cv2.GaussianBlur(alpha, (0, 0), sigmaX=5 if mode == "flat" else 7)
+    offset = 4 if mode == "flat" else 6
+    shifted = np.zeros_like(shadow)
+    shifted[offset:, :] = shadow[:-offset, :]
+    shadow_layer = np.zeros((*shifted.shape, 4), dtype=np.uint8)
+    shadow_layer[:, :, 3] = np.uint8(shifted.astype(np.float32) * (0.28 if mode == "flat" else 0.20))
+    canvas = Image.alpha_composite(canvas, Image.fromarray(shadow_layer, mode="RGBA"))
+    return Image.alpha_composite(canvas, layer).convert("RGB")
+
+
 def run_inpaint_all(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str, sample_indices: set[int] | None) -> None:
     """Insert every class into an organic target-free plate using target-only Canny."""
     from diffusers import ControlNetModel, StableDiffusionXLControlNetInpaintPipeline
@@ -688,11 +830,196 @@ def run_inpaint_all(generator, helper, config: dict[str, Any], models: dict[str,
             })
 
 
+def build_pose_sample(
+    generator, helper, config: dict[str, Any], output_root: Path,
+    sample: dict[str, Any], manifest_path: Path,
+) -> dict[str, Any]:
+    """Render one deterministic pose-aware initialization package."""
+    class_id = int(sample["class_id"])
+    variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+    row = generator.select_mask(helper, config, manifest_path, sample)
+    plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
+    rgba_path = helper.repo_path(row["rgba_path"])
+    with Image.open(plate_path).convert("RGB") as source:
+        plate = source.copy()
+    with Image.open(rgba_path).convert("RGBA") as source:
+        layer, mask, canny, pose = pose_condition(
+            config, source, class_id, sample["scene_name"], variant, plate.size
+        )
+    mode = pose["class_pose_mode"]
+    initial_image = composite_pose_layer(plate, layer, mode)
+    return {
+        "sample": sample, "class_id": class_id, "variant": variant, "row": row,
+        "plate": plate, "plate_path": plate_path, "rgba_path": rgba_path,
+        "layer": layer, "mask": mask, "canny": canny, "pose": pose,
+        "initial_image": initial_image,
+    }
+
+
+def pose_schedule(generator, config: dict[str, Any], scenes: dict[str, Any], sample_indices: set[int] | None) -> list[dict[str, Any]]:
+    schedule = compact_schedule(generator, config, scenes)
+    if sample_indices is not None:
+        schedule = [row for row in schedule if int(row["index"]) in sample_indices]
+        missing = sample_indices - {int(row["index"]) for row in schedule}
+        if missing:
+            raise ValueError(f"Requested sample indices are unavailable: {sorted(missing)}")
+    return schedule
+
+
+def run_pose_preview(
+    generator, helper, config: dict[str, Any], scenes: dict[str, Any],
+    output_root: Path, final_name: str, sample_indices: set[int] | None,
+) -> None:
+    """Render source initializations without loading a diffusion model."""
+    output_dir = output_root / final_name
+    if output_dir.exists():
+        raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    (output_dir / "images").mkdir(parents=True)
+    (output_dir / "controls").mkdir()
+    manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
+    records = []
+    schedule = pose_schedule(generator, config, scenes, sample_indices)
+    for position, sample in enumerate(schedule, start=1):
+        package = build_pose_sample(generator, helper, config, output_root, sample, manifest_path)
+        class_id = package["class_id"]
+        name = f"g{sample['index']:05d}_c{class_id:02d}_{sample['scene_name']}.png"
+        image_path = output_dir / "images" / name
+        package["initial_image"].save(image_path)
+        package["canny"].save(output_dir / "controls" / name.replace(".png", "_canny.png"))
+        package["mask"].save(output_dir / "controls" / name.replace(".png", "_mask.png"))
+        package["layer"].save(output_dir / "controls" / name.replace(".png", "_layer.png"))
+        records.append({
+            **sample, "plate_variant": package["variant"],
+            "plate": str(package["plate_path"].relative_to(REPO_ROOT)),
+            "source_rgba": str(package["rgba_path"].relative_to(REPO_ROOT)),
+            "pose": package["pose"], "output": str(image_path.relative_to(REPO_ROOT)),
+            "sha256": helper.sha256(image_path), "training_use_forbidden": True,
+        })
+        print(f"[pose preview {position}/{len(schedule)}] {name}", flush=True)
+    make_contact_sheet(
+        [REPO_ROOT / row["output"] for row in records], output_dir / "contact_sheet.png",
+        [f"c{r['class_id']:02d} {r['pose']['class_pose_mode']} | {r['scene_name']}" for r in records],
+    )
+    write_json(output_dir / "manifest.json", {
+        "status": "source_initialization_preview_only", "training_use_forbidden": True,
+        "records": records,
+    })
+
+
+def run_inpaint_pose(
+    generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any],
+    gpu: int, output_root: Path, final_name: str, sample_indices: set[int] | None,
+) -> None:
+    """Inpaint pose-aware real-object initializations into reviewed organic plates."""
+    from diffusers import ControlNetModel, StableDiffusionXLControlNetInpaintPipeline
+
+    output_dir = output_root / final_name
+    if output_dir.exists():
+        raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    (output_dir / "images").mkdir(parents=True)
+    (output_dir / "controls").mkdir()
+    base = models["sdxl"]["base_model"]
+    canny_spec = models["sdxl"]["controlnet"]
+    controlnet = ControlNetModel.from_pretrained(
+        canny_spec["id"], revision=canny_spec["revision"], torch_dtype=torch.float16,
+        variant="fp16", use_safetensors=True,
+    )
+    pipe = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
+        base["id"], revision=base["revision"], controlnet=controlnet,
+        torch_dtype=torch.float16, variant="fp16", use_safetensors=True,
+    )
+    pipe.enable_model_cpu_offload(gpu_id=gpu)
+    pipe.vae.enable_slicing()
+
+    target_prompts = {int(key): value for key, value in config["inpaint_all_target_prompts"].items()}
+    pose_phrases = {str(key): str(value) for key, value in config["pose_prompt_phrases"].items()}
+    template = str(config["pose_prompt_template"])
+    prompts = [
+        template.format(
+            target=target_prompts[class_id], pose=pose_phrases[config["pose_class_modes"][class_id]],
+            scene=scene.lower().rstrip("."),
+        )
+        for class_id in sorted(target_prompts)
+        for scene in config["final_scene_prompts"].values()
+    ]
+    validate_clip_prompts(pipe, [*prompts, config["pose_negative_prompt"]])
+    manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
+    schedule = pose_schedule(generator, config, scenes, sample_indices)
+    mode_strengths = {str(k): float(v) for k, v in config["pose_strength_by_mode"].items()}
+    mode_scales = {str(k): float(v) for k, v in config["pose_canny_scale_by_mode"].items()}
+    class_strengths = {int(k): float(v) for k, v in config.get("pose_strength_overrides", {}).items()}
+    class_scales = {int(k): float(v) for k, v in config.get("pose_canny_scale_overrides", {}).items()}
+    records = []
+    for position, sample in enumerate(schedule, start=1):
+        package = build_pose_sample(generator, helper, config, output_root, sample, manifest_path)
+        class_id = package["class_id"]
+        mode = package["pose"]["class_pose_mode"]
+        scene = config["final_scene_prompts"][sample["scene_name"]]
+        prompt = template.format(
+            target=target_prompts[class_id], pose=pose_phrases[mode], scene=scene.lower().rstrip(".")
+        )
+        strength = class_strengths.get(class_id, mode_strengths[mode])
+        canny_scale = class_scales.get(class_id, mode_scales[mode])
+        seed = int(config["seed"]) + int(sample["index"])
+        started = time.monotonic()
+        result = pipe(
+            prompt=prompt, negative_prompt=config["pose_negative_prompt"],
+            image=package["initial_image"], mask_image=package["mask"],
+            control_image=package["canny"], strength=strength,
+            width=package["plate"].width, height=package["plate"].height,
+            num_inference_steps=int(config["inference_steps"]),
+            guidance_scale=float(config["guidance_scale"]),
+            controlnet_conditioning_scale=canny_scale,
+            generator=torch.Generator(device="cpu").manual_seed(seed),
+        ).images[0]
+        torch.cuda.synchronize(gpu)
+        name = f"g{sample['index']:05d}_c{class_id:02d}_{sample['scene_name']}.png"
+        image_path = output_dir / "images" / name
+        result.save(image_path)
+        package["initial_image"].save(output_dir / "controls" / name.replace(".png", "_init.png"))
+        package["canny"].save(output_dir / "controls" / name.replace(".png", "_canny.png"))
+        package["mask"].save(output_dir / "controls" / name.replace(".png", "_mask.png"))
+        records.append({
+            **sample, "plate_variant": package["variant"],
+            "plate": str(package["plate_path"].relative_to(REPO_ROOT)), "seed": seed,
+            "prompt": prompt, "negative_prompt": config["pose_negative_prompt"],
+            "pose": package["pose"], "source_initialization": True,
+            "source_rgba": str(package["rgba_path"].relative_to(REPO_ROOT)),
+            "strength": strength, "canny_scale": canny_scale,
+            "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
+            "inference_seconds": round(time.monotonic() - started, 3),
+            "training_use_forbidden": True,
+        })
+        print(f"[inpaint pose {position}/{len(schedule)}] {name}", flush=True)
+    make_contact_sheet(
+        [REPO_ROOT / row["output"] for row in records], output_dir / "contact_sheet.png",
+        [f"c{r['class_id']:02d} {r['class_name']} | {r['scene_name']}" for r in records],
+    )
+    write_json(output_dir / "manifest.json", {
+        "status": "generated_pending_human_review", "training_use_forbidden": True,
+        "records": records,
+    })
+    with (output_dir / "review.csv").open("w", encoding="utf-8", newline="") as handle:
+        fields = ["index", "class_id", "class_name", "scene_name", "image_path", "review_status", "review_reason"]
+        writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader()
+        for row in records:
+            writer.writerow({
+                "index": row["index"], "class_id": row["class_id"], "class_name": row["class_name"],
+                "scene_name": row["scene_name"], "image_path": row["output"],
+                "review_status": "pending", "review_reason": "",
+            })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img", "direct_aerosol", "inpaint_aerosol", "inpaint_all"), default="plates")
+    parser.add_argument(
+        "--stage",
+        choices=("plates", "depth", "final", "img2img", "direct_aerosol", "inpaint_aerosol",
+                 "inpaint_all", "pose_preview", "inpaint_pose"),
+        default="plates",
+    )
     parser.add_argument("--final-name", default="final")
     parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
@@ -708,6 +1035,8 @@ def main() -> None:
         "plates": 16, "depth": 16, "final": len(compact_schedule(generator, config, scenes)),
         "img2img": len(compact_schedule(generator, config, scenes)), "direct_aerosol": 4,
         "inpaint_aerosol": 4, "inpaint_all": len(compact_schedule(generator, config, scenes)),
+        "pose_preview": len(compact_schedule(generator, config, scenes)),
+        "inpaint_pose": len(compact_schedule(generator, config, scenes)),
     }
     report = {"status": "ready", "stage": args.stage, "samples": stage_samples[args.stage],
               "output_root": str(output_root.relative_to(REPO_ROOT)), "environment": environment,
@@ -715,7 +1044,8 @@ def main() -> None:
               "base_config_sha256": helper.sha256(base_config_path) if base_config_path else None}
     if args.preflight_only:
         print(json.dumps(report, indent=2)); return
-    require_gpu(args.gpu)
+    if args.stage != "pose_preview":
+        require_gpu(args.gpu)
     if args.stage == "plates": run_plates(helper, feasibility, config, models, args.gpu, output_root)
     elif args.stage == "depth": run_depth(helper, config, args.gpu, output_root)
     elif args.stage == "final":
@@ -731,10 +1061,17 @@ def main() -> None:
         run_inpaint_aerosol(generator, helper, config, models, scenes, args.gpu,
                             output_root, args.final_name,
                             set(args.sample_indices) if args.sample_indices else None)
-    else:
+    elif args.stage == "inpaint_all":
         run_inpaint_all(generator, helper, config, models, scenes, args.gpu,
                         output_root, args.final_name,
                         set(args.sample_indices) if args.sample_indices else None)
+    elif args.stage == "pose_preview":
+        run_pose_preview(generator, helper, config, scenes, output_root, args.final_name,
+                         set(args.sample_indices) if args.sample_indices else None)
+    else:
+        run_inpaint_pose(generator, helper, config, models, scenes, args.gpu,
+                         output_root, args.final_name,
+                         set(args.sample_indices) if args.sample_indices else None)
 
 
 if __name__ == "__main__":

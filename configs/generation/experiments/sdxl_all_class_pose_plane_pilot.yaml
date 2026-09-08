@@ -1,0 +1,167 @@
+base_config: configs/generation/experiments/sdxl_all_class_source_inpaint_64.yaml
+format_version: 1
+experiment_id: sdxl_all_class_pose_plane_pilot
+status: ready_for_experiment
+
+# Flat classes are homography-warped into the photographed support plane.
+# Upright and hinged classes retain their camera pose and are pinned by their
+# bottom edge to the same support point.
+pose_class_modes:
+  0: flat
+  1: flat
+  2: flat
+  3: flat
+  4: flat
+  5: flat
+  6: flat
+  7: upright
+  8: flat
+  9: flat
+  10: flat
+  11: upright
+  12: upright
+  13: upright
+  14: flat
+  15: hinged
+
+# For flat objects this is the apparent long side. For upright/hinged objects
+# it is the rendered height. Values are conservative at 1024x1024.
+pose_target_size_px:
+  0: 150
+  1: 150
+  2: 180
+  3: 190
+  4: 190
+  5: 155
+  6: 210
+  7: 140
+  8: 220
+  9: 190
+  10: 200
+  11: 190
+  12: 105
+  13: 160
+  14: 165
+  15: 200
+
+pose_mask_padding_px: 20
+pose_strength_by_mode:
+  flat: 0.55
+  upright: 0.62
+  hinged: 0.58
+pose_canny_scale_by_mode:
+  flat: 0.68
+  upright: 0.78
+  hinged: 0.70
+pose_strength_overrides:
+  11: 0.75
+pose_canny_scale_overrides:
+  11: 0.90
+
+pose_prompt_phrases:
+  flat: lying flat with its whole body supported by the horizontal surface and a tight contact shadow
+  upright: standing upright with its bottom base touching the horizontal surface and a tight contact shadow
+  hinged: open normally with its lower base resting completely on the horizontal surface and a tight contact shadow
+
+pose_prompt_template: >-
+  Photo of {target}, {pose}, fully visible at realistic scale and matching the
+  surface perspective. {scene}. No people.
+
+pose_negative_prompt: >-
+  wrong object, duplicates, extra tools, deformed, fused, embedded in furniture,
+  wall-mounted, attached to wall, hanging, suspended, floating, balancing on one
+  tip, standing on an edge, cropped, hidden, oversized, tiny, hand, person,
+  readable text, logo, watermark, illustration, cartoon, CGI
+
+# Each center is on a visually confirmed support surface in the immutable plate.
+# u follows the surface width; v follows its near/far direction. Compression
+# controls the apparent depth of a flat object on that plane.
+pose_plane_placements:
+  cell_sleeping_area:
+    0:
+      center_xy: [650, 585]
+      surface_axis_u: [1.0, 0.03]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.48
+    1:
+      center_xy: [680, 685]
+      surface_axis_u: [1.0, -0.04]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.50
+  cell_desk_area:
+    0:
+      center_xy: [820, 555]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.20, 1.0]
+      depth_compression: 0.48
+    1:
+      center_xy: [455, 490]
+      surface_axis_u: [1.0, -0.05]
+      surface_axis_v: [-0.22, 1.0]
+      depth_compression: 0.45
+  cell_storage_area:
+    0:
+      center_xy: [470, 700]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.15, 1.0]
+      depth_compression: 0.58
+    1:
+      center_xy: [625, 700]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.58
+  cell_wash_area:
+    0:
+      center_xy: [500, 610]
+      surface_axis_u: [1.0, -0.12]
+      surface_axis_v: [0.16, 1.0]
+      depth_compression: 0.43
+    1:
+      center_xy: [750, 605]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.44
+  communal_day_room:
+    0:
+      center_xy: [450, 690]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.20, 1.0]
+      depth_compression: 0.50
+    1:
+      center_xy: [680, 635]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.48
+  property_inspection_station:
+    0:
+      center_xy: [520, 585]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.45
+    1:
+      center_xy: [520, 590]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.45
+  correctional_workshop:
+    0:
+      center_xy: [475, 570]
+      surface_axis_u: [1.0, -0.03]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.48
+    1:
+      center_xy: [805, 620]
+      surface_axis_u: [1.0, -0.02]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.46
+  maintenance_service_area:
+    0:
+      center_xy: [510, 555]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.44
+    1:
+      center_xy: [350, 555]
+      surface_axis_u: [1.0, -0.04]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.44
