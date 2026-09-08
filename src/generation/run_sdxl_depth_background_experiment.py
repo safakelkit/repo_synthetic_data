@@ -366,16 +366,22 @@ def run_direct_aerosol(generator, helper, config: dict[str, Any], models: dict[s
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
     (output_dir / "images").mkdir(parents=True)
     pipe = load_base_pipeline(models, gpu)
+    support_prompts = config["inpaint_aerosol_support_prompts"]
     aerosol_prompts = [
-        config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
-        for scene in config["final_scene_prompts"].values()
+        config["direct_aerosol_prompt"].format(
+            scene=scene.lower().rstrip("."), support=support_prompts[scene_name]
+        )
+        for scene_name, scene in config["final_scene_prompts"].items()
+        if scene_name in support_prompts
     ]
     validate_clip_prompts(pipe, [*aerosol_prompts, config["direct_aerosol_negative_prompt"]])
     schedule = [row for row in compact_schedule(generator, config, scenes) if int(row["class_id"]) == 11]
     records = []
     for position, sample in enumerate(schedule, start=1):
         scene = config["final_scene_prompts"][sample["scene_name"]]
-        prompt = config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
+        prompt = config["direct_aerosol_prompt"].format(
+            scene=scene.lower().rstrip("."), support=support_prompts[sample["scene_name"]]
+        )
         seed = int(config["seed"]) + int(sample["index"])
         started = time.monotonic()
         result = pipe(
@@ -418,9 +424,13 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
     )
     pipe.enable_model_cpu_offload(gpu_id=gpu)
     pipe.vae.enable_slicing()
+    support_prompts = config["inpaint_aerosol_support_prompts"]
     aerosol_prompts = [
-        config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
-        for scene in config["final_scene_prompts"].values()
+        config["direct_aerosol_prompt"].format(
+            scene=scene.lower().rstrip("."), support=support_prompts[scene_name]
+        )
+        for scene_name, scene in config["final_scene_prompts"].items()
+        if scene_name in support_prompts
     ]
     validate_clip_prompts(pipe, [*aerosol_prompts, config["direct_aerosol_negative_prompt"]])
     manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
@@ -457,7 +467,9 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
         mask_array = cv2.GaussianBlur(mask_array, (0, 0), sigmaX=5)
         mask = Image.fromarray(mask_array)
         scene = config["final_scene_prompts"][sample["scene_name"]]
-        prompt = config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
+        prompt = config["direct_aerosol_prompt"].format(
+            scene=scene.lower().rstrip("."), support=support_prompts[sample["scene_name"]]
+        )
         seed = int(config["seed"]) + int(sample["index"])
         started = time.monotonic()
         result = pipe(
