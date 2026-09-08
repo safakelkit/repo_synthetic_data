@@ -14,6 +14,8 @@ class_scene_layout_overrides:
       target_box_xyxy: [400, 280, 650, 650]
     maintenance_service_area:
       target_box_xyxy: [100, 260, 350, 600]
+internal_edge_control:
+  class_ids: []
 plate_variants_per_scene: 2
 plate_seed: 71000
 plate_inference_steps: 30
@@ -59,15 +61,17 @@ target_prompts:
     and push-button nozzle, flat base visibly touching a horizontal surface with
     a natural contact shadow, fully visible, not spraying.
 direct_aerosol_prompt: >-
-  Photo of exactly one deodorant spray can centered on a foreground counter,
-  one quarter of image height. Cylindrical metal body, colored label, rounded
-  cap, visible push-button nozzle, flat base touching counter, contact shadow.
+  Photo. One household aerosol spray can on a foreground counter. Pressurized
+  cylindrical metal body, exposed push-button spray nozzle on top, no cap. Flat
+  base touching counter, contact shadow.
   {scene}. Empty fixed furniture. No people.
 direct_aerosol_negative_prompt: >-
   multiple cans, duplicate can, extra aerosol, bottles, jars, containers,
   toiletries, stocked shelves, clutter of products, tiny target, distant target,
   floating target, cropped target, wall-mounted target, hand, person, spray
-  cloud, readable text, logo, watermark, illustration, cartoon, CGI
+  cloud, thermos, drinking bottle, pump bottle, dispenser, cosmetic bottle,
+  hidden nozzle, removable lid, readable text, logo, watermark, illustration,
+  cartoon, CGI
 final_scene_prompts:
   cell_sleeping_area: Photorealistic worn correctional cell with fixed bed, locker, window and room depth.
   cell_desk_area: Photorealistic correctional desk area with fixed desk, chair, cabinets and room depth.
