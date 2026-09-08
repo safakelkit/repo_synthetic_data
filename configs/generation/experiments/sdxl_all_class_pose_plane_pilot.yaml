@@ -67,13 +67,12 @@ inpaint_all_target_prompts:
   13: exactly one sealed alcoholic drink container matching the supplied outline, either a small glass bottle or beverage can
 
 pose_prompt_phrases:
-  flat: lying flat with its whole body supported by the horizontal surface and a tight contact shadow
-  upright: standing upright with its bottom base touching the horizontal surface and a tight contact shadow
-  hinged: open normally with its lower base resting completely on the horizontal surface and a tight contact shadow
+  flat: lying flat and fully supported on a horizontal surface, tight contact shadow
+  upright: upright with its flat base touching a horizontal surface, tight contact shadow
+  hinged: open with its lower base fully supported on a horizontal surface, tight contact shadow
 
 pose_prompt_template: >-
-  Photo of {target}, {pose}, fully visible at realistic scale and matching the
-  surface perspective. {scene}. No people.
+  Photorealistic {target}, {pose}, realistic scale. {scene}. No people.
 
 pose_negative_prompt: >-
   wrong object, duplicates, extra tools, deformed, fused, embedded in furniture,
