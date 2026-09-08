@@ -11,13 +11,13 @@ silhouette_source:
 class_scene_layout_overrides:
   11:
     cell_storage_area:
-      target_box_xyxy: [420, 480, 600, 800]
+      target_box_xyxy: [420, 600, 600, 800]
     cell_wash_area:
-      target_box_xyxy: [650, 250, 850, 600]
+      target_box_xyxy: [650, 390, 850, 600]
     property_inspection_station:
-      target_box_xyxy: [400, 280, 650, 650]
+      target_box_xyxy: [400, 420, 650, 650]
     maintenance_service_area:
-      target_box_xyxy: [100, 260, 350, 600]
+      target_box_xyxy: [100, 380, 350, 600]
 internal_edge_control:
   class_ids: [11]
 plate_variants_per_scene: 2
