@@ -40,6 +40,26 @@ def write_json(path: Path, value: Any) -> None:
         json.dump(value, handle, ensure_ascii=False, indent=2)
 
 
+def write_yolo_box_label(
+    path: Path, class_id: int, box_xyxy: list[int], image_size: tuple[int, int]
+) -> list[float]:
+    width, height = image_size
+    x1, y1, x2, y2 = [float(value) for value in box_xyxy]
+    if not (0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height):
+        raise ValueError(f"Invalid annotation box {box_xyxy} for image size {image_size}")
+    normalized = [
+        (x1 + x2) / (2.0 * width),
+        (y1 + y2) / (2.0 * height),
+        (x2 - x1) / width,
+        (y2 - y1) / height,
+    ]
+    path.write_text(
+        f"{class_id} " + " ".join(f"{value:.8f}" for value in normalized) + "\n",
+        encoding="utf-8",
+    )
+    return normalized
+
+
 def validate_environment(helper, feasibility, config: dict[str, Any], require_clean: bool) -> dict[str, Any]:
     versions = feasibility.installed_versions()
     mismatches = {
@@ -1001,6 +1021,7 @@ def run_inpaint_pose(
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
     (output_dir / "images").mkdir(parents=True)
     (output_dir / "controls").mkdir()
+    (output_dir / "labels").mkdir()
     base = models["sdxl"]["base_model"]
     canny_spec = models["sdxl"]["controlnet"]
     controlnet = ControlNetModel.from_pretrained(
@@ -1058,16 +1079,24 @@ def run_inpaint_pose(
         torch.cuda.synchronize(gpu)
         name = f"g{sample['index']:05d}_c{class_id:02d}_{sample['scene_name']}.png"
         image_path = output_dir / "images" / name
+        label_path = output_dir / "labels" / name.replace(".png", ".txt")
         result.save(image_path)
         package["initial_image"].save(output_dir / "controls" / name.replace(".png", "_init.png"))
         package["canny"].save(output_dir / "controls" / name.replace(".png", "_canny.png"))
         package["mask"].save(output_dir / "controls" / name.replace(".png", "_mask.png"))
+        annotation_xywhn = write_yolo_box_label(
+            label_path, class_id, package["pose"]["alpha_box_xyxy"], package["plate"].size
+        )
         records.append({
             **sample, "plate_variant": package["variant"],
             "plate": str(package["plate_path"].relative_to(REPO_ROOT)), "seed": seed,
             "prompt": prompt, "negative_prompt": config["pose_negative_prompt"],
             "pose": package["pose"], "source_initialization": True,
             "source_rgba": str(package["rgba_path"].relative_to(REPO_ROOT)),
+            "annotation_performed": True,
+            "annotation_source": "pose_alpha_box_xyxy",
+            "annotation_xywhn": annotation_xywhn,
+            "label": str(label_path.relative_to(REPO_ROOT)),
             "strength": strength, "canny_scale": canny_scale,
             "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
             "inference_seconds": round(time.monotonic() - started, 3),
