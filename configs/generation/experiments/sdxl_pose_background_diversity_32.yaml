@@ -266,6 +266,12 @@ pose_plane_placements:
       surface_axis_v: [0.0, 1.0]
       depth_compression: 0.58
   property_inspection_station:
+    1:
+      center_xy: [520, 580]
+      upright_anchor_xy: [520, 605]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.45
     2:
       center_xy: [650, 515]
       upright_anchor_xy: [650, 555]
