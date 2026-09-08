@@ -254,6 +254,12 @@ pose_plane_placements:
       surface_axis_v: [0.0, 1.0]
       depth_compression: 0.58
   communal_day_room:
+    0:
+      center_xy: [600, 620]
+      upright_anchor_xy: [600, 675]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.16, 1.0]
+      depth_compression: 0.48
     2:
       center_xy: [405, 630]
       upright_anchor_xy: [405, 690]
@@ -292,6 +298,12 @@ pose_plane_placements:
       surface_axis_u: [1.0, 0.02]
       surface_axis_v: [-0.14, 1.0]
       depth_compression: 0.47
+    1:
+      center_xy: [235, 610]
+      upright_anchor_xy: [235, 665]
+      surface_axis_u: [1.0, -0.06]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.46
     2:
       center_xy: [770, 735]
       upright_anchor_xy: [770, 795]
