@@ -435,6 +435,15 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
     for position, sample in enumerate(schedule, start=1):
         row = generator.select_mask(helper, config, manifest_path, sample)
         _, canny, condition = helper.build_control(target_control_config, row, sample["index"], sample["scene_name"])
+        keep_components = int(config.get("inpaint_canny_keep_largest_components", 0))
+        if keep_components:
+            canny_array = np.asarray(canny.convert("L"))
+            component_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+                (canny_array > 127).astype(np.uint8), connectivity=8
+            )
+            ranked = sorted(range(1, component_count), key=lambda label: int(stats[label, cv2.CC_STAT_AREA]), reverse=True)
+            retained = np.isin(labels, ranked[:keep_components]).astype(np.uint8) * 255
+            canny = Image.fromarray(retained)
         variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
         plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
         with Image.open(plate_path).convert("RGB") as source:

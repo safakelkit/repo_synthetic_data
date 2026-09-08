@@ -10,6 +10,10 @@ silhouette_source:
     - IMG_0495new_obj_01_crop_000136
 class_scene_layout_overrides:
   11:
+    cell_storage_area:
+      target_box_xyxy: [420, 480, 600, 800]
+    cell_wash_area:
+      target_box_xyxy: [650, 250, 850, 600]
     property_inspection_station:
       target_box_xyxy: [400, 280, 650, 650]
     maintenance_service_area:
@@ -43,6 +47,7 @@ img2img_controlnet_conditioning_scale:
 inpaint_strength: 1.0
 inpaint_mask_padding_px: 24
 inpaint_canny_scale: 0.9
+inpaint_canny_keep_largest_components: 1
 depth_target_clearance_px: -1
 final_negative_prompt: >-
   wrong object, duplicate target, deformed target, wall-mounted target,
