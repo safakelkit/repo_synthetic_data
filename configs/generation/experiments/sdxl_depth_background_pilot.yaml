@@ -4,6 +4,14 @@ experiment_id: sdxl_target_canny_scene_depth_pilot
 status: ready_for_experiment
 output_root: data/synthetic/sdxl_depth_background_experiment
 class_ids: [1, 2, 11]
+silhouette_source:
+  preferred_stems:
+    11:
+    - IMG_0495new_obj_01_crop_000136
+class_scene_layout_overrides:
+  11:
+    property_inspection_station:
+      target_box_xyxy: [400, 280, 650, 650]
 plate_variants_per_scene: 2
 plate_seed: 71000
 plate_inference_steps: 30
