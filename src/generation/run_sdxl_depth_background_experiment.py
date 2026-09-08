@@ -448,9 +448,20 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
         plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
         with Image.open(plate_path).convert("RGB") as source:
             plate = source.copy()
+        initial_image = plate
+        render_x1, render_y1, render_x2, render_y2 = condition["rendered_box_xyxy"]
+        if bool(config.get("inpaint_source_initialization", False)):
+            rgba_path = helper.repo_path(row["rgba_path"])
+            with Image.open(rgba_path).convert("RGBA") as source:
+                target = source.resize(
+                    (render_x2-render_x1, render_y2-render_y1), Image.Resampling.LANCZOS
+                )
+            canvas = plate.convert("RGBA")
+            canvas.alpha_composite(target, dest=(render_x1, render_y1))
+            initial_image = canvas.convert("RGB")
         mask_array = np.zeros((plate.height, plate.width), dtype=np.uint8)
         padding = int(config["inpaint_mask_padding_px"])
-        x1, y1, x2, y2 = condition["rendered_box_xyxy"]
+        x1, y1, x2, y2 = render_x1, render_y1, render_x2, render_y2
         x1, y1 = max(0, x1-padding), max(0, y1-padding)
         x2, y2 = min(plate.width, x2+padding), min(plate.height, y2+padding)
         cv2.rectangle(mask_array, (x1, y1), (x2, y2), 255, thickness=-1)
@@ -462,7 +473,7 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
         started = time.monotonic()
         result = pipe(
             prompt=prompt, negative_prompt=config["direct_aerosol_negative_prompt"],
-            image=plate, mask_image=mask, control_image=canny,
+            image=initial_image, mask_image=mask, control_image=canny,
             strength=float(config["inpaint_strength"]),
             width=plate.width, height=plate.height,
             num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
@@ -474,9 +485,13 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
         image_path = output_dir / "images" / name
         canny_path = output_dir / "controls" / name.replace(".png", "_canny.png")
         mask_path = output_dir / "controls" / name.replace(".png", "_mask.png")
+        init_path = output_dir / "controls" / name.replace(".png", "_init.png")
         result.save(image_path); canny.save(canny_path); mask.save(mask_path)
+        if initial_image is not plate:
+            initial_image.save(init_path)
         records.append({**sample, "plate_variant": variant, "seed": seed, "prompt": prompt,
                         "mask_xyxy": [x1, y1, x2, y2], "condition": condition,
+                        "source_initialization": bool(config.get("inpaint_source_initialization", False)),
                         "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
                         "inference_seconds": round(time.monotonic()-started, 3), "training_use_forbidden": True})
         print(f"[inpaint aerosol {position}/{len(schedule)}] {name}", flush=True)
