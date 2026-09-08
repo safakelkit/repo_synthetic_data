@@ -637,6 +637,12 @@ def pose_condition(
             float(anchor[0]) + offsets[class_id][0],
             float(anchor[1]) + offsets[class_id][1],
         ]
+    anchor_overrides = config.get("pose_anchor_xy_overrides", {})
+    class_overrides = anchor_overrides.get(class_id, anchor_overrides.get(str(class_id), {}))
+    scene_overrides = class_overrides.get(scene_name, {})
+    anchor_override = scene_overrides.get(variant, scene_overrides.get(str(variant)))
+    if anchor_override is not None:
+        placement["upright_anchor_xy"] = [float(anchor_override[0]), float(anchor_override[1])]
     if mode == "flat":
         layer, metadata = warp_flat_rgba(source, canvas_size, placement, sizes[class_id])
     elif mode in ("upright", "hinged"):

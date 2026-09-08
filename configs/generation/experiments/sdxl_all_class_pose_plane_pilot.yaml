@@ -67,8 +67,16 @@ pose_canny_scale_overrides:
   12: 1.00
   14: 1.00
   15: 0.98
-pose_anchor_offset_xy:
-  15: [0, 65]
+pose_anchor_xy_overrides:
+  15:
+    cell_sleeping_area:
+      0: [745, 685]
+    cell_desk_area:
+      1: [455, 545]
+    communal_day_room:
+      0: [450, 700]
+    property_inspection_station:
+      1: [520, 650]
 pose_internal_edge_class_ids: [5, 8, 12, 14, 15]
 
 # These accepted sources have a clear class silhouette and useful internal
