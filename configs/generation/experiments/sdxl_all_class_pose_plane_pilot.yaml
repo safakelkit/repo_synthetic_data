@@ -14,7 +14,7 @@ pose_class_modes:
   4: flat
   5: flat
   6: flat
-  7: upright
+  7: flat
   8: flat
   9: flat
   10: flat
@@ -58,6 +58,14 @@ pose_strength_overrides:
 pose_canny_scale_overrides:
   11: 0.90
 
+# The accepted real assets inside these semantic classes include multiple valid
+# forms. These prompts describe the selected silhouette instead of contradicting it.
+inpaint_all_target_prompts:
+  1: exactly one safety-match item matching the supplied outline, either a matchbox with wooden matches or a single wooden match
+  7: exactly one tobacco-cigarette item matching the supplied outline, either a cigarette package or a small group of cigarettes
+  8: exactly one handheld saw matching the supplied outline, with a visible cutting blade and handle or rigid frame
+  13: exactly one sealed alcoholic drink container matching the supplied outline, either a small glass bottle or beverage can
+
 pose_prompt_phrases:
   flat: lying flat with its whole body supported by the horizontal surface and a tight contact shadow
   upright: standing upright with its bottom base touching the horizontal surface and a tight contact shadow
@@ -80,88 +88,104 @@ pose_plane_placements:
   cell_sleeping_area:
     0:
       center_xy: [650, 585]
+      upright_anchor_xy: [650, 625]
       surface_axis_u: [1.0, 0.03]
       surface_axis_v: [-0.12, 1.0]
       depth_compression: 0.48
     1:
       center_xy: [680, 685]
+      upright_anchor_xy: [680, 725]
       surface_axis_u: [1.0, -0.04]
       surface_axis_v: [-0.10, 1.0]
       depth_compression: 0.50
   cell_desk_area:
     0:
       center_xy: [820, 555]
+      upright_anchor_xy: [820, 605]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.20, 1.0]
       depth_compression: 0.48
     1:
       center_xy: [455, 490]
+      upright_anchor_xy: [455, 545]
       surface_axis_u: [1.0, -0.05]
       surface_axis_v: [-0.22, 1.0]
       depth_compression: 0.45
   cell_storage_area:
     0:
       center_xy: [470, 700]
+      upright_anchor_xy: [470, 700]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.15, 1.0]
       depth_compression: 0.58
     1:
       center_xy: [625, 700]
+      upright_anchor_xy: [625, 700]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.12, 1.0]
       depth_compression: 0.58
   cell_wash_area:
     0:
       center_xy: [500, 610]
+      upright_anchor_xy: [500, 680]
       surface_axis_u: [1.0, -0.12]
       surface_axis_v: [0.16, 1.0]
       depth_compression: 0.43
     1:
       center_xy: [750, 605]
+      upright_anchor_xy: [750, 665]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.10, 1.0]
       depth_compression: 0.44
   communal_day_room:
     0:
       center_xy: [450, 690]
+      upright_anchor_xy: [450, 735]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.20, 1.0]
       depth_compression: 0.50
     1:
       center_xy: [680, 635]
+      upright_anchor_xy: [680, 695]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.12, 1.0]
       depth_compression: 0.48
   property_inspection_station:
     0:
       center_xy: [520, 585]
+      upright_anchor_xy: [520, 650]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.08, 1.0]
       depth_compression: 0.45
     1:
       center_xy: [520, 590]
+      upright_anchor_xy: [520, 650]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.08, 1.0]
       depth_compression: 0.45
   correctional_workshop:
     0:
       center_xy: [475, 570]
+      upright_anchor_xy: [475, 650]
       surface_axis_u: [1.0, -0.03]
       surface_axis_v: [-0.10, 1.0]
       depth_compression: 0.48
     1:
       center_xy: [805, 620]
+      upright_anchor_xy: [805, 685]
       surface_axis_u: [1.0, -0.02]
       surface_axis_v: [-0.10, 1.0]
       depth_compression: 0.46
   maintenance_service_area:
     0:
       center_xy: [510, 555]
+      upright_anchor_xy: [510, 625]
       surface_axis_u: [1.0, 0.0]
       surface_axis_v: [-0.08, 1.0]
       depth_compression: 0.44
     1:
       center_xy: [350, 555]
+      upright_anchor_xy: [350, 640]
       surface_axis_u: [1.0, -0.04]
       surface_axis_v: [-0.08, 1.0]
       depth_compression: 0.44

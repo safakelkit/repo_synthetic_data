@@ -603,7 +603,9 @@ def place_supported_upright_rgba(
         width, height = max_width, max(1, round(target.height * scale))
     target = target.resize((width, height), Image.Resampling.LANCZOS)
     canvas_width, canvas_height = canvas_size
-    anchor_x, baseline_y = [int(round(v)) for v in placement["center_xy"]]
+    anchor_x, baseline_y = [
+        int(round(v)) for v in placement.get("upright_anchor_xy", placement["center_xy"])
+    ]
     paste_x = int(np.clip(anchor_x - width // 2, 0, canvas_width - width))
     paste_y = int(np.clip(baseline_y - height, 0, canvas_height - height))
     canvas = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
