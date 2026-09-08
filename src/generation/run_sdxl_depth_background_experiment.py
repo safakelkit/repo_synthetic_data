@@ -67,6 +67,16 @@ def require_gpu(gpu: int) -> None:
         raise RuntimeError(f"Logical CUDA device {gpu} is unavailable")
 
 
+def validate_clip_prompts(pipe, prompts: list[str]) -> None:
+    for name in ("tokenizer", "tokenizer_2"):
+        tokenizer = getattr(pipe, name)
+        limit = int(tokenizer.model_max_length)
+        for prompt in prompts:
+            length = len(tokenizer(prompt, truncation=False)["input_ids"])
+            if length > limit:
+                raise ValueError(f"{name} prompt length {length} exceeds {limit}: {prompt}")
+
+
 def load_base_pipeline(models: dict[str, Any], gpu: int):
     from diffusers import StableDiffusionXLPipeline
 
@@ -356,6 +366,11 @@ def run_direct_aerosol(generator, helper, config: dict[str, Any], models: dict[s
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
     (output_dir / "images").mkdir(parents=True)
     pipe = load_base_pipeline(models, gpu)
+    aerosol_prompts = [
+        config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
+        for scene in config["final_scene_prompts"].values()
+    ]
+    validate_clip_prompts(pipe, [*aerosol_prompts, config["direct_aerosol_negative_prompt"]])
     schedule = [row for row in compact_schedule(generator, config, scenes) if int(row["class_id"]) == 11]
     records = []
     for position, sample in enumerate(schedule, start=1):
@@ -403,6 +418,11 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
     )
     pipe.enable_model_cpu_offload(gpu_id=gpu)
     pipe.vae.enable_slicing()
+    aerosol_prompts = [
+        config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
+        for scene in config["final_scene_prompts"].values()
+    ]
+    validate_clip_prompts(pipe, [*aerosol_prompts, config["direct_aerosol_negative_prompt"]])
     manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
     target_control_config = {**config, "target_conditioning_mode": "target_only"}
     schedule = [row for row in compact_schedule(generator, config, scenes) if int(row["class_id"]) == 11]
