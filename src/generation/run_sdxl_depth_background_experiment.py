@@ -205,7 +205,28 @@ def run_depth(helper, config: dict[str, Any], gpu: int, output_root: Path) -> No
 
 def compact_schedule(generator, config: dict[str, Any], scenes: dict[str, Any]) -> list[dict[str, Any]]:
     allowed = {int(value) for value in config["class_ids"]}
-    return [row for row in generator.schedule(config, scenes) if int(row["class_id"]) in allowed]
+    schedule = [
+        dict(row)
+        for row in generator.schedule(config, scenes)
+        if int(row["class_id"]) in allowed
+    ]
+    variant_count = int(config["plate_variants_per_scene"])
+    selection = str(config.get("plate_variant_selection", "class_attempt_index"))
+    if selection == "class_attempt_index":
+        for sample in schedule:
+            sample["plate_variant"] = int(sample["class_attempt_index"]) % variant_count
+        return schedule
+    if selection != "balanced_by_scene":
+        raise ValueError(f"Unknown plate_variant_selection: {selection}")
+
+    scene_occurrences: dict[str, int] = {}
+    for sample in schedule:
+        scene_name = str(sample["scene_name"])
+        occurrence = scene_occurrences.get(scene_name, 0)
+        sample["scene_occurrence_index"] = occurrence
+        sample["plate_variant"] = occurrence % variant_count
+        scene_occurrences[scene_name] = occurrence + 1
+    return schedule
 
 
 def clear_target_depth(depth: Image.Image, box: list[int], padding: int) -> Image.Image:
@@ -259,7 +280,7 @@ def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any],
     for position, sample in enumerate(schedule, start=1):
         row = generator.select_mask(helper, config, manifest_path, sample)
         _, canny, condition = helper.build_control(target_control_config, row, sample["index"], sample["scene_name"])
-        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        variant = int(sample["plate_variant"])
         depth_row = depth_lookup[(sample["scene_name"], variant)]
         with Image.open(REPO_ROOT / depth_row["output"]) as source:
             depth = clear_target_depth(source, condition["rendered_box_xyxy"], int(config["depth_target_clearance_px"]))
@@ -333,7 +354,7 @@ def run_img2img(generator, helper, config: dict[str, Any], models: dict[str, Any
     for position, sample in enumerate(schedule, start=1):
         row = generator.select_mask(helper, config, manifest_path, sample)
         _, canny, condition = helper.build_control(target_control_config, row, sample["index"], sample["scene_name"])
-        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        variant = int(sample["plate_variant"])
         plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
         with Image.open(plate_path).convert("RGB") as source:
             plate = source.copy()
@@ -453,7 +474,7 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
             ranked = sorted(range(1, component_count), key=lambda label: int(stats[label, cv2.CC_STAT_AREA]), reverse=True)
             retained = np.isin(labels, ranked[:keep_components]).astype(np.uint8) * 255
             canny = Image.fromarray(retained)
-        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        variant = int(sample["plate_variant"])
         plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
         with Image.open(plate_path).convert("RGB") as source:
             plate = source.copy()
@@ -771,7 +792,7 @@ def run_inpaint_all(generator, helper, config: dict[str, Any], models: dict[str,
     for position, sample in enumerate(schedule, start=1):
         class_id = int(sample["class_id"])
         row = generator.select_mask(helper, config, manifest_path, sample)
-        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        variant = int(sample["plate_variant"])
         sample_control_config = target_control_config
         plate_boxes = config.get("inpaint_all_plate_target_boxes", {})
         if class_id != 11 and sample["scene_name"] in plate_boxes:
@@ -894,7 +915,7 @@ def build_pose_sample(
 ) -> dict[str, Any]:
     """Render one deterministic pose-aware initialization package."""
     class_id = int(sample["class_id"])
-    variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+    variant = int(sample["plate_variant"])
     row = generator.select_mask(helper, config, manifest_path, sample)
     plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
     rgba_path = helper.repo_path(row["rgba_path"])

@@ -4,6 +4,7 @@ experiment_id: sdxl_pose_background_diversity_32
 status: ready_for_experiment
 output_root: data/synthetic/sdxl_background_diversity_experiment
 plate_variants_per_scene: 4
+plate_variant_selection: balanced_by_scene
 plate_seed_overrides:
   "property_inspection_station:2": 23842
   "correctional_workshop:0": 23843
