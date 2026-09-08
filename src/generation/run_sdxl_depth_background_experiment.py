@@ -382,11 +382,80 @@ def run_direct_aerosol(generator, helper, config: dict[str, Any], models: dict[s
     write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
 
 
+def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str) -> None:
+    """Diffuse aerosol into a plate region while preserving installed scenery."""
+    from diffusers import ControlNetModel, StableDiffusionXLControlNetInpaintPipeline
+
+    output_dir = output_root / final_name
+    if output_dir.exists():
+        raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    (output_dir / "images").mkdir(parents=True)
+    (output_dir / "controls").mkdir()
+    base = models["sdxl"]["base_model"]
+    canny_spec = models["sdxl"]["controlnet"]
+    controlnet = ControlNetModel.from_pretrained(
+        canny_spec["id"], revision=canny_spec["revision"], torch_dtype=torch.float16,
+        variant="fp16", use_safetensors=True,
+    )
+    pipe = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
+        base["id"], revision=base["revision"], controlnet=controlnet,
+        torch_dtype=torch.float16, variant="fp16", use_safetensors=True,
+    )
+    pipe.enable_model_cpu_offload(gpu_id=gpu)
+    pipe.vae.enable_slicing()
+    manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
+    target_control_config = {**config, "target_conditioning_mode": "target_only"}
+    schedule = [row for row in compact_schedule(generator, config, scenes) if int(row["class_id"]) == 11]
+    records = []
+    for position, sample in enumerate(schedule, start=1):
+        row = generator.select_mask(helper, config, manifest_path, sample)
+        _, canny, condition = helper.build_control(target_control_config, row, sample["index"], sample["scene_name"])
+        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
+        with Image.open(plate_path).convert("RGB") as source:
+            plate = source.copy()
+        mask_array = np.zeros((plate.height, plate.width), dtype=np.uint8)
+        padding = int(config["inpaint_mask_padding_px"])
+        x1, y1, x2, y2 = condition["rendered_box_xyxy"]
+        x1, y1 = max(0, x1-padding), max(0, y1-padding)
+        x2, y2 = min(plate.width, x2+padding), min(plate.height, y2+padding)
+        cv2.rectangle(mask_array, (x1, y1), (x2, y2), 255, thickness=-1)
+        mask_array = cv2.GaussianBlur(mask_array, (0, 0), sigmaX=5)
+        mask = Image.fromarray(mask_array)
+        scene = config["final_scene_prompts"][sample["scene_name"]]
+        prompt = config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
+        seed = int(config["seed"]) + int(sample["index"])
+        started = time.monotonic()
+        result = pipe(
+            prompt=prompt, negative_prompt=config["direct_aerosol_negative_prompt"],
+            image=plate, mask_image=mask, control_image=canny,
+            strength=float(config["inpaint_strength"]),
+            width=plate.width, height=plate.height,
+            num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
+            controlnet_conditioning_scale=float(config["inpaint_canny_scale"]),
+            generator=torch.Generator(device="cpu").manual_seed(seed),
+        ).images[0]
+        torch.cuda.synchronize(gpu)
+        name = f"g{sample['index']:05d}_c11_{sample['scene_name']}.png"
+        image_path = output_dir / "images" / name
+        canny_path = output_dir / "controls" / name.replace(".png", "_canny.png")
+        mask_path = output_dir / "controls" / name.replace(".png", "_mask.png")
+        result.save(image_path); canny.save(canny_path); mask.save(mask_path)
+        records.append({**sample, "plate_variant": variant, "seed": seed, "prompt": prompt,
+                        "mask_xyxy": [x1, y1, x2, y2], "condition": condition,
+                        "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
+                        "inference_seconds": round(time.monotonic()-started, 3), "training_use_forbidden": True})
+        print(f"[inpaint aerosol {position}/{len(schedule)}] {name}", flush=True)
+    make_contact_sheet([REPO_ROOT/r["output"] for r in records], output_dir/"contact_sheet.png",
+                       [r["scene_name"] for r in records])
+    write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img", "direct_aerosol"), default="plates")
+    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img", "direct_aerosol", "inpaint_aerosol"), default="plates")
     parser.add_argument("--final-name", default="final")
     parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
@@ -413,9 +482,12 @@ def main() -> None:
     elif args.stage == "img2img":
         run_img2img(generator, helper, config, models, scenes, args.gpu, output_root,
                     args.final_name, set(args.sample_indices) if args.sample_indices else None)
-    else:
+    elif args.stage == "direct_aerosol":
         run_direct_aerosol(generator, helper, config, models, scenes, args.gpu,
                            output_root, args.final_name)
+    else:
+        run_inpaint_aerosol(generator, helper, config, models, scenes, args.gpu,
+                            output_root, args.final_name)
 
 
 if __name__ == "__main__":
