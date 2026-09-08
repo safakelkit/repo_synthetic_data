@@ -626,7 +626,17 @@ def pose_condition(
     modes = {int(key): str(value) for key, value in config["pose_class_modes"].items()}
     sizes = {int(key): float(value) for key, value in config["pose_target_size_px"].items()}
     mode = modes[class_id]
-    placement = config["pose_plane_placements"][scene_name][variant]
+    placement = dict(config["pose_plane_placements"][scene_name][variant])
+    offsets = {
+        int(key): [float(v) for v in value]
+        for key, value in config.get("pose_anchor_offset_xy", {}).items()
+    }
+    if class_id in offsets:
+        anchor = placement.get("upright_anchor_xy", placement["center_xy"])
+        placement["upright_anchor_xy"] = [
+            float(anchor[0]) + offsets[class_id][0],
+            float(anchor[1]) + offsets[class_id][1],
+        ]
     if mode == "flat":
         layer, metadata = warp_flat_rgba(source, canvas_size, placement, sizes[class_id])
     elif mode in ("upright", "hinged"):
@@ -657,12 +667,22 @@ def composite_pose_layer(plate: Image.Image, layer: Image.Image, mode: str) -> I
     """Add a restrained contact shadow before compositing the real RGBA pixels."""
     canvas = plate.convert("RGBA")
     alpha = np.asarray(layer)[:, :, 3]
-    shadow = cv2.GaussianBlur(alpha, (0, 0), sigmaX=5 if mode == "flat" else 7)
-    offset = 4 if mode == "flat" else 6
-    shifted = np.zeros_like(shadow)
-    shifted[offset:, :] = shadow[:-offset, :]
+    if mode == "flat":
+        shadow = cv2.GaussianBlur(alpha, (0, 0), sigmaX=5)
+        shifted = np.zeros_like(shadow)
+        shifted[4:, :] = shadow[:-4, :]
+        opacity = 0.28
+    else:
+        ys, xs = np.where(alpha > 8)
+        shifted = np.zeros_like(alpha)
+        center = (int(round((xs.min() + xs.max()) / 2)), int(ys.max()))
+        half_width = max(9, int(round((xs.max() - xs.min()) * 0.38)))
+        half_height = max(3, int(round(half_width * 0.13)))
+        cv2.ellipse(shifted, center, (half_width, half_height), 0, 0, 360, 255, -1)
+        shifted = cv2.GaussianBlur(shifted, (0, 0), sigmaX=4)
+        opacity = 0.34
     shadow_layer = np.zeros((*shifted.shape, 4), dtype=np.uint8)
-    shadow_layer[:, :, 3] = np.uint8(shifted.astype(np.float32) * (0.28 if mode == "flat" else 0.20))
+    shadow_layer[:, :, 3] = np.uint8(shifted.astype(np.float32) * opacity)
     canvas = Image.alpha_composite(canvas, Image.fromarray(shadow_layer, mode="RGBA"))
     return Image.alpha_composite(canvas, layer).convert("RGB")
 
