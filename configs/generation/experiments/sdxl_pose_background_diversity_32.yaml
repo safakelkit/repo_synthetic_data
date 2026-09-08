@@ -4,6 +4,10 @@ experiment_id: sdxl_pose_background_diversity_32
 status: ready_for_experiment
 output_root: data/synthetic/sdxl_background_diversity_experiment
 plate_variants_per_scene: 4
+plate_seed_overrides:
+  "property_inspection_station:2": 23842
+  "correctional_workshop:0": 23843
+  "correctional_workshop:2": 23844
 
 # Variants 0-1 retain the successful pilot compositions. Variants 2-3 change
 # viewpoint, fixture layout and lighting while retaining a clear support plane.
@@ -114,10 +118,10 @@ scene_plate_prompts:
       worn laminate counter, fixed cabinet doors, acrylic divider and corridor
       doorway, clear horizontal foreground worktop, realistic institutional wear.
     - >-
-      Photorealistic side view inside a correctional property search room, one long
-      bare stainless inspection counter prominent across the foreground, secure
-      pass-through window behind it, numbered property lockers, mesh partition and
-      barred door, completely empty worktop under directional fluorescent light.
+      Empty property search room inside a secure prison, photorealistic. One wide
+      bare stainless inspection table fills the lower foreground. Numbered property
+      lockers, pass-through window, mesh divider and barred door behind it. Clear
+      unobstructed tabletop, fluorescent institutional lighting, diagonal depth.
     - >-
       Photorealistic opposite-angle view of a correctional belongings search room,
       L-shaped bare inspection counter, fixed transparent security divider, sealed
@@ -125,19 +129,19 @@ scene_plate_prompts:
       and worn floor, broad empty foreground counter and natural perspective depth.
   correctional_workshop:
     - >-
-      Photorealistic eye-level view of a supervised correctional workshop after
-      shutdown, completely bare worn workbench, empty pegboard, all equipment locked
-      behind closed steel cabinet doors, closed parts drawers, caged storage and a
-      broad aisle, unobstructed foreground bench and natural perspective.
+      Empty secure prison repair workshop after shutdown, photorealistic. One wide
+      bare steel workbench fills the lower foreground. Locked equipment cabinets,
+      closed drawers, empty pegboard, mesh partition and barred high windows behind
+      it. Clear unobstructed tabletop, worn floor and diagonal room depth.
     - >-
       Photorealistic three-quarter view inside an institutional workshop, fixed
       steel cabinets, timber bench, wire partition, loading door and scuffed floor,
       clear foreground work surface, realistic depth.
     - >-
-      Photorealistic view inside a secure correctional repair workshop after cleanup,
-      one large completely bare timber workbench prominent in the foreground, locked
-      steel wall cabinets, empty shadow board, mesh security partition, extraction
-      duct and barred high windows, unobstructed surface and deep aisle perspective.
+      Empty correctional maintenance workshop after cleanup, photorealistic. One
+      large bare timber workbench fills the lower foreground. Locked steel cabinets,
+      empty shadow board, mesh security partition, extraction duct and barred high
+      windows behind it. Clear unobstructed surface and deep diagonal perspective.
     - >-
       Photorealistic diagonal view inside a locked correctional repair workshop after
       cleanup, one large completely bare steel workbench prominent in the foreground,

@@ -93,13 +93,18 @@ def load_base_pipeline(models: dict[str, Any], gpu: int):
 def plate_records(config: dict[str, Any]) -> list[dict[str, Any]]:
     records = []
     index = 0
+    seed_overrides = {
+        str(key): int(value)
+        for key, value in config.get("plate_seed_overrides", {}).items()
+    }
     for scene_name, prompts in config["scene_plate_prompts"].items():
         for variant, prompt in enumerate(prompts):
+            plate_key = f"{scene_name}:{variant}"
             records.append({
                 "index": index,
                 "scene_name": scene_name,
                 "variant": variant,
-                "seed": int(config["plate_seed"]) + index,
+                "seed": seed_overrides.get(plate_key, int(config["plate_seed"]) + index),
                 "prompt": prompt,
             })
             index += 1
