@@ -88,7 +88,7 @@ silhouette_source:
     5: [IMG_0375new_obj_00_crop_000045]
     8: [IMG_20240806_105616745_obj_00_crop_000036]
     14: [IMG_0494new_obj_00_crop_000044]
-    15: [IMG_0011_obj_00_crop_000004]
+    15: [IMG_0171new_obj_00_crop_000019]
 
 # The accepted real assets inside these semantic classes include multiple valid
 # forms. These prompts describe the selected silhouette instead of contradicting it.
