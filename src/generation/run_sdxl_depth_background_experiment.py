@@ -109,7 +109,8 @@ def plate_records(config: dict[str, Any]) -> list[dict[str, Any]]:
 def make_contact_sheet(paths: list[Path], output: Path, labels: list[str]) -> None:
     thumb = 320
     caption = 36
-    canvas = Image.new("RGB", (thumb * 4, (thumb + caption) * 4), "white")
+    rows = max(1, (len(paths) + 3) // 4)
+    canvas = Image.new("RGB", (thumb * 4, (thumb + caption) * rows), "white")
     draw = ImageDraw.Draw(canvas)
     for index, (path, label) in enumerate(zip(paths, labels)):
         with Image.open(path).convert("RGB") as source:
@@ -500,11 +501,198 @@ def run_inpaint_aerosol(generator, helper, config: dict[str, Any], models: dict[
     write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
 
 
+def rotate_rgba_like_control(source: Image.Image, angle: float) -> Image.Image:
+    """Crop and rotate RGBA with the same geometry used by ``rotate_binary``."""
+    rgba = np.asarray(source.convert("RGBA"))
+    alpha = rgba[:, :, 3]
+    ys, xs = np.where(alpha > 0)
+    if not xs.size:
+        raise ValueError("Source RGBA has an empty alpha channel")
+    rgba = rgba[ys.min():ys.max()+1, xs.min():xs.max()+1]
+    height, width = rgba.shape[:2]
+    matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1.0)
+    cos, sin = abs(matrix[0, 0]), abs(matrix[0, 1])
+    new_width = int(height * sin + width * cos)
+    new_height = int(height * cos + width * sin)
+    matrix[0, 2] += new_width / 2 - width / 2
+    matrix[1, 2] += new_height / 2 - height / 2
+    rotated = cv2.warpAffine(
+        rgba, matrix, (new_width, new_height), flags=cv2.INTER_LANCZOS4,
+        borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0),
+    )
+    return Image.fromarray(rotated, mode="RGBA")
+
+
+def run_inpaint_all(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str, sample_indices: set[int] | None) -> None:
+    """Insert every class into an organic target-free plate using target-only Canny."""
+    from diffusers import ControlNetModel, StableDiffusionXLControlNetInpaintPipeline
+
+    output_dir = output_root / final_name
+    if output_dir.exists():
+        raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    (output_dir / "images").mkdir(parents=True)
+    (output_dir / "controls").mkdir()
+    base = models["sdxl"]["base_model"]
+    canny_spec = models["sdxl"]["controlnet"]
+    controlnet = ControlNetModel.from_pretrained(
+        canny_spec["id"], revision=canny_spec["revision"], torch_dtype=torch.float16,
+        variant="fp16", use_safetensors=True,
+    )
+    pipe = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
+        base["id"], revision=base["revision"], controlnet=controlnet,
+        torch_dtype=torch.float16, variant="fp16", use_safetensors=True,
+    )
+    pipe.enable_model_cpu_offload(gpu_id=gpu)
+    pipe.vae.enable_slicing()
+
+    target_prompts = {int(key): value for key, value in config["inpaint_all_target_prompts"].items()}
+    template = str(config["inpaint_all_prompt_template"])
+    prompts = [
+        template.format(target=target_prompts[class_id], scene=scene.lower().rstrip("."))
+        for class_id in sorted(target_prompts)
+        for scene in config["final_scene_prompts"].values()
+    ]
+    validate_clip_prompts(pipe, [*prompts, config["inpaint_all_negative_prompt"]])
+
+    manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
+    target_control_config = {**config, "target_conditioning_mode": "target_only"}
+    schedule = compact_schedule(generator, config, scenes)
+    if sample_indices is not None:
+        schedule = [row for row in schedule if int(row["index"]) in sample_indices]
+        missing = sample_indices - {int(row["index"]) for row in schedule}
+        if missing:
+            raise ValueError(f"Requested sample indices are unavailable: {sorted(missing)}")
+
+    strengths = {int(key): float(value) for key, value in config.get("inpaint_all_strength_overrides", {}).items()}
+    paddings = {int(key): int(value) for key, value in config.get("inpaint_all_mask_padding_overrides", {}).items()}
+    canny_scales = {int(key): float(value) for key, value in config.get("inpaint_all_canny_scale_overrides", {}).items()}
+    component_limits = {int(key): int(value) for key, value in config.get("inpaint_all_keep_components_overrides", {}).items()}
+    records = []
+    for position, sample in enumerate(schedule, start=1):
+        class_id = int(sample["class_id"])
+        row = generator.select_mask(helper, config, manifest_path, sample)
+        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        sample_control_config = target_control_config
+        plate_boxes = config.get("inpaint_all_plate_target_boxes", {})
+        if class_id != 11 and sample["scene_name"] in plate_boxes:
+            target_box = plate_boxes[sample["scene_name"]][variant]
+            class_scene_overrides = {
+                int(key): value
+                for key, value in target_control_config.get("class_scene_layout_overrides", {}).items()
+            }
+            class_override = dict(class_scene_overrides.get(class_id, {}))
+            class_override[sample["scene_name"]] = {
+                **class_override.get(sample["scene_name"], {}),
+                "target_box_xyxy": target_box,
+            }
+            class_scene_overrides[class_id] = class_override
+            sample_control_config = {
+                **target_control_config,
+                "class_scene_layout_overrides": class_scene_overrides,
+            }
+        _, canny, condition = helper.build_control(
+            sample_control_config, row, sample["index"], sample["scene_name"]
+        )
+        keep_components = component_limits.get(
+            class_id, int(config.get("inpaint_all_keep_components_default", 0))
+        )
+        if keep_components:
+            canny_array = np.asarray(canny.convert("L"))
+            component_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+                (canny_array > 127).astype(np.uint8), connectivity=8
+            )
+            ranked = sorted(
+                range(1, component_count),
+                key=lambda label: int(stats[label, cv2.CC_STAT_AREA]), reverse=True,
+            )
+            canny = Image.fromarray(
+                np.isin(labels, ranked[:keep_components]).astype(np.uint8) * 255
+            )
+
+        plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
+        with Image.open(plate_path).convert("RGB") as source:
+            plate = source.copy()
+        render_x1, render_y1, render_x2, render_y2 = condition["rendered_box_xyxy"]
+        rgba_path = helper.repo_path(row["rgba_path"])
+        with Image.open(rgba_path).convert("RGBA") as source:
+            target = rotate_rgba_like_control(source, float(condition["rotation_degrees"]))
+            target = target.resize(
+                (render_x2-render_x1, render_y2-render_y1), Image.Resampling.LANCZOS
+            )
+        canvas = plate.convert("RGBA")
+        canvas.alpha_composite(target, dest=(render_x1, render_y1))
+        initial_image = canvas.convert("RGB")
+
+        padding = paddings.get(class_id, int(config["inpaint_all_mask_padding_default_px"]))
+        x1, y1 = max(0, render_x1-padding), max(0, render_y1-padding)
+        x2, y2 = min(plate.width, render_x2+padding), min(plate.height, render_y2+padding)
+        mask_array = np.zeros((plate.height, plate.width), dtype=np.uint8)
+        cv2.rectangle(mask_array, (x1, y1), (x2, y2), 255, thickness=-1)
+        mask_array = cv2.GaussianBlur(mask_array, (0, 0), sigmaX=5)
+        mask = Image.fromarray(mask_array)
+
+        scene = config["final_scene_prompts"][sample["scene_name"]]
+        prompt = template.format(target=target_prompts[class_id], scene=scene.lower().rstrip("."))
+        seed = int(config["seed"]) + int(sample["index"])
+        strength = strengths.get(class_id, float(config["inpaint_all_strength_default"]))
+        canny_scale = canny_scales.get(class_id, float(config["inpaint_all_canny_scale_default"]))
+        started = time.monotonic()
+        result = pipe(
+            prompt=prompt, negative_prompt=config["inpaint_all_negative_prompt"],
+            image=initial_image, mask_image=mask, control_image=canny,
+            strength=strength, width=plate.width, height=plate.height,
+            num_inference_steps=int(config["inference_steps"]),
+            guidance_scale=float(config["guidance_scale"]),
+            controlnet_conditioning_scale=canny_scale,
+            generator=torch.Generator(device="cpu").manual_seed(seed),
+        ).images[0]
+        torch.cuda.synchronize(gpu)
+
+        name = f"g{sample['index']:05d}_c{class_id:02d}_{sample['scene_name']}.png"
+        image_path = output_dir / "images" / name
+        canny_path = output_dir / "controls" / name.replace(".png", "_canny.png")
+        mask_path = output_dir / "controls" / name.replace(".png", "_mask.png")
+        init_path = output_dir / "controls" / name.replace(".png", "_init.png")
+        result.save(image_path)
+        canny.save(canny_path)
+        mask.save(mask_path)
+        initial_image.save(init_path)
+        records.append({
+            **sample, "plate_variant": variant, "plate": str(plate_path.relative_to(REPO_ROOT)),
+            "seed": seed, "prompt": prompt, "negative_prompt": config["inpaint_all_negative_prompt"],
+            "condition": condition, "mask_xyxy": [x1, y1, x2, y2],
+            "source_initialization": True, "source_rgba": str(rgba_path.relative_to(REPO_ROOT)),
+            "strength": strength, "canny_scale": canny_scale,
+            "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
+            "inference_seconds": round(time.monotonic()-started, 3), "training_use_forbidden": True,
+        })
+        print(f"[inpaint all {position}/{len(schedule)}] {name}", flush=True)
+
+    make_contact_sheet(
+        [REPO_ROOT/r["output"] for r in records], output_dir/"contact_sheet.png",
+        [f"c{r['class_id']:02d} {r['class_name']} | {r['scene_name']}" for r in records],
+    )
+    write_json(output_dir/"manifest.json", {
+        "status": "generated_pending_human_review", "training_use_forbidden": True,
+        "records": records,
+    })
+    with (output_dir/"review.csv").open("w", encoding="utf-8", newline="") as handle:
+        fields = ["index", "class_id", "class_name", "scene_name", "image_path", "review_status", "review_reason"]
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in records:
+            writer.writerow({
+                "index": row["index"], "class_id": row["class_id"], "class_name": row["class_name"],
+                "scene_name": row["scene_name"], "image_path": row["output"],
+                "review_status": "pending", "review_reason": "",
+            })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img", "direct_aerosol", "inpaint_aerosol"), default="plates")
+    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img", "direct_aerosol", "inpaint_aerosol", "inpaint_all"), default="plates")
     parser.add_argument("--final-name", default="final")
     parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
@@ -516,7 +704,12 @@ def main() -> None:
     scenes = helper.load_yaml(helper.repo_path(config["scene_policy"]))
     environment = validate_environment(helper, feasibility, config, require_clean=not args.preflight_only)
     output_root = helper.repo_path(config["output_root"])
-    report = {"status": "ready", "stage": args.stage, "samples": 16 if args.stage != "final" else 12,
+    stage_samples = {
+        "plates": 16, "depth": 16, "final": len(compact_schedule(generator, config, scenes)),
+        "img2img": len(compact_schedule(generator, config, scenes)), "direct_aerosol": 4,
+        "inpaint_aerosol": 4, "inpaint_all": len(compact_schedule(generator, config, scenes)),
+    }
+    report = {"status": "ready", "stage": args.stage, "samples": stage_samples[args.stage],
               "output_root": str(output_root.relative_to(REPO_ROOT)), "environment": environment,
               "config_sha256": helper.sha256(config_path),
               "base_config_sha256": helper.sha256(base_config_path) if base_config_path else None}
@@ -534,10 +727,14 @@ def main() -> None:
     elif args.stage == "direct_aerosol":
         run_direct_aerosol(generator, helper, config, models, scenes, args.gpu,
                            output_root, args.final_name)
-    else:
+    elif args.stage == "inpaint_aerosol":
         run_inpaint_aerosol(generator, helper, config, models, scenes, args.gpu,
                             output_root, args.final_name,
                             set(args.sample_indices) if args.sample_indices else None)
+    else:
+        run_inpaint_all(generator, helper, config, models, scenes, args.gpu,
+                        output_root, args.final_name,
+                        set(args.sample_indices) if args.sample_indices else None)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,79 @@
+base_config: configs/generation/experiments/sdxl_depth_background_pilot.yaml
+format_version: 1
+experiment_id: sdxl_all_class_source_initialized_inpaint_64
+status: ready_for_experiment
+class_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+
+# The 16 reviewed target-free plates remain immutable inputs. Each class is
+# inserted with its accepted RGBA asset and a target-only Canny condition.
+inpaint_all_strength_default: 0.70
+inpaint_all_strength_overrides:
+  11: 0.75
+inpaint_all_mask_padding_default_px: 32
+inpaint_all_mask_padding_overrides:
+  11: 24
+inpaint_all_canny_scale_default: 0.90
+inpaint_all_canny_scale_overrides: {}
+inpaint_all_keep_components_default: 0
+inpaint_all_keep_components_overrides:
+  11: 1
+
+# Each box covers a real horizontal support visible in its immutable plate.
+# Aerosol keeps its separately validated, class-specific perspective boxes.
+inpaint_all_plate_target_boxes:
+  cell_sleeping_area:
+    0: [500, 500, 790, 670]
+    1: [360, 480, 690, 650]
+  cell_desk_area:
+    0: [680, 450, 950, 575]
+    1: [170, 500, 520, 675]
+  cell_storage_area:
+    0: [390, 610, 640, 790]
+    1: [430, 620, 680, 800]
+  cell_wash_area:
+    0: [260, 525, 570, 700]
+    1: [620, 430, 880, 605]
+  communal_day_room:
+    0: [40, 570, 300, 735]
+    1: [70, 565, 350, 730]
+  property_inspection_station:
+    0: [390, 430, 680, 610]
+    1: [330, 555, 680, 725]
+  correctional_workshop:
+    0: [315, 500, 650, 700]
+    1: [535, 500, 865, 690]
+  maintenance_service_area:
+    0: [350, 500, 690, 680]
+    1: [180, 450, 510, 625]
+
+inpaint_all_prompt_template: >-
+  Photo of {target}. The single object is fully visible on a clear horizontal
+  foreground work surface, at a realistic inspection scale and perspective,
+  with natural surface contact and a soft contact shadow. {scene}. Empty fixed
+  furniture. No people.
+
+inpaint_all_target_prompts:
+  0: exactly one disposable pocket lighter with a visible ignition wheel and metal top
+  1: exactly one open cardboard matchbox containing wooden safety matches with visible match heads
+  2: exactly one pair of household scissors with two finger handles and two metal blades
+  3: exactly one pair of red-handled combination pliers with gripping jaws and a central pivot
+  4: exactly one handheld knife with a single metal blade and handle
+  5: exactly one disposable T-shaped manual razor with a broad razor head and short handle
+  6: exactly one claw hammer with a metal head and wooden handle
+  7: exactly one cigarette pack with tobacco cigarettes visibly protruding from the open top
+  8: exactly one handheld hacksaw with a rigid frame, handle and toothed blade
+  9: exactly one manual screwdriver with a handle and long metal shaft
+  10: exactly one metal wrench with a clearly visible jaw or ring end
+  11: exactly one upright deodorant aerosol spray can with cylindrical metal body, colored label, rounded cap, push-button nozzle and flat base
+  12: exactly one rectangular 9-volt battery standing upright with two snap terminals visible on top
+  13: exactly one small glass bottle of alcoholic drink with a bottle neck and cap
+  14: exactly one modern rectangular smartphone with glass screen, bezel and rear camera
+  15: exactly one open laptop with a hinged screen, keyboard and trackpad clearly visible
+
+inpaint_all_negative_prompt: >-
+  wrong object, multiple target objects, duplicate target, extra tools, deformed
+  target, fused object, object embedded in furniture, wall-mounted target, target
+  attached to wall, vertical display board, floating target, missing contact
+  shadow, cropped target, hidden target, tiny distant target, hand, person,
+  readable text, logo, watermark, illustration, cartoon, CGI, additional loose
+  handheld objects in background
