@@ -1,0 +1,160 @@
+base_config: configs/generation/sdxl_generation.yaml
+format_version: 1
+experiment_id: sdxl_target_canny_scene_depth_pilot
+status: ready_for_experiment
+output_root: data/synthetic/sdxl_depth_background_experiment
+class_ids: [1, 2, 11]
+silhouette_source:
+  preferred_stems:
+    11:
+    - IMG_0495new_obj_01_crop_000136
+class_scene_layout_overrides:
+  11:
+    cell_storage_area:
+      target_box_xyxy: [420, 600, 600, 800]
+    cell_wash_area:
+      target_box_xyxy: [650, 390, 850, 600]
+    property_inspection_station:
+      target_box_xyxy: [400, 420, 650, 650]
+    maintenance_service_area:
+      target_box_xyxy: [100, 380, 350, 600]
+internal_edge_control:
+  class_ids: [11]
+plate_variants_per_scene: 2
+plate_seed: 71000
+plate_inference_steps: 30
+plate_guidance_scale: 6.0
+plate_negative_prompt: >-
+  people, person, hand, loose handheld objects, tools, aerosol can, bottle,
+  readable text, logo, watermark, surreal architecture, impossible geometry,
+  floating furniture, illustration, cartoon, CGI
+depth_estimator:
+  id: depth-anything/Depth-Anything-V2-Small-hf
+  revision: 5426e4f0f36572d16453bbda7a8389317b1bef99
+depth_controlnet:
+  id: diffusers/controlnet-depth-sdxl-1.0
+  revision: 17bb97973f29801224cd66f192c5ffacf82648b4
+  conditioning_scale: 0.45
+  guidance_start: 0.0
+  guidance_end: 0.75
+canny_guidance_start: 0.0
+canny_guidance_end: 1.0
+img2img_strength: 0.80
+img2img_controlnet_conditioning_scale:
+  default: 1.0
+  class_overrides:
+    11: 0.9
+inpaint_strength: 0.75
+inpaint_mask_padding_px: 24
+inpaint_canny_scale: 0.9
+inpaint_canny_keep_largest_components: 1
+inpaint_source_initialization: true
+depth_target_clearance_px: -1
+final_negative_prompt: >-
+  wrong object, duplicate target, deformed target, wall-mounted target,
+  target attached to wall, floating target, cropped target, hidden target,
+  hand, person, readable text, logo, watermark, illustration, cartoon, CGI,
+  additional loose handheld objects in background
+target_prompts:
+  1: >-
+    One open cardboard matchbox with wooden safety matches, resting flat on a
+    horizontal surface with a natural contact shadow, fully visible.
+  2: >-
+    One pair of household scissors with two handles and two metal blades, resting
+    flat on a horizontal surface with a natural contact shadow, fully visible.
+  11: >-
+    One upright deodorant aerosol spray can, cylindrical metal body, rounded cap
+    and push-button nozzle, flat base visibly touching a horizontal surface with
+    a natural contact shadow, fully visible, not spraying.
+direct_aerosol_prompt: >-
+  Photo of exactly one deodorant spray can centered on a foreground counter,
+  one quarter of image height. Cylindrical metal body, colored label, rounded
+  cap, visible push-button nozzle, flat base touching counter, contact shadow.
+  {scene}. Empty fixed furniture. No people.
+direct_aerosol_negative_prompt: >-
+  multiple cans, duplicate can, extra aerosol, bottles, jars, containers,
+  toiletries, stocked shelves, clutter of products, tiny target, distant target,
+  floating target, cropped target, wall-mounted target, hand, person, spray
+  cloud, readable text, logo, watermark, illustration, cartoon, CGI
+final_scene_prompts:
+  cell_sleeping_area: Photorealistic worn correctional cell with fixed bed, locker, window and room depth.
+  cell_desk_area: Photorealistic correctional desk area with fixed desk, chair, cabinets and room depth.
+  cell_storage_area: Photorealistic correctional storage room with fixed lockers, shelves and aisle depth.
+  cell_wash_area: Photorealistic institutional wash area with fixed sinks, tiles, mirror and room depth.
+  communal_day_room: Photorealistic correctional day room with fixed tables, benches, windows and room depth.
+  property_inspection_station: Photorealistic secure inspection station with fixed counter, cabinets and room depth.
+  correctional_workshop: Photorealistic correctional workshop with fixed bench, cabinets, shelves and room depth.
+  maintenance_service_area: Photorealistic maintenance room with fixed counters, cabinets, conduit and room depth.
+scene_plate_prompts:
+  cell_sleeping_area:
+  - >-
+    Photorealistic eye-level three-quarter view of a correctional cell sleeping
+    area, blue steel bunk frame, recessed locker, high secure window, scuffed
+    institutional floor, clear horizontal foreground shelf, natural room depth.
+  - >-
+    Photorealistic eye-level view inside a worn detention sleeping room, fixed
+    bed frame, closed metal cabinet, barred upper window, wall-floor junction,
+    clear foreground desk surface, natural asymmetry and perspective depth.
+  cell_desk_area:
+  - >-
+    Photorealistic eye-level three-quarter view of a correctional cell desk area,
+    fixed laminate desk, bolted chair, locked drawers, pinboard and high window,
+    clear horizontal foreground desktop, visible room depth.
+  - >-
+    Photorealistic eye-level view of an institutional detention desk alcove,
+    worn desk surface in the foreground, recessed cubby, steel chair, cabinet
+    doors and scuffed floor, natural asymmetry and perspective.
+  cell_storage_area:
+  - >-
+    Photorealistic eye-level view down a correctional storage area, fixed locker
+    banks, deep shelving bays, wire partition, secured doorway and worn floor,
+    clear horizontal foreground counter, natural perspective.
+  - >-
+    Photorealistic three-quarter view of institutional personal storage, painted
+    steel cabinets, linen shelves, wall-floor junction and corridor depth, clear
+    foreground sorting counter, realistic wear and asymmetry.
+  cell_wash_area:
+  - >-
+    Photorealistic eye-level view of a detention wash area, porcelain basin,
+    tiled backsplash, mirror recess, ventilation grille and worn grout, clear
+    dry foreground counter beside the sink, natural depth.
+  - >-
+    Photorealistic three-quarter view of an institutional washbasin alcove,
+    stainless sink, aged tiles, fixed wall shelf, high secure window and floor
+    junction, clear horizontal foreground counter.
+  communal_day_room:
+  - >-
+    Photorealistic eye-level wide view of a correctional communal day room,
+    bolted benches, fixed tables, tall secure windows, doorway and worn linoleum,
+    clear horizontal foreground table, deep natural perspective.
+  - >-
+    Photorealistic three-quarter view across an institutional day room, fixed
+    seating, wall panels, distant corridor opening and window light, clear
+    foreground tabletop, realistic asymmetry and room depth.
+  property_inspection_station:
+  - >-
+    Photorealistic eye-level view of a correctional property inspection station,
+    brushed metal counter, closed drawers, frosted pass-through window, rolling
+    cart in the distance, clear foreground inspection surface, natural depth.
+  - >-
+    Photorealistic three-quarter view of a secure belongings search station,
+    worn laminate counter, fixed cabinet doors, acrylic divider and corridor
+    doorway, clear horizontal foreground worktop, realistic institutional wear.
+  correctional_workshop:
+  - >-
+    Photorealistic eye-level view of a supervised correctional workshop, worn
+    workbench, empty pegboard, closed parts drawers, storage rack and broad aisle,
+    clear horizontal foreground bench, natural perspective.
+  - >-
+    Photorealistic three-quarter view inside an institutional workshop, fixed
+    steel cabinets, timber bench, wire partition, loading door and scuffed floor,
+    clear foreground work surface, realistic depth.
+  maintenance_service_area:
+  - >-
+    Photorealistic eye-level view of a correctional maintenance service area,
+    fixed blue cabinets, exposed conduit, ventilation grille, service door and
+    worn floor, clear horizontal foreground counter, natural depth.
+  - >-
+    Photorealistic three-quarter view down an institutional utility room, closed
+    service cabinets, steel shelving, cable conduit and corridor depth, clear
+    foreground maintenance bench, realistic wear and asymmetry.

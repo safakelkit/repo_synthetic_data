@@ -1,0 +1,222 @@
+base_config: configs/generation/experiments/sdxl_all_class_source_inpaint_64.yaml
+format_version: 1
+experiment_id: sdxl_all_class_pose_plane_pilot
+status: ready_for_experiment
+
+# Flat classes are homography-warped into the photographed support plane.
+# Upright and hinged classes retain their camera pose and are pinned by their
+# bottom edge to the same support point.
+pose_class_modes:
+  0: flat
+  1: flat
+  2: flat
+  3: flat
+  4: flat
+  5: flat
+  6: flat
+  7: flat
+  8: flat
+  9: flat
+  10: flat
+  11: upright
+  12: upright
+  13: upright
+  14: flat
+  15: hinged
+
+# For flat objects this is the apparent long side. For upright/hinged objects
+# it is the rendered height. Values are conservative at 1024x1024.
+pose_target_size_px:
+  0: 100
+  1: 110
+  2: 160
+  3: 175
+  4: 165
+  5: 110
+  6: 210
+  7: 120
+  8: 220
+  9: 170
+  10: 180
+  11: 190
+  12: 95
+  13: 140
+  14: 130
+  15: 135
+
+pose_mask_padding_px: 20
+pose_strength_by_mode:
+  flat: 0.42
+  upright: 0.48
+  hinged: 0.42
+pose_canny_scale_by_mode:
+  flat: 0.82
+  upright: 0.84
+  hinged: 0.82
+pose_strength_overrides:
+  5: 0.25
+  8: 0.25
+  11: 0.75
+  12: 0.15
+  14: 0.10
+  15: 0.18
+pose_canny_scale_overrides:
+  5: 0.95
+  8: 0.95
+  11: 0.90
+  12: 1.00
+  14: 1.00
+  15: 0.98
+pose_depth_compression_overrides:
+  14: 0.82
+pose_anchor_xy_overrides:
+  15:
+    cell_sleeping_area:
+      0: [745, 650]
+    cell_desk_area:
+      1: [455, 545]
+    communal_day_room:
+      0: [450, 700]
+    property_inspection_station:
+      1: [520, 650]
+pose_internal_edge_class_ids: [5, 8, 12, 14, 15]
+
+# These accepted sources have a clear class silhouette and useful internal
+# structure for the low-strength identity-preserving branch.
+silhouette_source:
+  preferred_stems:
+    5: [IMG_0375new_obj_00_crop_000045]
+    8: [IMG_20240806_105616745_obj_00_crop_000036]
+    14: [IMG_0494new_obj_00_crop_000044]
+    15: [IMG_0171new_obj_00_crop_000019]
+
+# The accepted real assets inside these semantic classes include multiple valid
+# forms. These prompts describe the selected silhouette instead of contradicting it.
+inpaint_all_target_prompts:
+  1: exactly one safety-match item matching the supplied outline, either a matchbox with wooden matches or a single wooden match
+  7: exactly one tobacco-cigarette item matching the supplied outline, either a cigarette package or a small group of cigarettes
+  8: exactly one handheld saw matching the supplied outline, with a visible cutting blade and handle or rigid frame
+  13: exactly one sealed alcoholic drink container matching the supplied outline, either a small glass bottle or beverage can
+
+pose_prompt_phrases:
+  flat: lying flat and fully supported on a horizontal surface, tight contact shadow
+  upright: upright with its flat base touching a horizontal surface, tight contact shadow
+  hinged: open with its lower base fully supported on a horizontal surface, tight contact shadow
+
+pose_prompt_template: >-
+  Photorealistic {target}, {pose}, realistic scale. {scene}. No people.
+
+pose_negative_prompt: >-
+  wrong object, duplicates, extra tools, deformed, fused, embedded in furniture,
+  wall-mounted, attached to wall, hanging, suspended, floating, balancing on one
+  tip, standing on an edge, cropped, hidden, oversized, tiny, hand, person,
+  readable text, logo, watermark, illustration, cartoon, CGI
+
+# Each center is on a visually confirmed support surface in the immutable plate.
+# u follows the surface width; v follows its near/far direction. Compression
+# controls the apparent depth of a flat object on that plane.
+pose_plane_placements:
+  cell_sleeping_area:
+    0:
+      center_xy: [650, 635]
+      upright_anchor_xy: [650, 665]
+      surface_axis_u: [1.0, 0.03]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.48
+    1:
+      center_xy: [680, 685]
+      upright_anchor_xy: [680, 725]
+      surface_axis_u: [1.0, -0.04]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.50
+  cell_desk_area:
+    0:
+      center_xy: [820, 555]
+      upright_anchor_xy: [820, 605]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.20, 1.0]
+      depth_compression: 0.48
+    1:
+      center_xy: [455, 535]
+      upright_anchor_xy: [455, 545]
+      surface_axis_u: [1.0, -0.05]
+      surface_axis_v: [-0.22, 1.0]
+      depth_compression: 0.45
+  cell_storage_area:
+    0:
+      center_xy: [470, 700]
+      upright_anchor_xy: [470, 700]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.15, 1.0]
+      depth_compression: 0.58
+    1:
+      center_xy: [625, 700]
+      upright_anchor_xy: [625, 700]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.58
+  cell_wash_area:
+    0:
+      center_xy: [500, 610]
+      upright_anchor_xy: [500, 680]
+      surface_axis_u: [1.0, -0.12]
+      surface_axis_v: [0.16, 1.0]
+      depth_compression: 0.43
+    1:
+      center_xy: [750, 605]
+      upright_anchor_xy: [750, 665]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.44
+  communal_day_room:
+    0:
+      center_xy: [450, 690]
+      upright_anchor_xy: [450, 735]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.20, 1.0]
+      depth_compression: 0.50
+    1:
+      center_xy: [680, 635]
+      upright_anchor_xy: [680, 695]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.48
+  property_inspection_station:
+    0:
+      center_xy: [520, 655]
+      upright_anchor_xy: [520, 650]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.45
+    1:
+      center_xy: [520, 655]
+      upright_anchor_xy: [520, 650]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.45
+  correctional_workshop:
+    0:
+      center_xy: [475, 570]
+      upright_anchor_xy: [475, 650]
+      surface_axis_u: [1.0, -0.03]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.48
+    1:
+      center_xy: [805, 620]
+      upright_anchor_xy: [805, 685]
+      surface_axis_u: [1.0, -0.02]
+      surface_axis_v: [-0.10, 1.0]
+      depth_compression: 0.46
+  maintenance_service_area:
+    0:
+      center_xy: [520, 735]
+      upright_anchor_xy: [520, 735]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.05, 1.0]
+      depth_compression: 0.55
+    1:
+      center_xy: [560, 740]
+      upright_anchor_xy: [560, 740]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.05, 1.0]
+      depth_compression: 0.55

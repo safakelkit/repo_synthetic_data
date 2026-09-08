@@ -1,0 +1,334 @@
+base_config: configs/generation/experiments/sdxl_all_class_pose_plane_pilot.yaml
+format_version: 1
+experiment_id: sdxl_pose_background_diversity_32
+status: ready_for_experiment
+output_root: data/synthetic/sdxl_background_diversity_experiment
+plate_variants_per_scene: 4
+plate_variant_selection: balanced_by_scene
+plate_seed_overrides:
+  "property_inspection_station:2": 23842
+  "correctional_workshop:0": 23843
+  "correctional_workshop:2": 23844
+  "maintenance_service_area:3": 23845
+
+# Variants 0-1 retain the successful pilot compositions. Variants 2-3 change
+# viewpoint, fixture layout and lighting while retaining a clear support plane.
+scene_plate_prompts:
+  cell_sleeping_area:
+    - >-
+      Photorealistic eye-level three-quarter view of a correctional cell sleeping
+      area, blue steel bunk frame, recessed locker, high secure window, scuffed
+      institutional floor, clear horizontal foreground shelf, natural room depth.
+    - >-
+      Photorealistic eye-level view inside a worn detention sleeping room, fixed
+      bed frame, closed metal cabinet, barred upper window, wall-floor junction,
+      clear foreground desk surface, natural asymmetry and perspective depth.
+    - >-
+      Photorealistic view from the doorway of a compact correctional sleeping cell,
+      single steel bed along the left wall, fixed writing shelf on the right, narrow
+      secure window, ventilation grille, worn floor and deep diagonal perspective,
+      clear unobstructed mattress surface, cool daylight.
+    - >-
+      Photorealistic opposite-corner view of an older detention sleeping room,
+      stacked metal bunks on the right, recessed storage cabinet, solid cell door,
+      wall junctions and floor wear, clear fixed table in the foreground, warm
+      overhead institutional light and natural asymmetry.
+  cell_desk_area:
+    - >-
+      Photorealistic eye-level three-quarter view inside a compact correctional
+      housing cell, one bare wall-mounted laminate writing shelf, bolted steel stool,
+      locked drawer, pinboard, high barred window and solid cell door, completely
+      empty foreground writing surface, visible floor and diagonal room depth.
+    - >-
+      Photorealistic eye-level view of a worn detention cell writing alcove, one
+      simple fixed steel desk, recessed empty cubby, bolted stool, closed cabinet
+      doors, ventilation grille and scuffed floor, bare unobstructed desktop,
+      secure institutional construction and natural asymmetric perspective.
+    - >-
+      Photorealistic side-angle view of a secure detention cell writing area, long
+      bare wall-mounted counter, one fixed steel stool, empty shallow concrete
+      shelves, closed personal locker, high narrow barred window, cell door and
+      visible floor depth, completely empty desktop under soft daylight.
+    - >-
+      Photorealistic doorway view into an older correctional housing cell desk
+      alcove, compact fixed writing shelf, bolted steel chair, noticeboard behind
+      protective glazing, ventilation grille, locked drawer unit and secure door,
+      completely bare foreground worktop, mixed daylight and fluorescent light.
+  cell_storage_area:
+    - >-
+      Photorealistic eye-level view down a correctional storage area, fixed locker
+      banks, deep shelving bays, wire partition, secured doorway and worn floor,
+      clear horizontal foreground counter, natural perspective.
+    - >-
+      Photorealistic three-quarter view of institutional personal storage, painted
+      steel cabinets, linen shelves, wall-floor junction and corridor depth, clear
+      foreground sorting counter, realistic wear and asymmetry.
+    - >-
+      Photorealistic wide-angle view across a secure linen storage room, fixed open
+      shelves with folded neutral bedding, closed steel lockers, mesh divider and a
+      distant service door, broad clear sorting table, side lighting and strong
+      perspective depth.
+    - >-
+      Photorealistic low eye-level view along an institutional evidence storage
+      aisle, wire-mesh cages on one side, numbered closed cabinets on the other,
+      ventilation duct, worn concrete floor and an empty fixed packing bench,
+      asymmetric fluorescent lighting.
+  cell_wash_area:
+    - >-
+      Photorealistic eye-level view of a detention wash area, porcelain basin,
+      tiled backsplash, mirror recess, ventilation grille and worn grout, clear
+      dry foreground counter beside the sink, natural depth.
+    - >-
+      Photorealistic three-quarter view of an institutional washbasin alcove,
+      stainless sink, aged tiles, fixed wall shelf, high secure window and floor
+      junction, clear horizontal foreground counter.
+    - >-
+      Photorealistic oblique view down a correctional washroom with a row of fixed
+      stainless basins, long mirror, tiled walls, floor drain and high windows,
+      clear dry counter section in the foreground, cool side light and deep room
+      perspective.
+    - >-
+      Photorealistic doorway view of an older institutional wash alcove, one deep
+      porcelain sink, tiled privacy return, metal shelf, ventilation grille and
+      worn non-slip floor, clear empty ledge beside the basin, warm ceiling light.
+  communal_day_room:
+    - >-
+      Photorealistic eye-level wide view of a correctional communal day room,
+      bolted benches, fixed tables, tall secure windows, doorway and worn linoleum,
+      clear horizontal foreground table, deep natural perspective.
+    - >-
+      Photorealistic three-quarter view across an institutional day room, fixed
+      seating, wall panels, distant corridor opening and window light, clear
+      foreground tabletop, realistic asymmetry and room depth.
+    - >-
+      Photorealistic corner view of a correctional day room inside a secure prison,
+      two heavy steel tables bolted to the floor, attached molded seats, barred high
+      windows, mesh security divider, solid controlled door, scuffed linoleum and a
+      completely empty foreground table, long room depth and cool daylight.
+    - >-
+      Photorealistic doorway view through an older correctional day room, fixed
+      benches around a central column, two heavy tables, radiator cover, secure
+      windows and scuffed floor, clear near tabletop, soft overcast light and
+      asymmetrical composition.
+  property_inspection_station:
+    - >-
+      Photorealistic eye-level view of a correctional property inspection station,
+      brushed metal counter, closed drawers, frosted pass-through window, rolling
+      cart in the distance, clear foreground inspection surface, natural depth.
+    - >-
+      Photorealistic three-quarter view of a secure belongings search station,
+      worn laminate counter, fixed cabinet doors, acrylic divider and corridor
+      doorway, clear horizontal foreground worktop, realistic institutional wear.
+    - >-
+      Empty property search room inside a secure prison, photorealistic. One wide
+      bare stainless inspection table fills the lower foreground. Numbered property
+      lockers, pass-through window, mesh divider and barred door behind it. Clear
+      unobstructed tabletop, fluorescent institutional lighting, diagonal depth.
+    - >-
+      Photorealistic opposite-angle view of a correctional belongings search room,
+      L-shaped bare inspection counter, fixed transparent security divider, sealed
+      property lockers, closed drawer banks, small pass-through slot, secure door
+      and worn floor, broad empty foreground counter and natural perspective depth.
+  correctional_workshop:
+    - >-
+      Empty secure prison repair workshop after shutdown, photorealistic. One wide
+      bare steel workbench fills the lower foreground. Locked equipment cabinets,
+      closed drawers, empty pegboard, mesh partition and barred high windows behind
+      it. Clear unobstructed tabletop, worn floor and diagonal room depth.
+    - >-
+      Photorealistic three-quarter view inside an institutional workshop, fixed
+      steel cabinets, timber bench, wire partition, loading door and scuffed floor,
+      clear foreground work surface, realistic depth.
+    - >-
+      Empty correctional maintenance workshop after cleanup, photorealistic. One
+      large bare timber workbench fills the lower foreground. Locked steel cabinets,
+      empty shadow board, mesh security partition, extraction duct and barred high
+      windows behind it. Clear unobstructed surface and deep diagonal perspective.
+    - >-
+      Photorealistic diagonal view inside a locked correctional repair workshop after
+      cleanup, one large completely bare steel workbench prominent in the foreground,
+      closed parts drawers, sealed equipment cabinets, caged storage, overhead conduit,
+      worn concrete floor and strong perspective under uneven fluorescent light.
+
+  maintenance_service_area:
+    - >-
+      Photorealistic eye-level view of a correctional maintenance service area,
+      fixed blue cabinets, exposed conduit, ventilation grille, service door and
+      worn floor, clear horizontal foreground counter, natural depth.
+    - >-
+      Photorealistic three-quarter view down an institutional utility room, closed
+      service cabinets, steel shelving, cable conduit and corridor depth, clear
+      foreground maintenance bench, realistic wear and asymmetry.
+    - >-
+      Photorealistic oblique view of a secure mechanical service room, fixed gray
+      workbench, pipe runs, electrical enclosures, ventilation trunk and closed
+      storage, broad unobstructed foreground floor, cool industrial lighting and
+      deep perspective.
+    - >-
+      Empty secure prison maintenance corridor, photorealistic doorway view. Closed
+      steel service cabinets line one side, exposed conduit, ventilation grilles,
+      locked utility doors and recessed equipment bays create depth. Broad clear
+      foreground floor, warm fluorescent pools and natural asymmetry.
+
+plate_negative_prompt: >-
+  people, hand, loose objects, aerosol can, bottle, scissors, knife, saw, hammer,
+  pliers, wrench, screwdriver, drill, computer, laptop, monitor, keyboard, phone,
+  food, produce, kitchen, office cubicle, readable text, logo, impossible geometry,
+  floating furniture, illustration, cartoon, CGI
+
+pose_target_size_scene_overrides:
+  6:
+    correctional_workshop:
+      1: 155
+  11:
+    property_inspection_station:
+      2: 140
+
+pose_anchor_xy_overrides:
+  15:
+    cell_desk_area:
+      1: [405, 635]
+
+# V0-v1 inherit placements from the validated pose-plane pilot unless the plate
+# was replaced below. V2-v3 and replaced plates use visually reviewed supports.
+pose_plane_placements:
+  cell_sleeping_area:
+    2:
+      center_xy: [310, 820]
+      upright_anchor_xy: [310, 850]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [545, 855]
+      upright_anchor_xy: [545, 880]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  cell_desk_area:
+    0:
+      center_xy: [830, 640]
+      upright_anchor_xy: [830, 675]
+      surface_axis_u: [1.0, 0.08]
+      surface_axis_v: [-0.20, 1.0]
+      depth_compression: 0.47
+    1:
+      center_xy: [405, 610]
+      upright_anchor_xy: [405, 635]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.46
+    2:
+      center_xy: [215, 700]
+      upright_anchor_xy: [215, 745]
+      surface_axis_u: [1.0, -0.10]
+      surface_axis_v: [0.12, 1.0]
+      depth_compression: 0.48
+    3:
+      center_xy: [790, 820]
+      upright_anchor_xy: [790, 850]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  cell_storage_area:
+    2:
+      center_xy: [515, 845]
+      upright_anchor_xy: [515, 875]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [500, 830]
+      upright_anchor_xy: [500, 860]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  cell_wash_area:
+    2:
+      center_xy: [515, 825]
+      upright_anchor_xy: [515, 855]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [445, 845]
+      upright_anchor_xy: [445, 875]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  communal_day_room:
+    0:
+      center_xy: [600, 620]
+      upright_anchor_xy: [600, 675]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.16, 1.0]
+      depth_compression: 0.48
+    2:
+      center_xy: [405, 630]
+      upright_anchor_xy: [405, 690]
+      surface_axis_u: [1.0, 0.02]
+      surface_axis_v: [-0.16, 1.0]
+      depth_compression: 0.48
+    3:
+      center_xy: [770, 815]
+      upright_anchor_xy: [770, 845]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+  property_inspection_station:
+    1:
+      center_xy: [520, 580]
+      upright_anchor_xy: [520, 605]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.08, 1.0]
+      depth_compression: 0.45
+    2:
+      center_xy: [650, 515]
+      upright_anchor_xy: [650, 555]
+      surface_axis_u: [1.0, 0.05]
+      surface_axis_v: [-0.18, 1.0]
+      depth_compression: 0.46
+    3:
+      center_xy: [650, 610]
+      upright_anchor_xy: [650, 660]
+      surface_axis_u: [1.0, 0.03]
+      surface_axis_v: [-0.16, 1.0]
+      depth_compression: 0.47
+  correctional_workshop:
+    0:
+      center_xy: [760, 640]
+      upright_anchor_xy: [760, 690]
+      surface_axis_u: [1.0, 0.02]
+      surface_axis_v: [-0.14, 1.0]
+      depth_compression: 0.47
+    1:
+      center_xy: [235, 610]
+      upright_anchor_xy: [235, 665]
+      surface_axis_u: [1.0, -0.06]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.46
+    2:
+      center_xy: [770, 735]
+      upright_anchor_xy: [770, 795]
+      surface_axis_u: [1.0, 0.04]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.48
+    3:
+      center_xy: [500, 520]
+      upright_anchor_xy: [500, 575]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [-0.12, 1.0]
+      depth_compression: 0.46
+  maintenance_service_area:
+    2:
+      center_xy: [545, 830]
+      upright_anchor_xy: [545, 860]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
+    3:
+      center_xy: [515, 820]
+      upright_anchor_xy: [515, 850]
+      surface_axis_u: [1.0, 0.0]
+      surface_axis_v: [0.0, 1.0]
+      depth_compression: 0.58
