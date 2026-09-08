@@ -46,11 +46,15 @@ target_prompts:
     and push-button nozzle, flat base visibly touching a horizontal surface with
     a natural contact shadow, fully visible, not spraying.
 direct_aerosol_prompt: >-
-  Documentary photograph inside {scene}. In the foreground, exactly one
-  commercial deodorant aerosol spray can stands upright on a horizontal
-  countertop. Cylindrical metal can, printed color label, rounded plastic cap
-  and clearly visible push-button spray nozzle. Its flat base rests firmly on
-  the counter with a natural contact shadow. Fully visible, not spraying.
+  Photo of exactly one deodorant spray can centered on a foreground counter,
+  one quarter of image height. Cylindrical metal body, colored label, rounded
+  cap, visible push-button nozzle, flat base touching counter, contact shadow.
+  {scene}. Empty fixed furniture. No people.
+direct_aerosol_negative_prompt: >-
+  multiple cans, duplicate can, extra aerosol, bottles, jars, containers,
+  toiletries, stocked shelves, clutter of products, tiny target, distant target,
+  floating target, cropped target, wall-mounted target, hand, person, spray
+  cloud, readable text, logo, watermark, illustration, cartoon, CGI
 final_scene_prompts:
   cell_sleeping_area: Photorealistic worn correctional cell with fixed bed, locker, window and room depth.
   cell_desk_area: Photorealistic correctional desk area with fixed desk, chair, cabinets and room depth.

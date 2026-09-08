@@ -364,7 +364,7 @@ def run_direct_aerosol(generator, helper, config: dict[str, Any], models: dict[s
         seed = int(config["seed"]) + int(sample["index"])
         started = time.monotonic()
         result = pipe(
-            prompt=prompt, negative_prompt=config["final_negative_prompt"],
+            prompt=prompt, negative_prompt=config["direct_aerosol_negative_prompt"],
             width=int(config["output_size"][0]), height=int(config["output_size"][1]),
             num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
             generator=torch.Generator(device="cpu").manual_seed(seed),
