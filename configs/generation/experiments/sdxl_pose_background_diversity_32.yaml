@@ -29,22 +29,25 @@ scene_plate_prompts:
       overhead institutional light and natural asymmetry.
   cell_desk_area:
     - >-
-      Photorealistic eye-level three-quarter view of a correctional cell desk area,
-      fixed laminate desk, bolted chair, locked drawers, pinboard and high window,
-      clear horizontal foreground desktop, visible room depth.
+      Photorealistic eye-level three-quarter view inside a compact correctional
+      housing cell, one bare wall-mounted laminate writing shelf, bolted steel stool,
+      locked drawer, pinboard, high barred window and solid cell door, completely
+      empty foreground writing surface, visible floor and diagonal room depth.
     - >-
-      Photorealistic eye-level view of an institutional detention desk alcove,
-      worn desk surface in the foreground, recessed cubby, steel chair, cabinet
-      doors and scuffed floor, natural asymmetry and perspective.
+      Photorealistic eye-level view of a worn detention cell writing alcove, one
+      simple fixed steel desk, recessed empty cubby, bolted stool, closed cabinet
+      doors, ventilation grille and scuffed floor, bare unobstructed desktop,
+      secure institutional construction and natural asymmetric perspective.
     - >-
-      Photorealistic side-angle view of a secure institutional work desk, long
-      wall-mounted writing counter, fixed stool, shallow shelves, closed filing
-      cabinet, high window and visible floor depth, clear empty desktop under soft
-      daylight.
+      Photorealistic side-angle view of a secure detention cell writing area, long
+      bare wall-mounted counter, one fixed steel stool, empty shallow concrete
+      shelves, closed personal locker, high narrow barred window, cell door and
+      visible floor depth, completely empty desktop under soft daylight.
     - >-
-      Photorealistic doorway view into a correctional administrative alcove,
-      compact L-shaped fixed desk, bolted chair, noticeboard, vent and locked drawer
-      units, clear foreground worktop, mixed window and fluorescent lighting.
+      Photorealistic doorway view into an older correctional housing cell desk
+      alcove, compact fixed writing shelf, bolted steel chair, noticeboard behind
+      protective glazing, ventilation grille, locked drawer unit and secure door,
+      completely bare foreground worktop, mixed daylight and fluorescent light.
   cell_storage_area:
     - >-
       Photorealistic eye-level view down a correctional storage area, fixed locker
@@ -111,33 +114,36 @@ scene_plate_prompts:
       worn laminate counter, fixed cabinet doors, acrylic divider and corridor
       doorway, clear horizontal foreground worktop, realistic institutional wear.
     - >-
-      Photorealistic side view along a secure intake inspection counter, long
-      stainless work surface, pass-through glazing, locked under-counter cabinets,
-      wall-mounted empty cubbies and a distant secure door, clear near worktop and
-      directional fluorescent light.
+      Photorealistic side view along a correctional property intake inspection
+      counter, long bare stainless search surface, secure pass-through glazing,
+      numbered locked property lockers, wall-mounted empty cubbies and distant
+      barred door, completely empty near worktop under directional fluorescent light.
     - >-
-      Photorealistic opposite-angle view of an institutional property processing
-      room, L-shaped laminate inspection desk, fixed transparent divider, closed
-      drawer banks, document slot and worn floor, broad empty counter in the
-      foreground, natural perspective depth.
+      Photorealistic opposite-angle view of a correctional belongings search room,
+      L-shaped bare inspection counter, fixed transparent security divider, sealed
+      property lockers, closed drawer banks, small pass-through slot, secure door
+      and worn floor, broad empty foreground counter and natural perspective depth.
   correctional_workshop:
     - >-
-      Photorealistic eye-level view of a supervised correctional workshop, worn
-      workbench, empty pegboard, closed parts drawers, storage rack and broad aisle,
-      clear horizontal foreground bench, natural perspective.
+      Photorealistic eye-level view of a supervised correctional workshop after
+      shutdown, completely bare worn workbench, empty pegboard, all equipment locked
+      behind closed steel cabinet doors, closed parts drawers, caged storage and a
+      broad aisle, unobstructed foreground bench and natural perspective.
     - >-
       Photorealistic three-quarter view inside an institutional workshop, fixed
       steel cabinets, timber bench, wire partition, loading door and scuffed floor,
       clear foreground work surface, realistic depth.
     - >-
-      Photorealistic view from the end of a secure carpentry workshop, heavy central
-      timber bench, fixed wall cabinets, empty tool board, lumber rack and extraction
-      duct, clear uncluttered near work surface, window light across a deep aisle.
+      Photorealistic view from the end of a secure institutional workshop after
+      cleanup, completely bare central timber bench, locked wall cabinets, empty
+      shadow board, lumber stored in closed racks, extraction duct and mesh security
+      partition, unobstructed near work surface and window light across a deep aisle.
     - >-
-      Photorealistic diagonal view across an institutional repair workshop, steel
-      fabrication tables, closed parts drawers, caged storage, overhead conduit and
-      worn concrete floor, broad empty foreground bench, uneven fluorescent light
-      and strong perspective.
+      Photorealistic diagonal view across a locked correctional repair workshop
+      after cleanup, completely bare steel fabrication tables, closed parts drawers,
+      sealed equipment cabinets, caged storage, overhead conduit and worn concrete
+      floor, empty foreground bench, uneven fluorescent light and strong perspective.
+
   maintenance_service_area:
     - >-
       Photorealistic eye-level view of a correctional maintenance service area,
@@ -157,3 +163,11 @@ scene_plate_prompts:
       stainless service sink, locked wall cabinets, exposed conduit, utility door
       and equipment alcoves, clear empty foreground floor, warm fluorescent pools
       and natural asymmetry.
+
+plate_negative_prompt: >-
+  people, person, hand, loose handheld objects, tools, hand tools, power tools,
+  aerosol can, spray can, bottle, scissors, knife, saw, hammer, pliers, wrench,
+  screwdriver, drill, computer, laptop, monitor, keyboard, phone, office cubicle,
+  food, produce, commercial kitchen, restaurant, readable text, logo, watermark,
+  surreal architecture, impossible geometry, floating furniture, illustration,
+  cartoon, CGI

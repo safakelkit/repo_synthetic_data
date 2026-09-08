@@ -122,14 +122,17 @@ def make_contact_sheet(paths: list[Path], output: Path, labels: list[str]) -> No
     canvas.save(output)
 
 
-def run_plates(helper, feasibility, config: dict[str, Any], models: dict[str, Any], gpu: int, output_root: Path) -> None:
-    output_dir = output_root / "plates"
+def run_plates(
+    helper, feasibility, config: dict[str, Any], models: dict[str, Any], gpu: int,
+    output_root: Path, records_to_generate: list[dict[str, Any]], output_name: str,
+) -> None:
+    output_dir = output_root / output_name
     if output_dir.exists():
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
     output_dir.mkdir(parents=True)
     pipe = load_base_pipeline(models, gpu)
     records = []
-    for position, record in enumerate(plate_records(config), start=1):
+    for position, record in enumerate(records_to_generate, start=1):
         started = time.monotonic()
         image = pipe(
             prompt=record["prompt"], negative_prompt=config["plate_negative_prompt"],
@@ -144,7 +147,7 @@ def run_plates(helper, feasibility, config: dict[str, Any], models: dict[str, An
         records.append({**record, "output": str(path.relative_to(REPO_ROOT)),
                         "sha256": helper.sha256(path),
                         "inference_seconds": round(time.monotonic() - started, 3)})
-        print(f"[plates {position}/{len(plate_records(config))}] {path.name}", flush=True)
+        print(f"[plates {position}/{len(records_to_generate)}] {path.name}", flush=True)
     paths = [REPO_ROOT / row["output"] for row in records]
     make_contact_sheet(paths, output_dir / "contact_sheet.png",
                        [f"{r['scene_name']} v{r['variant']}" for r in records])
@@ -1063,6 +1066,14 @@ def main() -> None:
         default="plates",
     )
     parser.add_argument("--final-name", default="final")
+    parser.add_argument(
+        "--plate-key", action="append", default=[],
+        help="Generate only one scene variant, formatted as scene_name:variant; repeatable",
+    )
+    parser.add_argument(
+        "--plate-output-name", default="plates",
+        help="Output directory below output_root for the plates stage",
+    )
     parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
@@ -1073,8 +1084,21 @@ def main() -> None:
     scenes = helper.load_yaml(helper.repo_path(config["scene_policy"]))
     environment = validate_environment(helper, feasibility, config, require_clean=not args.preflight_only)
     output_root = helper.repo_path(config["output_root"])
+    all_plate_records = plate_records(config)
+    requested_plate_keys = set(args.plate_key)
+    known_plate_keys = {
+        f"{row['scene_name']}:{row['variant']}" for row in all_plate_records
+    }
+    unknown_plate_keys = requested_plate_keys - known_plate_keys
+    if unknown_plate_keys:
+        raise ValueError(f"Unknown plate keys: {sorted(unknown_plate_keys)}")
+    selected_plate_records = [
+        row for row in all_plate_records
+        if not requested_plate_keys
+        or f"{row['scene_name']}:{row['variant']}" in requested_plate_keys
+    ]
     stage_samples = {
-        "plates": len(plate_records(config)), "depth": len(plate_records(config)),
+        "plates": len(selected_plate_records), "depth": len(all_plate_records),
         "final": len(compact_schedule(generator, config, scenes)),
         "img2img": len(compact_schedule(generator, config, scenes)), "direct_aerosol": 4,
         "inpaint_aerosol": 4, "inpaint_all": len(compact_schedule(generator, config, scenes)),
@@ -1089,7 +1113,11 @@ def main() -> None:
         print(json.dumps(report, indent=2)); return
     if args.stage != "pose_preview":
         require_gpu(args.gpu)
-    if args.stage == "plates": run_plates(helper, feasibility, config, models, args.gpu, output_root)
+    if args.stage == "plates":
+        run_plates(
+            helper, feasibility, config, models, args.gpu, output_root,
+            selected_plate_records, args.plate_output_name,
+        )
     elif args.stage == "depth": run_depth(helper, config, args.gpu, output_root)
     elif args.stage == "final":
         run_final(generator, helper, config, models, scenes, args.gpu, output_root,
