@@ -9,6 +9,7 @@ import json
 import random
 import shutil
 import subprocess
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ from typing import Any
 import cv2
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generate_copypaste_dataset import (
     apply_degradations,
     build_degradation_schedule,
@@ -82,6 +84,31 @@ def make_contact_sheet(records: list[dict[str, Any]], output: Path) -> None:
             fill="black",
         )
     sheet.save(output)
+
+
+def write_nested_subset_manifests(
+    records: list[dict[str, Any]], output_root: Path
+) -> list[dict[str, Any]]:
+    """Write exact class-balanced nested image lists for quantity experiments."""
+    manifests = []
+    for count in (512, 1024, 1536, 2048):
+        subset = records[:count]
+        class_counts = Counter(int(row["class_id"]) for row in subset)
+        expected_per_class = count // 16
+        if class_counts != Counter({class_id: expected_per_class for class_id in range(16)}):
+            raise ValueError(f"Subset {count} is not class-balanced: {class_counts}")
+        path = output_root / f"SDXL-M{count:04d}.txt"
+        with path.open("w", encoding="utf-8") as handle:
+            for row in subset:
+                handle.write(f"./images/{Path(row['output']).name}\n")
+        manifests.append({
+            "experiment_id": f"SDXL-M{count:04d}",
+            "images": count,
+            "images_per_class": expected_per_class,
+            "manifest": stored_path(path),
+            "sha256": sha256(path),
+        })
+    return manifests
 
 
 def validate_source(records: list[dict[str, Any]], policy: dict[str, Any]) -> Counter[int]:
@@ -197,6 +224,7 @@ def main() -> None:
             print(f"[degradation {position}/{len(records)}]", flush=True)
 
     make_contact_sheet(output_records, output_root / "contact_sheet_by_severity.png")
+    subset_manifests = write_nested_subset_manifests(output_records, output_root)
     manifest = {
         "status": "generated_pending_post_degradation_visibility_qc",
         "training_use_forbidden": True,
@@ -207,6 +235,7 @@ def main() -> None:
         "degradation_seed": degradation_seed,
         "code_revision": git_revision(),
         "severity_counts": dict(severity_counts),
+        "subset_manifests": subset_manifests,
         "records": output_records,
     }
     (output_root / "manifest.json").write_text(

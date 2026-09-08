@@ -1,0 +1,8 @@
+base_config: configs/generation/experiments/sdxl_pose_background_diversity_32.yaml
+format_version: 1
+experiment_id: sdxl_canonical_2048
+dataset_role: canonical_production_candidate
+status: ready_for_experiment
+expected_images: 2048
+images_per_class_scene: 32
+
