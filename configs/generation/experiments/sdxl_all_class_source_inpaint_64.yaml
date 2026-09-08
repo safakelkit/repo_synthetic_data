@@ -47,10 +47,8 @@ inpaint_all_plate_target_boxes:
     1: [180, 450, 510, 625]
 
 inpaint_all_prompt_template: >-
-  Photo of {target}. The single object is fully visible on a clear horizontal
-  foreground work surface, at a realistic inspection scale and perspective,
-  with natural surface contact and a soft contact shadow. {scene}. Empty fixed
-  furniture. No people.
+  Photo of {target}, fully visible at realistic scale on a horizontal foreground
+  surface, with correct perspective and a contact shadow. {scene}. No people.
 
 inpaint_all_target_prompts:
   0: exactly one disposable pocket lighter with a visible ignition wheel and metal top
@@ -71,9 +69,6 @@ inpaint_all_target_prompts:
   15: exactly one open laptop with a hinged screen, keyboard and trackpad clearly visible
 
 inpaint_all_negative_prompt: >-
-  wrong object, multiple target objects, duplicate target, extra tools, deformed
-  target, fused object, object embedded in furniture, wall-mounted target, target
-  attached to wall, vertical display board, floating target, missing contact
-  shadow, cropped target, hidden target, tiny distant target, hand, person,
-  readable text, logo, watermark, illustration, cartoon, CGI, additional loose
-  handheld objects in background
+  wrong object, duplicates, extra tools, deformed, fused, embedded in furniture,
+  wall-mounted, attached to wall, floating, cropped, hidden, tiny, hand, person,
+  readable text, logo, watermark, illustration, cartoon, CGI
