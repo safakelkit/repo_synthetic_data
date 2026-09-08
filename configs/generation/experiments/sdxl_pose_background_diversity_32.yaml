@@ -177,6 +177,9 @@ plate_negative_prompt: >-
   floating furniture, illustration, cartoon, CGI
 
 pose_target_size_scene_overrides:
+  6:
+    correctional_workshop:
+      1: 155
   11:
     property_inspection_station:
       2: 140
