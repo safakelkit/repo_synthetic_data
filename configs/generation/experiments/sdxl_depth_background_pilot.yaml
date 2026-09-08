@@ -45,6 +45,12 @@ target_prompts:
     One upright deodorant aerosol spray can, cylindrical metal body, rounded cap
     and push-button nozzle, flat base visibly touching a horizontal surface with
     a natural contact shadow, fully visible, not spraying.
+direct_aerosol_prompt: >-
+  Documentary photograph inside {scene}. In the foreground, exactly one
+  commercial deodorant aerosol spray can stands upright on a horizontal
+  countertop. Cylindrical metal can, printed color label, rounded plastic cap
+  and clearly visible push-button spray nozzle. Its flat base rests firmly on
+  the counter with a natural contact shadow. Fully visible, not spraying.
 final_scene_prompts:
   cell_sleeping_area: Photorealistic worn correctional cell with fixed bed, locker, window and room depth.
   cell_desk_area: Photorealistic correctional desk area with fixed desk, chair, cabinets and room depth.

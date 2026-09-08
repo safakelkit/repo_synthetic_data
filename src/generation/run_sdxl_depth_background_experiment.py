@@ -349,11 +349,44 @@ def run_img2img(generator, helper, config: dict[str, Any], models: dict[str, Any
     write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
 
 
+def run_direct_aerosol(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str) -> None:
+    """Generate class 11 directly as a coherent full scene without ControlNet."""
+    output_dir = output_root / final_name
+    if output_dir.exists():
+        raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    (output_dir / "images").mkdir(parents=True)
+    pipe = load_base_pipeline(models, gpu)
+    schedule = [row for row in compact_schedule(generator, config, scenes) if int(row["class_id"]) == 11]
+    records = []
+    for position, sample in enumerate(schedule, start=1):
+        scene = config["final_scene_prompts"][sample["scene_name"]]
+        prompt = config["direct_aerosol_prompt"].format(scene=scene.lower().rstrip("."))
+        seed = int(config["seed"]) + int(sample["index"])
+        started = time.monotonic()
+        result = pipe(
+            prompt=prompt, negative_prompt=config["final_negative_prompt"],
+            width=int(config["output_size"][0]), height=int(config["output_size"][1]),
+            num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
+            generator=torch.Generator(device="cpu").manual_seed(seed),
+        ).images[0]
+        torch.cuda.synchronize(gpu)
+        name = f"g{sample['index']:05d}_c11_{sample['scene_name']}.png"
+        image_path = output_dir / "images" / name
+        result.save(image_path)
+        records.append({**sample, "seed": seed, "prompt": prompt,
+                        "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
+                        "inference_seconds": round(time.monotonic()-started, 3), "training_use_forbidden": True})
+        print(f"[direct aerosol {position}/{len(schedule)}] {name}", flush=True)
+    make_contact_sheet([REPO_ROOT/r["output"] for r in records], output_dir/"contact_sheet.png",
+                       [r["scene_name"] for r in records])
+    write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img"), default="plates")
+    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img", "direct_aerosol"), default="plates")
     parser.add_argument("--final-name", default="final")
     parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
@@ -377,9 +410,12 @@ def main() -> None:
     elif args.stage == "final":
         run_final(generator, helper, config, models, scenes, args.gpu, output_root,
                   args.final_name, set(args.sample_indices) if args.sample_indices else None)
-    else:
+    elif args.stage == "img2img":
         run_img2img(generator, helper, config, models, scenes, args.gpu, output_root,
                     args.final_name, set(args.sample_indices) if args.sample_indices else None)
+    else:
+        run_direct_aerosol(generator, helper, config, models, scenes, args.gpu,
+                           output_root, args.final_name)
 
 
 if __name__ == "__main__":
