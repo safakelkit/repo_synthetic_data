@@ -23,6 +23,7 @@ depth_controlnet:
   guidance_end: 0.75
 canny_guidance_start: 0.0
 canny_guidance_end: 1.0
+img2img_strength: 0.65
 depth_target_clearance_px: -1
 final_negative_prompt: >-
   wrong object, duplicate target, deformed target, wall-mounted target,

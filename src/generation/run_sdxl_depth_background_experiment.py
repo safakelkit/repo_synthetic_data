@@ -279,11 +279,80 @@ def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any],
                              "review_status": "pending", "review_reason": ""})
 
 
+def run_img2img(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str, sample_indices: set[int] | None) -> None:
+    """Preserve an organic plate while Canny introduces the target object."""
+    from diffusers import ControlNetModel, StableDiffusionXLControlNetImg2ImgPipeline
+
+    output_dir = output_root / final_name
+    if output_dir.exists():
+        raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    (output_dir / "images").mkdir(parents=True)
+    (output_dir / "controls").mkdir()
+    base = models["sdxl"]["base_model"]
+    canny_spec = models["sdxl"]["controlnet"]
+    controlnet = ControlNetModel.from_pretrained(
+        canny_spec["id"], revision=canny_spec["revision"], torch_dtype=torch.float16,
+        variant="fp16", use_safetensors=True,
+    )
+    pipe = StableDiffusionXLControlNetImg2ImgPipeline.from_pretrained(
+        base["id"], revision=base["revision"], controlnet=controlnet,
+        torch_dtype=torch.float16, variant="fp16", use_safetensors=True,
+    )
+    pipe.enable_model_cpu_offload(gpu_id=gpu)
+    pipe.vae.enable_slicing()
+    manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
+    target_control_config = {**config, "target_conditioning_mode": "target_only"}
+    scales = {int(k): v for k, v in config["controlnet_conditioning_scale"]["class_overrides"].items()}
+    schedule = compact_schedule(generator, config, scenes)
+    if sample_indices is not None:
+        schedule = [row for row in schedule if int(row["index"]) in sample_indices]
+        missing = sample_indices - {int(row["index"]) for row in schedule}
+        if missing:
+            raise ValueError(f"Requested sample indices are unavailable: {sorted(missing)}")
+    records = []
+    for position, sample in enumerate(schedule, start=1):
+        row = generator.select_mask(helper, config, manifest_path, sample)
+        _, canny, condition = helper.build_control(target_control_config, row, sample["index"], sample["scene_name"])
+        variant = int(sample["class_attempt_index"]) % int(config["plate_variants_per_scene"])
+        plate_path = output_root / "plates" / f"{sample['scene_name']}_v{variant}.png"
+        with Image.open(plate_path).convert("RGB") as source:
+            plate = source.copy()
+        prompt = f"{config['target_prompts'][sample['class_id']]} {config['final_scene_prompts'][sample['scene_name']]}"
+        canny_scale = float(scales.get(sample["class_id"], config["controlnet_conditioning_scale"]["default"]))
+        seed = int(config["seed"]) + int(sample["index"])
+        started = time.monotonic()
+        result = pipe(
+            prompt=prompt, negative_prompt=config["final_negative_prompt"], image=plate,
+            control_image=canny, strength=float(config["img2img_strength"]),
+            width=int(config["output_size"][0]), height=int(config["output_size"][1]),
+            num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
+            controlnet_conditioning_scale=canny_scale,
+            control_guidance_start=float(config["canny_guidance_start"]),
+            control_guidance_end=float(config["canny_guidance_end"]),
+            generator=torch.Generator(device="cpu").manual_seed(seed),
+        ).images[0]
+        torch.cuda.synchronize(gpu)
+        name = f"g{sample['index']:05d}_c{sample['class_id']:02d}_{sample['scene_name']}.png"
+        image_path = output_dir / "images" / name
+        canny_path = output_dir / "controls" / name.replace(".png", "_canny.png")
+        result.save(image_path)
+        canny.save(canny_path)
+        records.append({**sample, "plate_variant": variant, "plate": str(plate_path.relative_to(REPO_ROOT)),
+                        "seed": seed, "prompt": prompt, "condition": condition,
+                        "strength": float(config["img2img_strength"]), "canny_scale": canny_scale,
+                        "output": str(image_path.relative_to(REPO_ROOT)), "sha256": helper.sha256(image_path),
+                        "inference_seconds": round(time.monotonic()-started, 3), "training_use_forbidden": True})
+        print(f"[img2img {position}/{len(schedule)}] {name}", flush=True)
+    make_contact_sheet([REPO_ROOT/r["output"] for r in records], output_dir/"contact_sheet.png",
+                       [f"c{r['class_id']} {r['scene_name']}" for r in records])
+    write_json(output_dir/"manifest.json", {"status": "generated_pending_human_review", "records": records})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--stage", choices=("plates", "depth", "final"), default="plates")
+    parser.add_argument("--stage", choices=("plates", "depth", "final", "img2img"), default="plates")
     parser.add_argument("--final-name", default="final")
     parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
@@ -304,9 +373,12 @@ def main() -> None:
     require_gpu(args.gpu)
     if args.stage == "plates": run_plates(helper, feasibility, config, models, args.gpu, output_root)
     elif args.stage == "depth": run_depth(helper, config, args.gpu, output_root)
-    else:
+    elif args.stage == "final":
         run_final(generator, helper, config, models, scenes, args.gpu, output_root,
                   args.final_name, set(args.sample_indices) if args.sample_indices else None)
+    else:
+        run_img2img(generator, helper, config, models, scenes, args.gpu, output_root,
+                    args.final_name, set(args.sample_indices) if args.sample_indices else None)
 
 
 if __name__ == "__main__":
