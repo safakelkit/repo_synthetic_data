@@ -87,7 +87,7 @@ def make_contact_sheet(records: list[dict[str, Any]], output: Path) -> None:
 
 
 def write_nested_subset_manifests(
-    records: list[dict[str, Any]], output_root: Path
+    records: list[dict[str, Any]], output_root: Path, prefix: str
 ) -> list[dict[str, Any]]:
     """Write exact class-balanced nested image lists for quantity experiments."""
     manifests = []
@@ -97,12 +97,12 @@ def write_nested_subset_manifests(
         expected_per_class = count // 16
         if class_counts != Counter({class_id: expected_per_class for class_id in range(16)}):
             raise ValueError(f"Subset {count} is not class-balanced: {class_counts}")
-        path = output_root / f"SDXL-M{count:04d}.txt"
+        path = output_root / f"{prefix}{count:04d}.txt"
         with path.open("w", encoding="utf-8") as handle:
             for row in subset:
                 handle.write(f"./images/{Path(row['output']).name}\n")
         manifests.append({
-            "experiment_id": f"SDXL-M{count:04d}",
+            "experiment_id": f"{prefix}{count:04d}",
             "images": count,
             "images_per_class": expected_per_class,
             "manifest": stored_path(path),
@@ -224,7 +224,12 @@ def main() -> None:
             print(f"[degradation {position}/{len(records)}]", flush=True)
 
     make_contact_sheet(output_records, output_root / "contact_sheet_by_severity.png")
-    subset_manifests = write_nested_subset_manifests(output_records, output_root)
+    clean_subset_manifests = write_nested_subset_manifests(
+        records, source_manifest_path.parent, "SDXL-C"
+    )
+    subset_manifests = write_nested_subset_manifests(
+        output_records, output_root, "SDXL-M"
+    )
     manifest = {
         "status": "generated_pending_post_degradation_visibility_qc",
         "training_use_forbidden": True,
@@ -235,6 +240,7 @@ def main() -> None:
         "degradation_seed": degradation_seed,
         "code_revision": git_revision(),
         "severity_counts": dict(severity_counts),
+        "clean_subset_manifests": clean_subset_manifests,
         "subset_manifests": subset_manifests,
         "records": output_records,
     }
