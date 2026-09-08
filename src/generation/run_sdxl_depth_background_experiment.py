@@ -302,7 +302,8 @@ def run_img2img(generator, helper, config: dict[str, Any], models: dict[str, Any
     pipe.vae.enable_slicing()
     manifest_path = helper.repo_path(config["silhouette_source"]["audit_manifest"])
     target_control_config = {**config, "target_conditioning_mode": "target_only"}
-    scales = {int(k): v for k, v in config["controlnet_conditioning_scale"]["class_overrides"].items()}
+    scale_config = config["img2img_controlnet_conditioning_scale"]
+    scales = {int(k): v for k, v in scale_config["class_overrides"].items()}
     schedule = compact_schedule(generator, config, scenes)
     if sample_indices is not None:
         schedule = [row for row in schedule if int(row["index"]) in sample_indices]
@@ -318,7 +319,7 @@ def run_img2img(generator, helper, config: dict[str, Any], models: dict[str, Any
         with Image.open(plate_path).convert("RGB") as source:
             plate = source.copy()
         prompt = f"{config['target_prompts'][sample['class_id']]} {config['final_scene_prompts'][sample['scene_name']]}"
-        canny_scale = float(scales.get(sample["class_id"], config["controlnet_conditioning_scale"]["default"]))
+        canny_scale = float(scales.get(sample["class_id"], scale_config["default"]))
         seed = int(config["seed"]) + int(sample["index"])
         started = time.monotonic()
         result = pipe(
