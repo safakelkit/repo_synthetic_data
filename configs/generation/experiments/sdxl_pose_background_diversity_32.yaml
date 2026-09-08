@@ -1,0 +1,159 @@
+base_config: configs/generation/experiments/sdxl_all_class_pose_plane_pilot.yaml
+format_version: 1
+experiment_id: sdxl_pose_background_diversity_32
+status: ready_for_experiment
+output_root: data/synthetic/sdxl_background_diversity_experiment
+plate_variants_per_scene: 4
+
+# Variants 0-1 retain the successful pilot compositions. Variants 2-3 change
+# viewpoint, fixture layout and lighting while retaining a clear support plane.
+scene_plate_prompts:
+  cell_sleeping_area:
+    - >-
+      Photorealistic eye-level three-quarter view of a correctional cell sleeping
+      area, blue steel bunk frame, recessed locker, high secure window, scuffed
+      institutional floor, clear horizontal foreground shelf, natural room depth.
+    - >-
+      Photorealistic eye-level view inside a worn detention sleeping room, fixed
+      bed frame, closed metal cabinet, barred upper window, wall-floor junction,
+      clear foreground desk surface, natural asymmetry and perspective depth.
+    - >-
+      Photorealistic view from the doorway of a compact correctional sleeping cell,
+      single steel bed along the left wall, fixed writing shelf on the right, narrow
+      secure window, ventilation grille, worn floor and deep diagonal perspective,
+      clear unobstructed mattress surface, cool daylight.
+    - >-
+      Photorealistic opposite-corner view of an older detention sleeping room,
+      stacked metal bunks on the right, recessed storage cabinet, solid cell door,
+      wall junctions and floor wear, clear fixed table in the foreground, warm
+      overhead institutional light and natural asymmetry.
+  cell_desk_area:
+    - >-
+      Photorealistic eye-level three-quarter view of a correctional cell desk area,
+      fixed laminate desk, bolted chair, locked drawers, pinboard and high window,
+      clear horizontal foreground desktop, visible room depth.
+    - >-
+      Photorealistic eye-level view of an institutional detention desk alcove,
+      worn desk surface in the foreground, recessed cubby, steel chair, cabinet
+      doors and scuffed floor, natural asymmetry and perspective.
+    - >-
+      Photorealistic side-angle view of a secure institutional work desk, long
+      wall-mounted writing counter, fixed stool, shallow shelves, closed filing
+      cabinet, high window and visible floor depth, clear empty desktop under soft
+      daylight.
+    - >-
+      Photorealistic doorway view into a correctional administrative alcove,
+      compact L-shaped fixed desk, bolted chair, noticeboard, vent and locked drawer
+      units, clear foreground worktop, mixed window and fluorescent lighting.
+  cell_storage_area:
+    - >-
+      Photorealistic eye-level view down a correctional storage area, fixed locker
+      banks, deep shelving bays, wire partition, secured doorway and worn floor,
+      clear horizontal foreground counter, natural perspective.
+    - >-
+      Photorealistic three-quarter view of institutional personal storage, painted
+      steel cabinets, linen shelves, wall-floor junction and corridor depth, clear
+      foreground sorting counter, realistic wear and asymmetry.
+    - >-
+      Photorealistic wide-angle view across a secure linen storage room, fixed open
+      shelves with folded neutral bedding, closed steel lockers, mesh divider and a
+      distant service door, broad clear sorting table, side lighting and strong
+      perspective depth.
+    - >-
+      Photorealistic low eye-level view along an institutional evidence storage
+      aisle, wire-mesh cages on one side, numbered closed cabinets on the other,
+      ventilation duct, worn concrete floor and an empty fixed packing bench,
+      asymmetric fluorescent lighting.
+  cell_wash_area:
+    - >-
+      Photorealistic eye-level view of a detention wash area, porcelain basin,
+      tiled backsplash, mirror recess, ventilation grille and worn grout, clear
+      dry foreground counter beside the sink, natural depth.
+    - >-
+      Photorealistic three-quarter view of an institutional washbasin alcove,
+      stainless sink, aged tiles, fixed wall shelf, high secure window and floor
+      junction, clear horizontal foreground counter.
+    - >-
+      Photorealistic oblique view down a correctional washroom with a row of fixed
+      stainless basins, long mirror, tiled walls, floor drain and high windows,
+      clear dry counter section in the foreground, cool side light and deep room
+      perspective.
+    - >-
+      Photorealistic doorway view of an older institutional wash alcove, one deep
+      porcelain sink, tiled privacy return, metal shelf, ventilation grille and
+      worn non-slip floor, clear empty ledge beside the basin, warm ceiling light.
+  communal_day_room:
+    - >-
+      Photorealistic eye-level wide view of a correctional communal day room,
+      bolted benches, fixed tables, tall secure windows, doorway and worn linoleum,
+      clear horizontal foreground table, deep natural perspective.
+    - >-
+      Photorealistic three-quarter view across an institutional day room, fixed
+      seating, wall panels, distant corridor opening and window light, clear
+      foreground tabletop, realistic asymmetry and room depth.
+    - >-
+      Photorealistic corner view of a secure communal room, several spaced bolted
+      square tables, molded fixed seats, protected television enclosure, tall side
+      windows and an empty foreground table, afternoon daylight and long room
+      depth.
+    - >-
+      Photorealistic doorway view through an older correctional day room, fixed
+      benches around a central column, two heavy tables, radiator cover, secure
+      windows and scuffed floor, clear near tabletop, soft overcast light and
+      asymmetrical composition.
+  property_inspection_station:
+    - >-
+      Photorealistic eye-level view of a correctional property inspection station,
+      brushed metal counter, closed drawers, frosted pass-through window, rolling
+      cart in the distance, clear foreground inspection surface, natural depth.
+    - >-
+      Photorealistic three-quarter view of a secure belongings search station,
+      worn laminate counter, fixed cabinet doors, acrylic divider and corridor
+      doorway, clear horizontal foreground worktop, realistic institutional wear.
+    - >-
+      Photorealistic side view along a secure intake inspection counter, long
+      stainless work surface, pass-through glazing, locked under-counter cabinets,
+      wall-mounted empty cubbies and a distant secure door, clear near worktop and
+      directional fluorescent light.
+    - >-
+      Photorealistic opposite-angle view of an institutional property processing
+      room, L-shaped laminate inspection desk, fixed transparent divider, closed
+      drawer banks, document slot and worn floor, broad empty counter in the
+      foreground, natural perspective depth.
+  correctional_workshop:
+    - >-
+      Photorealistic eye-level view of a supervised correctional workshop, worn
+      workbench, empty pegboard, closed parts drawers, storage rack and broad aisle,
+      clear horizontal foreground bench, natural perspective.
+    - >-
+      Photorealistic three-quarter view inside an institutional workshop, fixed
+      steel cabinets, timber bench, wire partition, loading door and scuffed floor,
+      clear foreground work surface, realistic depth.
+    - >-
+      Photorealistic view from the end of a secure carpentry workshop, heavy central
+      timber bench, fixed wall cabinets, empty tool board, lumber rack and extraction
+      duct, clear uncluttered near work surface, window light across a deep aisle.
+    - >-
+      Photorealistic diagonal view across an institutional repair workshop, steel
+      fabrication tables, closed parts drawers, caged storage, overhead conduit and
+      worn concrete floor, broad empty foreground bench, uneven fluorescent light
+      and strong perspective.
+  maintenance_service_area:
+    - >-
+      Photorealistic eye-level view of a correctional maintenance service area,
+      fixed blue cabinets, exposed conduit, ventilation grille, service door and
+      worn floor, clear horizontal foreground counter, natural depth.
+    - >-
+      Photorealistic three-quarter view down an institutional utility room, closed
+      service cabinets, steel shelving, cable conduit and corridor depth, clear
+      foreground maintenance bench, realistic wear and asymmetry.
+    - >-
+      Photorealistic oblique view of a secure mechanical service room, fixed gray
+      workbench, pipe runs, electrical enclosures, ventilation trunk and closed
+      storage, broad unobstructed foreground floor, cool industrial lighting and
+      deep perspective.
+    - >-
+      Photorealistic doorway view along an institutional maintenance corridor,
+      stainless service sink, locked wall cabinets, exposed conduit, utility door
+      and equipment alcoves, clear empty foreground floor, warm fluorescent pools
+      and natural asymmetry.

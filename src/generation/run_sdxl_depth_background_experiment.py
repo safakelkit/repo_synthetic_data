@@ -144,7 +144,7 @@ def run_plates(helper, feasibility, config: dict[str, Any], models: dict[str, An
         records.append({**record, "output": str(path.relative_to(REPO_ROOT)),
                         "sha256": helper.sha256(path),
                         "inference_seconds": round(time.monotonic() - started, 3)})
-        print(f"[plates {position}/16] {path.name}", flush=True)
+        print(f"[plates {position}/{len(plate_records(config))}] {path.name}", flush=True)
     paths = [REPO_ROOT / row["output"] for row in records]
     make_contact_sheet(paths, output_dir / "contact_sheet.png",
                        [f"{r['scene_name']} v{r['variant']}" for r in records])
@@ -189,7 +189,7 @@ def run_depth(helper, config: dict[str, Any], gpu: int, output_root: Path) -> No
         records.append({"scene_name": plate["scene_name"], "variant": plate["variant"],
                         "plate": plate["output"], "output": str(path.relative_to(REPO_ROOT)),
                         "sha256": helper.sha256(path)})
-        print(f"[depth {position}/16] {path.name}", flush=True)
+        print(f"[depth {position}/{len(plate_manifest['records'])}] {path.name}", flush=True)
     make_contact_sheet([REPO_ROOT / row["output"] for row in records], output_dir / "contact_sheet.png",
                        [f"{r['scene_name']} v{r['variant']}" for r in records])
     write_json(output_dir / "manifest.json", {"status": "ready_for_controlnet", "records": records})
@@ -1074,7 +1074,8 @@ def main() -> None:
     environment = validate_environment(helper, feasibility, config, require_clean=not args.preflight_only)
     output_root = helper.repo_path(config["output_root"])
     stage_samples = {
-        "plates": 16, "depth": 16, "final": len(compact_schedule(generator, config, scenes)),
+        "plates": len(plate_records(config)), "depth": len(plate_records(config)),
+        "final": len(compact_schedule(generator, config, scenes)),
         "img2img": len(compact_schedule(generator, config, scenes)), "direct_aerosol": 4,
         "inpaint_aerosol": 4, "inpaint_all": len(compact_schedule(generator, config, scenes)),
         "pose_preview": len(compact_schedule(generator, config, scenes)),
