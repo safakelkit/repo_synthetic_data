@@ -653,6 +653,14 @@ def pose_condition(
     if not np.any(binary):
         raise ValueError(f"Pose rendering produced an empty object for class {class_id}")
     canny = cv2.Canny(cv2.GaussianBlur(binary, (0, 0), sigmaX=0.8), 32, 96)
+    internal_classes = {
+        int(value) for value in config.get("pose_internal_edge_class_ids", [])
+    }
+    if class_id in internal_classes:
+        gray = cv2.cvtColor(rgba[:, :, :3], cv2.COLOR_RGB2GRAY)
+        internal = cv2.Canny(cv2.GaussianBlur(gray, (0, 0), sigmaX=0.8), 55, 140)
+        internal[cv2.dilate(binary, np.ones((3, 3), np.uint8)) == 0] = 0
+        canny = cv2.bitwise_or(canny, internal)
     padding = int(config.get("pose_mask_padding_px", 20))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (padding * 2 + 1, padding * 2 + 1))
     mask = cv2.dilate(binary, kernel)
