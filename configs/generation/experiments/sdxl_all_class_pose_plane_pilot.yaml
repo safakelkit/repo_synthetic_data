@@ -137,7 +137,7 @@ pose_plane_placements:
       surface_axis_v: [-0.20, 1.0]
       depth_compression: 0.48
     1:
-      center_xy: [455, 490]
+      center_xy: [455, 535]
       upright_anchor_xy: [455, 545]
       surface_axis_u: [1.0, -0.05]
       surface_axis_v: [-0.22, 1.0]
