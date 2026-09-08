@@ -190,6 +190,8 @@ def compact_schedule(generator, config: dict[str, Any], scenes: dict[str, Any]) 
 
 
 def clear_target_depth(depth: Image.Image, box: list[int], padding: int) -> Image.Image:
+    if padding < 0:
+        return depth.convert("RGB").copy()
     array = np.asarray(depth.convert("RGB")).copy()
     height, width = array.shape[:2]
     x1, y1, x2, y2 = box
@@ -200,12 +202,12 @@ def clear_target_depth(depth: Image.Image, box: list[int], padding: int) -> Imag
     return Image.fromarray(array)
 
 
-def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path) -> None:
+def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any], scenes: dict[str, Any], gpu: int, output_root: Path, final_name: str, sample_indices: set[int] | None) -> None:
     from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline
 
     depth_manifest = json.loads((output_root / "depth/manifest.json").read_text(encoding="utf-8"))
     depth_lookup = {(r["scene_name"], int(r["variant"])): r for r in depth_manifest["records"]}
-    output_dir = output_root / "final"
+    output_dir = output_root / final_name
     if output_dir.exists():
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
     (output_dir / "images").mkdir(parents=True)
@@ -230,6 +232,11 @@ def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any],
     scales = {int(k): v for k, v in config["controlnet_conditioning_scale"]["class_overrides"].items()}
     records = []
     schedule = compact_schedule(generator, config, scenes)
+    if sample_indices is not None:
+        schedule = [row for row in schedule if int(row["index"]) in sample_indices]
+        missing = sample_indices - {int(row["index"]) for row in schedule}
+        if missing:
+            raise ValueError(f"Requested sample indices are unavailable: {sorted(missing)}")
     for position, sample in enumerate(schedule, start=1):
         row = generator.select_mask(helper, config, manifest_path, sample)
         _, canny, condition = helper.build_control(target_control_config, row, sample["index"], sample["scene_name"])
@@ -237,7 +244,7 @@ def run_final(generator, helper, config: dict[str, Any], models: dict[str, Any],
         depth_row = depth_lookup[(sample["scene_name"], variant)]
         with Image.open(REPO_ROOT / depth_row["output"]) as source:
             depth = clear_target_depth(source, condition["rendered_box_xyxy"], int(config["depth_target_clearance_px"]))
-        prompt = f"{config['target_prompts'][sample['class_id']]} {config['scene_plate_prompts'][sample['scene_name']][variant]}"
+        prompt = f"{config['target_prompts'][sample['class_id']]} {config['final_scene_prompts'][sample['scene_name']]}"
         canny_scale = float(scales.get(sample["class_id"], config["controlnet_conditioning_scale"]["default"]))
         seed = int(config["seed"]) + int(sample["index"])
         started = time.monotonic()
@@ -277,6 +284,8 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--stage", choices=("plates", "depth", "final"), default="plates")
+    parser.add_argument("--final-name", default="final")
+    parser.add_argument("--sample-index", type=int, action="append", dest="sample_indices")
     parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
     generator = load_generator(); helper = generator.load_helpers(); feasibility = helper.feasibility_module()
@@ -295,7 +304,9 @@ def main() -> None:
     require_gpu(args.gpu)
     if args.stage == "plates": run_plates(helper, feasibility, config, models, args.gpu, output_root)
     elif args.stage == "depth": run_depth(helper, config, args.gpu, output_root)
-    else: run_final(generator, helper, config, models, scenes, args.gpu, output_root)
+    else:
+        run_final(generator, helper, config, models, scenes, args.gpu, output_root,
+                  args.final_name, set(args.sample_indices) if args.sample_indices else None)
 
 
 if __name__ == "__main__":

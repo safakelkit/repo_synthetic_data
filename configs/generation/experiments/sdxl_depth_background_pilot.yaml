@@ -23,7 +23,7 @@ depth_controlnet:
   guidance_end: 0.75
 canny_guidance_start: 0.0
 canny_guidance_end: 1.0
-depth_target_clearance_px: 10
+depth_target_clearance_px: -1
 final_negative_prompt: >-
   wrong object, duplicate target, deformed target, wall-mounted target,
   target attached to wall, floating target, cropped target, hidden target,
@@ -31,15 +31,24 @@ final_negative_prompt: >-
   additional loose handheld objects in background
 target_prompts:
   1: >-
-    One open cardboard matchbox containing wooden safety matches, lying flat
-    on the horizontal foreground surface, fully visible at useful detection scale.
+    One open cardboard matchbox with wooden safety matches, resting flat on a
+    horizontal surface with a natural contact shadow, fully visible.
   2: >-
-    One pair of household scissors with two finger handles and two metal blades,
-    lying flat on the horizontal foreground surface, fully visible at useful detection scale.
+    One pair of household scissors with two handles and two metal blades, resting
+    flat on a horizontal surface with a natural contact shadow, fully visible.
   11: >-
-    One upright deodorant aerosol spray can standing on the horizontal foreground
-    counter, cylindrical metal body, colored label, rounded cap and push-button
-    nozzle, base visibly touching the surface, fully visible, not spraying.
+    One upright deodorant aerosol spray can, cylindrical metal body, rounded cap
+    and push-button nozzle, flat base visibly touching a horizontal surface with
+    a natural contact shadow, fully visible, not spraying.
+final_scene_prompts:
+  cell_sleeping_area: Photorealistic worn correctional cell with fixed bed, locker, window and room depth.
+  cell_desk_area: Photorealistic correctional desk area with fixed desk, chair, cabinets and room depth.
+  cell_storage_area: Photorealistic correctional storage room with fixed lockers, shelves and aisle depth.
+  cell_wash_area: Photorealistic institutional wash area with fixed sinks, tiles, mirror and room depth.
+  communal_day_room: Photorealistic correctional day room with fixed tables, benches, windows and room depth.
+  property_inspection_station: Photorealistic secure inspection station with fixed counter, cabinets and room depth.
+  correctional_workshop: Photorealistic correctional workshop with fixed bench, cabinets, shelves and room depth.
+  maintenance_service_area: Photorealistic maintenance room with fixed counters, cabinets, conduit and room depth.
 scene_plate_prompts:
   cell_sleeping_area:
   - >-
