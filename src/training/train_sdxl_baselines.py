@@ -84,7 +84,8 @@ def main() -> None:
         "--experiment",
         choices=(
             "clean-512", "clean-1024", "clean-1536", "clean-2048",
-            "mixed-512", "mixed-1024", "mixed-1536", "mixed-2048", "all",
+            "mixed-512", "mixed-1024", "mixed-1536", "mixed-2048",
+            "clean-all", "mixed-all", "all",
         ),
         required=True,
     )
@@ -104,7 +105,14 @@ def main() -> None:
         "mixed-1536": ("configs/data_insp_sdxl_mixed_1536.yaml", "SDXL-M1536_yolo11s_seed0"),
         "mixed-2048": ("configs/data_insp_sdxl_mixed_2048.yaml", "SDXL-M2048_yolo11s_seed0"),
     }
-    experiments = list(registry.values()) if args.experiment == "all" else [registry[args.experiment]]
+    if args.experiment == "all":
+        experiments = list(registry.values())
+    elif args.experiment == "clean-all":
+        experiments = [registry[f"clean-{quantity}"] for quantity in (512, 1024, 1536, 2048)]
+    elif args.experiment == "mixed-all":
+        experiments = [registry[f"mixed-{quantity}"] for quantity in (512, 1024, 1536, 2048)]
+    else:
+        experiments = [registry[args.experiment]]
 
     for data_yaml, _ in experiments:
         require_released_synthetic_manifest(data_yaml)
