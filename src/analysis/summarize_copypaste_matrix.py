@@ -9,12 +9,14 @@ import matplotlib.pyplot as plt
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EVALUATION_ROOT = REPO_ROOT / "runs/evaluation"
+BASELINE_ROOT = EVALUATION_ROOT / "baseline"
+COPY_PASTE_ROOT = EVALUATION_ROOT / "cut_paste"
 EXPERIMENTS = (
-    ("E000", 0, EVALUATION_ROOT / "E000_results.json"),
-    ("CP-B0512", 512, EVALUATION_ROOT / "CP-B0512_yolo11s_seed0_results.json"),
-    ("CP-B1024", 1024, EVALUATION_ROOT / "CP-B1024_yolo11s_seed0_results.json"),
-    ("CP-B1536", 1536, EVALUATION_ROOT / "CP-B1536_yolo11s_seed0_results.json"),
-    ("CP-B2048", 2048, EVALUATION_ROOT / "CP-B2048_yolo11s_seed0_results.json"),
+    ("E000", 0, BASELINE_ROOT / "E000_results.json"),
+    ("CP-B0512", 512, COPY_PASTE_ROOT / "CP-B0512_yolo11s_seed0_results.json"),
+    ("CP-B1024", 1024, COPY_PASTE_ROOT / "CP-B1024_yolo11s_seed0_results.json"),
+    ("CP-B1536", 1536, COPY_PASTE_ROOT / "CP-B1536_yolo11s_seed0_results.json"),
+    ("CP-B2048", 2048, COPY_PASTE_ROOT / "CP-B2048_yolo11s_seed0_results.json"),
 )
 DOMAINS = (
     ("clean", "insp_det", "INSP-DET clean"),
@@ -88,8 +90,8 @@ def render_plot(rows: list[dict[str, str | int | float]], path: Path) -> None:
 
 def main() -> None:
     rows = load_rows()
-    csv_path = EVALUATION_ROOT / "copy_paste_matrix_summary.csv"
-    plot_path = EVALUATION_ROOT / "copy_paste_matrix_summary.png"
+    csv_path = COPY_PASTE_ROOT / "matrix_summary.csv"
+    plot_path = COPY_PASTE_ROOT / "matrix_summary.png"
     write_csv(rows, csv_path)
     render_plot(rows, plot_path)
     print(csv_path)

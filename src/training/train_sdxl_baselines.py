@@ -12,7 +12,8 @@ import sys
 from train import load_yaml, repo_path, train_yolo, validate_training_preflight
 
 
-MATRIX_STATUS = repo_path("runs/evaluation/sdxl_matrix_status.json")
+EVALUATION_ROOT = repo_path("runs/evaluation/sdxl")
+MATRIX_STATUS = EVALUATION_ROOT / "matrix_status.json"
 
 
 def utc_now() -> str:
@@ -25,9 +26,11 @@ def write_matrix_status(state: dict) -> None:
 
 
 def evaluation_targets(run_name: str) -> tuple[Path, Path]:
+    variant = "clean" if run_name.startswith("SDXL-C") else "mixed_degradation"
+    output_root = EVALUATION_ROOT / variant
     return (
-        repo_path(f"runs/evaluation/{run_name}_results.json"),
-        repo_path(f"runs/evaluation/{run_name}"),
+        output_root / f"{run_name}_results.json",
+        output_root / run_name,
     )
 
 

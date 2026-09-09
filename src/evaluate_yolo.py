@@ -232,10 +232,11 @@ def main() -> None:
 
     if len(sys.argv) >= 3:
         save_path = sys.argv[2]
+        resolved_save_path = repo_path(save_path)
+        eval_project = str(resolved_save_path.parent / model_name)
     else:
         save_path = f"runs/evaluation/{model_name}_results.json"
-
-    eval_project = str(repo_path(f"runs/evaluation/{model_name}"))
+        eval_project = str(repo_path(f"runs/evaluation/{model_name}"))
 
     results = evaluate_model(
         model_path=model_path,

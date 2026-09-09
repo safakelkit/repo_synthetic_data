@@ -8,7 +8,8 @@ import sys
 from train import load_yaml, repo_path, train_yolo, validate_training_preflight
 
 
-MATRIX_STATUS = repo_path("runs/evaluation/copy_paste_matrix_status.json")
+EVALUATION_ROOT = repo_path("runs/evaluation/cut_paste")
+MATRIX_STATUS = EVALUATION_ROOT / "matrix_status.json"
 
 
 def utc_now() -> str:
@@ -22,8 +23,8 @@ def write_matrix_status(state: dict) -> None:
 
 def evaluation_targets(run_name: str) -> tuple[Path, Path]:
     return (
-        repo_path(f"runs/evaluation/{run_name}_results.json"),
-        repo_path(f"runs/evaluation/{run_name}"),
+        EVALUATION_ROOT / f"{run_name}_results.json",
+        EVALUATION_ROOT / run_name,
     )
 
 
