@@ -1,0 +1,23 @@
+train:
+  - ../data/raw/insp-det/train/images
+  - ../data/synthetic/sdxl_background_diversity_experiment/canonical_mixed_degradation_2048_v1/SDXL-M1024.txt
+val: ../data/raw/insp-det/val/images
+test: ../data/raw/insp-det/test/images
+expected_train_images: 3239
+names:
+  0: Lighter
+  1: Matches
+  2: Scissors
+  3: Pliers
+  4: Knife
+  5: Shaver
+  6: Hammer
+  7: Cigarettes
+  8: Saw
+  9: Screwdriver
+  10: Wrench
+  11: Aerosol can
+  12: Battery
+  13: Alcohol
+  14: Mobile phone
+  15: Laptop
