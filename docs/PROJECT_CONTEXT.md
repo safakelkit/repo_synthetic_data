@@ -53,7 +53,7 @@ with E000 this gives 13 configurations per detector seed.
 |---|---|---|
 | E000 | real only | complete, seed 0 |
 | CP-B* | cut-paste | four quantities complete, seed 0 |
-| SD-B* | SDXL + ControlNet | canonical data not generated |
+| SDXL-M* | SDXL + ControlNet, mixed degradation | four quantities complete, seed 0 |
 | QW-B* | Qwen + ControlNet | canonical data not generated |
 
 ## Cut-paste baseline
@@ -73,29 +73,23 @@ and CP-B1024 best preserved clean performance. Exact results and hashes are in
 
 ## Full-scene GenAI baseline
 
-Both the background and target are newly generated; real background or RGBA
-object pixels are not composited into the output. Binary SAM3 silhouettes may
-provide non-photographic ControlNet geometry. Eight frozen MAIJA-aligned
-correctional-facility scene families provide four compatible contexts per
-class while sharing contexts across classes to reduce background shortcuts.
-
-SDXL and Qwen model integration is established. The generation pipeline was
-reset after development pilots. Reusable SDXL findings now form one clean
-class-specific pipeline: fifteen classes retain their successful Canny profiles,
-while Aerosol receives a concise one-pass full-scene text branch. No compositing
-or inpainting is used. Qwen work is paused until the shared annotation and
-finalization path is proven with SDXL.
-
-The restarted 64-image acceptance test must pass before production. Every class
-must accept at least three of four images and the complete run must accept at
-least 56 of 64. Test images remain forbidden from detector training.
+The final SDXL pipeline uses generated structured background plates,
+class-specific source initialization and target-only Canny geometry, including
+the validated upright spray-can treatment for Aerosol. Canonical clean generation produced
+2,048 images and pose-derived YOLO labels. The paired mixed dataset applies
+full-frame degradation without changing annotation geometry. Researcher review
+and independent integrity/visibility QC approved both manifests for training.
+Scene contexts overlap across classes to reduce background shortcuts. Qwen
+model feasibility is established, but its canonical work remains pending.
 
 ## Current stage
 
-1. Run and review `sdxl_generation_v1` on all 16 classes.
-2. Validate its one-pass Aerosol behavior before any production launch.
-3. Preflight post-generation annotation and finalization.
-4. Generate, annotate, degrade, and validate the canonical dataset.
+1. Preserve the complete SDXL-M seed-0 result matrix without test-driven
+   generator retuning.
+2. Diagnose why larger SDXL quantities reduce generalization and why Matches,
+   Pliers, Shaver, and Battery collapse on the hard domain.
+3. Complete the planned Qwen baseline under the same detector protocol.
+4. Decide additional detector seeds and the numerical clean-loss tolerance.
 
 ## Validity boundaries
 

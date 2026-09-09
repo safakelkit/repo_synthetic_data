@@ -7,15 +7,17 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 
 ## Current status
 
-- E000 and the four seed-0 cut-paste runs are complete.
-- Every cut-paste quantity improved both target splits over E000.
-- The 2,048-image cut-paste dataset is accepted as a deliberately simple
-  baseline with documented realism limitations.
-- The GenAI pipeline has been restarted around one-pass full-image generation.
-  Fifteen successful SDXL/Canny class profiles are retained; Aerosol is tested
-  as a concise text-only full-scene branch. Production remains locked.
-- No GenAI pilot or acceptance-test image is training data. Canonical SDXL
-  production, annotation, degradation, QC, and detector training have not started.
+- E000, four cut-paste runs, and four mixed-degradation SDXL runs are complete
+  for detector seed 0.
+- The accepted SDXL dataset contains 2,048 class-balanced 1024x1024 images and
+  nested 512/1,024/1,536/2,048 manifests. Its permanent degradation schedule is
+  25% clean, 37.5% light, 25% medium, and 12.5% heavy.
+- SDXL-M0512 is the only SDXL quantity that improves both clean and hard over
+  E000. Increasing SDXL quantity reduces clean and hard performance; easy peaks
+  at SDXL-M1536 but remains below every cut-paste run.
+- SDXL improves Aerosol can across all three domains at several quantities, but
+  does not resolve the hard-domain collapse for Matches, Pliers, Shaver, and
+  Battery. Qwen remains pending.
 
 | Run | Synthetic | Clean | Easy | Hard |
 |---|---:|---:|---:|---:|
@@ -24,6 +26,10 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 | CP-B1024 | 1,024 | 0.6867 | 0.4596 | 0.1312 |
 | CP-B1536 | 1,536 | 0.6861 | 0.4551 | 0.1618 |
 | CP-B2048 | 2,048 | 0.6753 | 0.4707 | 0.1463 |
+| SDXL-M0512 | 512 | 0.6971 | 0.4091 | 0.1218 |
+| SDXL-M1024 | 1,024 | 0.6846 | 0.4204 | 0.1182 |
+| SDXL-M1536 | 1,536 | 0.6731 | 0.4335 | 0.1000 |
+| SDXL-M2048 | 2,048 | 0.6646 | 0.4281 | 0.0909 |
 
 ## Documentation
 
@@ -84,8 +90,8 @@ python src/training/train_copypaste_baselines.py --experiment 512 --preflight-on
 # Evaluate a source-validation-selected checkpoint
 python src/evaluate_yolo.py runs/train/<run-name>/weights/best.pt
 
-# Preflight the restarted one-pass SDXL acceptance test
-python src/generation/generate_sdxl_dataset.py --preflight-only
+# Preflight the degradation-only SDXL training matrix
+python src/training/train_sdxl_baselines.py --experiment mixed-all --preflight-only --evaluate
 ```
 
 Exact commands, versions, hashes, and artifact paths belong in the traceability

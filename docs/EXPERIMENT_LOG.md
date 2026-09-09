@@ -11,10 +11,10 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 | CP-B1024 | Cut-paste | 1,024 | Complete |
 | CP-B1536 | Cut-paste | 1,536 | Complete |
 | CP-B2048 | Cut-paste | 2,048 | Complete |
-| SD-B0512 | Stable Diffusion + ControlNet | 512 | Planned |
-| SD-B1024 | Stable Diffusion + ControlNet | 1,024 | Planned |
-| SD-B1536 | Stable Diffusion + ControlNet | 1,536 | Planned |
-| SD-B2048 | Stable Diffusion + ControlNet | 2,048 | Planned |
+| SDXL-M0512 | SDXL + ControlNet, mixed degradation | 512 | Complete |
+| SDXL-M1024 | SDXL + ControlNet, mixed degradation | 1,024 | Complete |
+| SDXL-M1536 | SDXL + ControlNet, mixed degradation | 1,536 | Complete |
+| SDXL-M2048 | SDXL + ControlNet, mixed degradation | 2,048 | Complete |
 | QW-B0512 | Qwen + ControlNet | 512 | Planned |
 | QW-B1024 | Qwen + ControlNet | 1,024 | Planned |
 | QW-B1536 | Qwen + ControlNet | 1,536 | Planned |
@@ -39,8 +39,8 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 - **Supporting overall results (precision / recall / mAP50):** clean 0.882184 / 0.792164 / 0.845998; easy 0.755445 / 0.509286 / 0.536149; hard 0.265208 / 0.133092 / 0.137603
 - **Source-validation result:** epoch 60; precision 0.86009; recall 0.74789; mAP50 0.79945; mAP50-95 0.65733
 - **Training duration:** 2,111.68 seconds (0.587 hours)
-- **Evaluation artifacts:** `runs/evaluation/E000_results.json`; `runs/evaluation/real_only_yolo11s_seed0/`; `runs/evaluation/E000_results_plots/`
-- **Evaluation JSON SHA-256:** `71f05058d307d322058a70c0a4f562c2a324f5a39ca9e01ab38821aff03711ce`
+- **Evaluation artifacts:** `runs/evaluation/baseline/E000_results.json`; `runs/evaluation/baseline/real_only_yolo11s_seed0/`; `runs/evaluation/baseline/E000_results_plots/`
+- **Evaluation JSON SHA-256:** `4b0a0d8ed13c736030042317b0a8657038d92034614cafdcc2f14cb27e962783`
 - **Main observation:** Relative to clean mAP50-95, easy drops 0.274086 (39.8%) and hard drops 0.577386 (83.9%), confirming the target-domain gap.
 - **Class-wise observation:** Easy is strongest for Alcohol (0.7522), Shaver (0.7479), and Pliers (0.7143). Hard is strongest for Laptop (0.5327), Alcohol (0.3239), and Aerosol can (0.2330); Matches, Knife, and Shaver are 0.0. Hard Lighter is unavailable because the split has no class-0 annotations.
 - **Problems or validity concerns:** None observed. Target test results are reporting evidence and must not be used to retune the frozen cut-paste generator.
@@ -66,12 +66,12 @@ Checkpoint and evaluation evidence:
 
 | ID | `best.pt` SHA-256 | Evaluation JSON SHA-256 |
 |---|---|---|
-| CP-B0512 | `8b0339e5b13197ba8f71556bd5d03ebb47f117f39e665e8259a7c33170a28dae` | `259dcddc85b53ff79acc15bc9f3c0d861350b42413e85e55cd961ceeb723069d` |
-| CP-B1024 | `83643105bad327fbebce0aeba89e3728d63ff0f74e063bcf94ea8dda74ae317d` | `6a92aad56a5a009151b99c2b62c2caa4848e3f92573aac491a9508f8eb612820` |
-| CP-B1536 | `475b0d0912b8877b0020c72235648172d5e5f2c7ed581e81f4d5d0711250db24` | `d02a7e8436ae746cb9ed23399f25c340e5b695ea54faaffa11bf7c4905b4e8fe` |
-| CP-B2048 | `4c2f4da413ecbe5a3460d3ad4051f28ccdab9e071700711e8920796d4d1d9dce` | `32a438f240e5141c8ce92da0a4fd213c3ef20446af012b5866ce13db71267b39` |
+| CP-B0512 | `8b0339e5b13197ba8f71556bd5d03ebb47f117f39e665e8259a7c33170a28dae` | `10f5b355d19a233c351ecbb2dbc3902eb64fcd75018cee52f1eb981b24c5545d` |
+| CP-B1024 | `83643105bad327fbebce0aeba89e3728d63ff0f74e063bcf94ea8dda74ae317d` | `991eb361159d928cfdaeb1f34275583e047e59ee9d2e0e5bb887b531ece94977` |
+| CP-B1536 | `475b0d0912b8877b0020c72235648172d5e5f2c7ed581e81f4d5d0711250db24` | `b231ffd6c65da93e74697e6c60b49c890294fd0168f976a2ae3a7412ef341e1a` |
+| CP-B2048 | `4c2f4da413ecbe5a3460d3ad4051f28ccdab9e071700711e8920796d4d1d9dce` | `9de19abf705238a1497f2ecffa9a2e700c61c64caed1732d98e7f208880dd4dc` |
 
-- **Artifacts:** `runs/train/CP-B*_yolo11s_seed0/`, `runs/evaluation/CP-B*_yolo11s_seed0_results.json`, domain evaluation folders, per-run plots, `copy_paste_matrix_summary.csv`, and `copy_paste_matrix_summary.png`.
+- **Artifacts:** `runs/train/CP-B*_yolo11s_seed0/`, `runs/evaluation/cut_paste/CP-B*_yolo11s_seed0_results.json`, domain evaluation folders, per-run plots, `runs/evaluation/cut_paste/matrix_summary.csv`, and `matrix_summary.png`.
 - **Validity:** Matrix status is `complete`; every expected dataset scan reports zero corrupt samples; the log contains no traceback, runtime error, CUDA OOM, or NaN.
 - **Main finding:** Every cut-paste quantity improves both target splits while decreasing clean mAP50-95. CP-B1024 gives the smallest clean loss; CP-B1536 gives the highest hard result; CP-B2048 gives the highest easy result. Quantity response is not monotonic.
 - **Restriction:** These target-test results must not be used to revise `cp_v1_seed42` and rerun the same comparison. Additional detector seeds are required before strong variability or significance claims.
@@ -130,7 +130,7 @@ CP-B0512, CP-B1024, CP-B1536, and CP-B2048 execute sequentially in ascending
 order. After each training run, `best.pt` is evaluated on clean/easy/hard and
 plots are rendered before the next run begins. The fixed pipeline is fail-fast;
 progress and errors are written to the Git-ignored
-`runs/evaluation/copy_paste_matrix_status.json`. Metrics never alter later runs.
+`runs/evaluation/cut_paste/matrix_status.json`. Metrics never alter later runs.
 
 ### Invalid CP-B0512 launch (2026-09-02)
 
@@ -251,3 +251,45 @@ progress and errors are written to the Git-ignored
 - **Manifest SHA-256:** `c15243e14a888d284c84e0bce66d46998f14437ac8a3eb573c712bb3e8161f09`
 - **Finding:** No visible target instance confirmed in accepted backgrounds; small/occluded-instance risk remains a stated limitation
 - **Safety:** No synthetic image or detector run was produced
+
+## Verified SDXL mixed-degradation matrix — detector seed 0
+
+- **Status:** Complete
+- **Date:** 2026-09-09
+- **Training code revision:** `bff18a34859364c4f851a511d282fbc0787c89cc`
+- **Generator:** Canonical SDXL structured-background, source-initialized target-only Canny pipeline
+- **Canonical data:** 2,048 images, 128/class, 1024x1024 RGB; nested 512/1,024/1,536/2,048 manifests
+- **Degradation:** 512 clean, 768 light, 512 medium, 256 heavy; exact 32/48/32/16 per class
+- **Dataset QC:** 4,096 clean/mixed files decoded; zero label/pair errors; 512 clean pairs unchanged; 1,536 degraded pairs changed; researcher and independent review passed
+- **Detector:** pretrained YOLO11s; 60 epochs; image size 640; batch 16; detector seed 0; deterministic; frozen `configs/train_baseline.yaml`
+- **Runtime:** physical GPU 1 exposed as logical CUDA device 0; NVIDIA GeForce RTX 3090; Ultralytics 8.4.46; Torch 2.7.1+cu118
+- **UTC interval:** 2026-09-09T15:13:47.126728+00:00 to 2026-09-09T18:01:16.729623+00:00
+
+| ID | Best epoch | Val mAP50-95 | Clean | Delta clean | Easy | Delta easy | Hard | Delta hard | Seconds |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| SDXL-M0512 | 60 | 0.678520 | 0.697123 | +0.008716 | 0.409061 | -0.005261 | 0.121801 | +0.010779 | 2,257.88 |
+| SDXL-M1024 | 58 | 0.650530 | 0.684565 | -0.003843 | 0.420388 | +0.006066 | 0.118238 | +0.007217 | 2,360.33 |
+| SDXL-M1536 | 60 | 0.658960 | 0.673075 | -0.015333 | 0.433494 | +0.019172 | 0.099994 | -0.011027 | 2,687.29 |
+| SDXL-M2048 | 60 | 0.665780 | 0.664612 | -0.023796 | 0.428149 | +0.013827 | 0.090928 | -0.020093 | 2,744.09 |
+
+| ID | `best.pt` SHA-256 | Evaluation JSON SHA-256 |
+|---|---|---|
+| SDXL-M0512 | `487fe13da0570f903ef5a40e0abffa5716c29291e752f99a4d7f31c3b3cbd754` | `5e048aced83812f4ed1f35adfcbbcad11fc1c5aa7a3fb1c4cf644e74ebb81369` |
+| SDXL-M1024 | `ba6044a77ad820f451dd1229783c449a232dd2340976b0113b5918acee1af895` | `74f873072b14ec25833109fc2eae776d1b088f23aa334cf7d1dd77a22147be25` |
+| SDXL-M1536 | `84fd32cec374df77afc9734e445ae31eed4d9229b074dcef04bf72b1d50d04b9` | `8bc2c5df13591f9c79779409cebdf5db2f9cf6074433792d828fed2fee572ccc` |
+| SDXL-M2048 | `330461fa72ee671c935e8d49670c0c8adb2380a4947eec747d6a0acbaf9c5f19` | `76ef27adfdfc45075f4f6cf587eec3004e8ba4f92812c13bf39c802ed149ff88` |
+
+- **Main finding:** SDXL quantity response is adverse beyond 512 for clean and hard. Easy peaks at 1,536 but remains below equal-size cut-paste. Only SDXL-M0512 improves both clean and hard over E000; none of the four improves both easy and hard while preserving clean.
+- **Aerosol:** Every SDXL quantity exceeds E000 for Aerosol mAP50-95 on clean, easy, and hard. The best SDXL Aerosol values are clean 0.723839 (M1536), easy 0.678787 (M1536), and hard 0.280044 (M1024).
+- **Persistent failures:** Matches, Pliers, Shaver, and Battery remain near zero on hard, as they already did under E000. This is a cross-method hard-domain failure rather than evidence limited to SDXL generation.
+- **Artifacts:** `runs/train/SDXL-M*_yolo11s_seed0/`, `runs/evaluation/sdxl/mixed_degradation/`, and `runs/evaluation/comparisons/`.
+- **Validity:** Single detector seed. Target results are report-only and may not retune the executed generator.
+
+### Evaluation artifact organization (2026-09-10)
+
+Evaluation artifacts were grouped under `baseline/`, `cut_paste/`,
+`sdxl/mixed_degradation/`, and `comparisons/`. JSON `eval_project` fields and
+matrix result paths were updated to the new locations, so the path-containing
+E000 and CP evaluation JSON hashes changed without changing any metric. The
+current hashes shown above are post-organization hashes; checkpoint hashes are
+unchanged. Future runners write directly into the grouped layout.

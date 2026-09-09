@@ -196,7 +196,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Date:** 2026-09-02
 - **Order:** CP-B0512, CP-B1024, CP-B1536, CP-B2048.
 - **Execution:** Train each run to completion, evaluate its source-validation `best.pt` on the three frozen test domains, render plots, then start the next quantity.
-- **Safety:** Preflight validates all selected runs before the first starts. Existing train/evaluation outputs cause an error. Any training, evaluation, or plotting failure stops the matrix and records state in `runs/evaluation/copy_paste_matrix_status.json`.
+- **Safety:** Preflight validates all selected runs before the first starts. Existing train/evaluation outputs cause an error. Any training, evaluation, or plotting failure stops the matrix and records state in `runs/evaluation/cut_paste/matrix_status.json`.
 - **Validity:** The pipeline does not inspect metrics or change later configurations; sequential evaluation is reporting only and does not create detector feedback.
 - **Implementation:** `src/training/train_copypaste_baselines.py --experiment all --evaluate`.
 
@@ -212,7 +212,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D024 - GenAI baselines generate complete MAIJA-aligned scenes
 
-- **Status:** Method family and SDXL candidate implementation accepted; acceptance test pending
+- **Status:** Historical method-family decision retained; SDXL execution superseded by D030; Qwen pending
 - **Date:** 2026-09-02
 - **Decision:** Stable Diffusion and Qwen baselines generate both the background and target object as new image content. They do not reuse a real Places365 background or paste an object-bank RGBA crop into the generated image.
 - **Fixed taxonomy:** The existing 16 classes and IDs in `configs/data_insp.yaml` are immutable. GenAI generation may vary object appearance, subtype, viewpoint, and background, but must not add, remove, merge, rename, or reorder experimental classes.
@@ -284,7 +284,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D029 - Restart SDXL generation from retained successful profiles
 
-- **Status:** Accepted; acceptance test pending
+- **Status:** Superseded after its reusable findings led to D030
 - **Date:** 2026-09-06
 - **Source of truth:** `configs/generation/sdxl_generation_v1.yaml` and
   `src/generation/generate_sdxl_dataset.py`
@@ -304,3 +304,16 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Preservation:** Their accepted class profiles and review decision remain as
   design evidence. The earlier ignored PNG outputs had already been removed;
   the restarted acceptance test creates the new retained visual evidence.
+
+## D030 - Release and evaluate the canonical paired SDXL degradation matrix
+
+- **Status:** Accepted, implemented, and executed
+- **Date:** 2026-09-09
+- **Decision:** Release the reviewed 2,048-image canonical SDXL dataset and its paired mixed-degradation derivative for detector training. Preserve nested 512/1,024/1,536/2,048 class-balanced subsets and train the mixed variants sequentially under the frozen YOLO11s protocol.
+- **Generation:** Use the validated structured-background, support-aware pose, target-only Canny, source-initialization pipeline. Aerosol uses the accepted upright cylindrical spray-can geometry and explicit cap/nozzle prompt treatment.
+- **Annotation:** Use the realized pose alpha box for YOLO geometry. Full-frame degradation never changes the label coordinates.
+- **Degradation:** Per class and 32-image block, retain 8 clean, 12 light, 8 medium, and 4 heavy images. Apply corruption to the complete rendered image.
+- **QC:** All 4,096 clean/mixed files decode as 1024x1024 RGB; paired annotations match; every non-clean image changed; every clean member remained unchanged; class, severity, and nested-subset counts are exact. Researcher visual review and independent stratified review passed.
+- **Result:** More SDXL data did not monotonically improve detector generalization. SDXL-M0512 was strongest overall among SDXL runs; M1536/M2048 reduced clean and hard performance. The Aerosol intervention improved over E000 in every domain at all four quantities, while several other classes retained hard-domain failure.
+- **Validity boundary:** Preserve and report the complete executed matrix. Do not revise this generator version using easy/hard test feedback. Additional causal or variance claims require predeclared follow-up experiments and detector seeds.
+- **Artifacts:** `runs/evaluation/sdxl/mixed_degradation/` and `runs/evaluation/comparisons/`.

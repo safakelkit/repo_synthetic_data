@@ -4,19 +4,23 @@ This file contains the active queue and milestone summary only. Run history is
 in `EXPERIMENT_LOG.md`; accepted methodology is in `DECISIONS.md`; exact paper
 values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 
-## Active — SDXL baseline
+## Active — SDXL result analysis
 
 - [x] Reset failed generation versions, outputs, and detailed failure logs while
   preserving successful profiles and reusable methodology decisions.
-- [x] Build and preflight the one-pass `sdxl_generation_v1` pipeline.
+- [x] Build and preflight the historical one-pass `sdxl_generation_v1` pilot (superseded by the canonical pipeline).
 - [x] Preserve the successful class-specific SDXL/Canny profiles for 15 classes.
-- [ ] Run and review the 64-image acceptance test; require at least 3/4 per
-  class and at least 56/64 overall.
-- [ ] Define the next Aerosol intervention only if its full-scene text branch
-  fails the frozen acceptance rule.
-- [ ] Implement post-generation localization, annotation, degradation, and QC.
-- [ ] Generate and validate nested SD-B0512/1024/1536/2048 datasets.
-- [ ] Train and evaluate all four SDXL configurations with frozen YOLO11s.
+- [x] Validate structured background generation, target-only Canny geometry,
+  support-aware scale, and the upright spray-can intervention.
+- [x] Generate and approve 2,048 clean SDXL images and pose-derived YOLO labels.
+- [x] Derive and approve the paired mixed-degradation dataset with exact
+  25/37.5/25/12.5% clean/light/medium/heavy allocation.
+- [x] Train and evaluate SDXL-M0512/1024/1536/2048 with frozen YOLO11s.
+- [x] Compare E000, cut-paste, and SDXL overall and per-class results.
+- [ ] Determine whether the additional detector-seed experiment should focus
+  on E000, CP-B1536, and SDXL-M0512 before making stability claims.
+- [ ] Analyze the hard-domain collapse for Matches, Pliers, Shaver, and Battery
+  without retuning the executed SDXL generator on target-test feedback.
 
 ## Next — Qwen baseline
 
@@ -31,7 +35,7 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
 
 ## Final baseline analysis
 
-- [ ] Complete the 13-configuration table.
+- [ ] Complete the remaining Qwen configurations in the 13-configuration table.
 - [ ] Compare generators only at equal accepted synthetic quantities.
 - [ ] Analyze easy/hard gains, clean cost, quantity response, class-wise changes,
   candidate yield, and generation cost.
@@ -67,5 +71,10 @@ values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
   visual review and was accepted with documented limitations.
 - E000 and CP-B0512/1024/1536/2048 training, three-domain evaluation, plots,
   hashes, and paper records are complete.
+- The canonical SDXL clean/mixed dataset passed complete structural QC and
+  researcher review; all four mixed-degradation quantity runs and three-domain
+  evaluations are complete.
+- Evaluation artifacts are grouped by baseline, cut-paste, SDXL, and combined
+  comparisons under `runs/evaluation/`.
 - Obsolete active ADR code and superseded dataset/config paths were removed;
   recoverability and historical decisions remain documented.

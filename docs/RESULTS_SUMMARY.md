@@ -1,91 +1,93 @@
 # Results Summary
 
-Only add results produced by a verified run with a traceable configuration and artifact path. Keep preliminary report figures separate from reproducible project results. ADR results are not part of the current phase.
-
-Placement preprocessing is not a detector result. The pilot geometry review
-accepted 45 regions. Full geometry-v2 review later retained 527
-production-eligible regions across 527 of the 1,166 backgrounds. None of these
-steps created training images.
-
-`cp_v1_seed42` is a dataset artifact, not a detector result. It contains 2,048
-unique images, passed automatic integrity/QC, and was accepted before training
-as a deliberately simple cut-paste baseline with documented placement,
-perspective, scale, and contact limitations.
+Only verified seed-0 runs with source-validation-selected `best.pt` are listed.
+All models use pretrained YOLO11s, 60 epochs, image size 640, batch 16, and the
+same clean/easy/hard reporting protocol. Target test results did not select
+checkpoints or revise the executed generators.
 
 ## Preliminary report figures
 
-The preliminary report states:
-
-- INSP-DET: 71.66% mAP.
-- INSP-MOT-DET hard: 9.93% mAP.
-
-The report does not identify the precise mAP variant, run configuration, seed, or artifact path for these figures. They establish motivation only and must not be presented as verified mAP50-95 results until provenance is recovered.
+The preliminary report states 71.66% mAP on INSP-DET and 9.93% mAP on
+INSP-MOT-DET hard, but does not identify the exact metric, configuration, seed,
+or artifact. These values establish motivation only.
 
 ## Verified primary results
 
-| ID | Generator | Synthetic count | Seed(s) | INSP-DET mAP50-95 | Easy mAP50-95 | Hard mAP50-95 | Evidence |
-|---|---|---:|---:|---:|---:|---:|---|
-| E000 | None | 0 | 0 initial | 0.688407 | 0.414322 | 0.111021 | `runs/evaluation/E000_results.json` |
-| CP-B0512 | Cut-paste | 512 | detector 0 / generator 42 | 0.678076 | 0.455601 | 0.127215 | `runs/evaluation/CP-B0512_yolo11s_seed0_results.json` |
-| CP-B1024 | Cut-paste | 1,024 | detector 0 / generator 42 | 0.686670 | 0.459600 | 0.131242 | `runs/evaluation/CP-B1024_yolo11s_seed0_results.json` |
-| CP-B1536 | Cut-paste | 1,536 | detector 0 / generator 42 | 0.686050 | 0.455120 | 0.161818 | `runs/evaluation/CP-B1536_yolo11s_seed0_results.json` |
-| CP-B2048 | Cut-paste | 2,048 | detector 0 / generator 42 | 0.675311 | 0.470741 | 0.146286 | `runs/evaluation/CP-B2048_yolo11s_seed0_results.json` |
-| SD-B0512 | Stable Diffusion + ControlNet | 512 | TBD | TBD | TBD | TBD | TBD |
-| SD-B1024 | Stable Diffusion + ControlNet | 1,024 | TBD | TBD | TBD | TBD | TBD |
-| SD-B1536 | Stable Diffusion + ControlNet | 1,536 | TBD | TBD | TBD | TBD | TBD |
-| SD-B2048 | Stable Diffusion + ControlNet | 2,048 | TBD | TBD | TBD | TBD | TBD |
-| QW-B0512 | Qwen + ControlNet | 512 | TBD | TBD | TBD | TBD | TBD |
-| QW-B1024 | Qwen + ControlNet | 1,024 | TBD | TBD | TBD | TBD | TBD |
-| QW-B1536 | Qwen + ControlNet | 1,536 | TBD | TBD | TBD | TBD | TBD |
-| QW-B2048 | Qwen + ControlNet | 2,048 | TBD | TBD | TBD | TBD | TBD |
+| ID | Generator | Synthetic | Clean | Delta | Easy | Delta | Hard | Delta |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| E000 | Real only | 0 | 0.688407 | 0 | 0.414322 | 0 | 0.111021 | 0 |
+| CP-B0512 | Cut-paste | 512 | 0.678076 | -0.010331 | 0.455601 | +0.041279 | 0.127215 | +0.016194 |
+| CP-B1024 | Cut-paste | 1,024 | 0.686670 | -0.001737 | 0.459600 | +0.045278 | 0.131242 | +0.020221 |
+| CP-B1536 | Cut-paste | 1,536 | 0.686050 | -0.002357 | 0.455120 | +0.040799 | 0.161818 | +0.050797 |
+| CP-B2048 | Cut-paste | 2,048 | 0.675311 | -0.013097 | 0.470741 | +0.056419 | 0.146286 | +0.035265 |
+| SDXL-M0512 | SDXL mixed degradation | 512 | 0.697123 | +0.008716 | 0.409061 | -0.005261 | 0.121801 | +0.010779 |
+| SDXL-M1024 | SDXL mixed degradation | 1,024 | 0.684565 | -0.003843 | 0.420388 | +0.006066 | 0.118238 | +0.007217 |
+| SDXL-M1536 | SDXL mixed degradation | 1,536 | 0.673075 | -0.015333 | 0.433494 | +0.019172 | 0.099994 | -0.011027 |
+| SDXL-M2048 | SDXL mixed degradation | 2,048 | 0.664612 | -0.023796 | 0.428149 | +0.013827 | 0.090928 | -0.020093 |
 
-## Required comparisons
+Evidence:
 
-- Primary success criterion: improvement over E000 on both easy and hard mAP50-95, subject to the clean-domain preservation tolerance.
-- Cut-paste results are not valid for the accepted methodology unless their
-  dataset provenance identifies the verified semantic support-region manifest
-  and class orientation/support policy used during placement.
-- Every synthetic run versus E000.
-- Quantity response within each generator: 512 versus 1,024 versus 1,536 versus 2,048.
-- Cut-paste versus Stable Diffusion + ControlNet versus Qwen + ControlNet at each equal quantity.
-- Target-domain gain versus INSP-DET change.
-- Class-wise gains and losses for every completed run.
+- baseline: `runs/evaluation/baseline/`;
+- cut-paste: `runs/evaluation/cut_paste/`;
+- SDXL: `runs/evaluation/sdxl/mixed_degradation/`;
+- combined tables and plot: `runs/evaluation/comparisons/`.
 
-## Class-wise findings
+## Quantity response
 
-For E000, easy-domain mAP50-95 is highest for Alcohol (0.7522), Shaver
-(0.7479), Pliers (0.7143), Scissors (0.6309), and Aerosol can (0.6229). It is
-lowest for Matches (0.0053), Battery (0.1610), and Lighter (0.1636).
+Every cut-paste quantity improves easy and hard over E000, with a small clean
+cost. CP-B1024 best preserves clean, CP-B1536 is strongest on hard, and
+CP-B2048 is strongest on easy.
 
-Hard-domain mAP50-95 is highest for Laptop (0.5327), Alcohol (0.3239), Aerosol
-can (0.2330), Hammer (0.2047), and Scissors (0.1395). Matches, Knife, and Shaver
-are 0.0; Battery is 0.0002 and Screwdriver is 0.0014. Lighter is unavailable,
-not zero, because the hard split contains no class-0 annotations.
+SDXL has a different response. SDXL-M0512 improves clean and hard but slightly
+reduces easy. SDXL-M1024 improves easy and hard with a small clean cost.
+SDXL-M1536 and M2048 improve easy while reducing both clean and hard. From 512
+to 2,048 SDXL images, clean falls 0.032512 and hard falls 0.030872. Increasing
+the executed SDXL mixture therefore does not monotonically improve robustness.
+At 2,048 images, synthetic samples are 48.0% of the 4,263-image training set;
+the fixed synthetic scene/appearance distribution may increasingly outweigh
+the real-data distribution. This is an interpretation, not a causal result.
 
-The absolute mAP50-95 drop from clean is 0.2741 on easy and 0.5774 on hard
-(39.8% and 83.9% relative, respectively). These E000 values are the fixed
-reference for every synthetic-data comparison.
+At every equal quantity cut-paste outperforms SDXL on easy. Cut-paste also
+outperforms SDXL on hard at every quantity. SDXL-M0512 has the best clean result
+of the complete matrix.
 
-### Cut-paste quantity response
+## Aerosol can
 
-All four valid seed-0 cut-paste runs improve both target domains over E000.
-Easy gains are +0.0413, +0.0453, +0.0408, and +0.0564; hard gains are
-+0.0162, +0.0202, +0.0508, and +0.0353 for 512 through 2,048 synthetic images.
-Clean changes are -0.0103, -0.0017, -0.0024, and -0.0131. CP-B1024 offers the
-smallest clean cost, CP-B1536 has the largest hard gain, and CP-B2048 has the
-largest easy gain. The response is not monotonic, so the current one-seed
-matrix does not support a claim that more cut-paste data is always better.
+| ID | Clean | Easy | Hard |
+|---|---:|---:|---:|
+| E000 | 0.693934 | 0.622940 | 0.232962 |
+| CP-B0512 | 0.701947 | 0.610061 | 0.262462 |
+| CP-B1024 | 0.698306 | 0.601868 | 0.227695 |
+| CP-B1536 | 0.716413 | 0.502200 | 0.265727 |
+| CP-B2048 | 0.689066 | 0.630676 | 0.271762 |
+| SDXL-M0512 | 0.723058 | 0.642239 | 0.276062 |
+| SDXL-M1024 | 0.717595 | 0.657335 | 0.280044 |
+| SDXL-M1536 | 0.723839 | 0.678787 | 0.263142 |
+| SDXL-M2048 | 0.697802 | 0.654340 | 0.246270 |
 
-Combined numeric and visual evidence is stored in
-`runs/evaluation/copy_paste_matrix_summary.csv` and
-`runs/evaluation/copy_paste_matrix_summary.png`.
+The final spray-can intervention transferred successfully: SDXL exceeds E000
+for Aerosol on all three domains at every quantity. It also exceeds equal-size
+cut-paste on clean and easy at every quantity, and on hard at 512 and 1,024.
+
+## Persistent class failures
+
+Matches, Pliers, Shaver, and Battery are near zero mainly on the hard domain,
+including before synthetic augmentation. E000 hard mAP50-95 is respectively
+0.0000, 0.0035, 0.0000, and 0.0002. The hard split contains 69 Matches, 29
+Pliers, 21 Shaver, and 276 Battery annotations, so Battery failure in particular
+cannot be explained by a tiny evaluation count. Pliers and Shaver remain strong
+on clean/easy; Matches already fails on easy; Battery is unstable on easy.
+Neither generator resolves this hard-domain class collapse.
+
+The complete 432-row method/quantity/domain/class table is
+`runs/evaluation/comparisons/augmentation_matrix_per_class.csv`.
 
 ## Interpretation rules
 
-- Do not compare unequal synthetic counts as evidence that one generator is better.
-- Do not select checkpoints or generator settings using target test results.
-- Report all completed valid configurations, not only the best result.
-- Report failed and invalid runs in the experiment log.
-- Report variability across seeds, not only the best seed.
-- Report source-domain cost alongside target-domain gains.
-- Do not make ADR claims during the current baseline phase.
+- Compare generators at equal synthetic quantities.
+- Report every completed configuration and clean-domain cost.
+- Do not use easy/hard results to revise these executed generator versions.
+- The initial matrix has one detector seed; variance and significance require
+  additional predeclared seeds.
+- Missing hard-domain Lighter AP is unavailable, not zero.
+- ADR claims remain outside the current baseline phase.

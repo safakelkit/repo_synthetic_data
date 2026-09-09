@@ -21,19 +21,16 @@ configuration, implementation, and evidence. A value marked **planned** or
   observing detector results.
 - **Completed under the frozen protocol:** E000 and all four cut-paste quantity
   runs, including three-domain evaluation and combined response plots.
-- **GenAI method decision:** Stable Diffusion and Qwen will generate complete
-  MAIJA-aligned scenes while preserving the fixed 16-class taxonomy and four
-  balanced quantities. The scene matrix and exact feasibility model pairs are
-  frozen.
-- **Partly executed:** SDXL and Qwen v2 feasibility verified immutable loading,
-  ControlNet integration, and RTX 3090 execution. The hand-drawn scissors proxy
-  remained semantically weak, especially for Qwen. Active v3 uses accepted
-  class-matched SAM3 binary silhouettes; both v3 GPU feasibility runs passed.
-- **Implemented, not yet run:** the SDXL canonical candidate scheduler combines
-  the successful class-specific pilot profiles and defines a deterministic
-  64-image acceptance test plus sharded surplus production.
-- **Not yet implemented or run:** GenAI annotation/finalization, released
-  datasets, and eight detector runs.
+- **SDXL canonical data completed:** 2,048 clean images and pose-derived YOLO
+  labels plus a paired 2,048-image mixed-degradation set passed researcher
+  review, complete decode/label checks, stratified visibility review, exact
+  class/severity balance, and nested-manifest validation.
+- **SDXL detector matrix completed:** SDXL-M0512/1024/1536/2048 trained under
+  the frozen seed-0 protocol and were evaluated on clean/easy/hard. Combined
+  overall and 432-row per-class evidence is grouped under
+  `runs/evaluation/comparisons/`.
+- **Qwen pending:** model feasibility is retained, but canonical generation and
+  detector runs have not started.
 
 ## Dataset and evaluation values
 
@@ -194,11 +191,11 @@ until the acceptance and annotation/QC gates pass.
 | Scene scope | Eight correctional-facility families: five detention living-space, one controlled property-inspection, and two supervised operational contexts | Accepted and frozen v1.1 |
 | Context allocation | Four compatible families/class; property inspection shared by all classes; other scenes shared by 4--8 classes; eight images/assigned family in every 32-image class block | Accepted and frozen v1.1 |
 | Canonical quantities | 512/1,024/1,536/2,048; exactly 32/64/96/128 primary targets per class | Accepted |
-| Spatial conditioning | Class-specific silhouette Canny for 15 retained profiles; text-only complete-scene generation for Aerosol | Implemented in generation-v1 |
-| Acceptance run | One deterministic image for every class-to-scene assignment: 16 classes × 4 scenes = 64 images; distinct control, seed, prompt, scale, rotation, and placement where applicable | Pending execution and review |
-| Restarted SDXL generation-v1 | One-pass complete images; retained successful profiles for 15 classes; text-only full-scene Aerosol branch; no compositing/inpainting | Implemented and preflighted; 64-image acceptance test pending |
-| GenAI run provenance | Git revision/dirty state; exact config, policy, model and script hashes; package/CUDA/GPU environment; inference/wall time; peak VRAM; per-image control/output hashes | `generate_sdxl_dataset.py` manifest format v1 |
-| Annotation | Post-generation SAM3 localization; requested class/control region is not automatically a label | Accepted rule; thresholds pending |
+| Spatial conditioning | Class-specific source initialization plus target-only Canny; upright cylindrical spray-can geometry for Aerosol | Implemented in canonical generation |
+| Development acceptance and background/scale pilots | Deterministic all-class reviews preceding canonical generation | Completed; reusable findings incorporated into the canonical pipeline |
+| Canonical SDXL generation | 2,048 structured-background, source-initialized, target-only-Canny images with pose-derived labels | Generated, reviewed, QC-passed, and released |
+| GenAI run provenance | Per-image class, scene, prompt, source, pose, seed, control strength, output hash, inference time, and release/QC state | Canonical clean and mixed manifests |
+| Annotation | Realized pose alpha box written as YOLO geometry; paired degradation preserves it | Implemented and verified on 2,048 pairs |
 | Extra target classes | Fully annotate or reject the image | Accepted |
 | Target-test boundary | No prompt, scene, model, or QC tuning from easy/hard results | Accepted |
 
@@ -262,10 +259,11 @@ resolved environment.
   support-depth-conditioned scale are reported as methodological limitations.
 - Acceptable clean-domain mAP50-95 decrease remains `TBD`.
 - Detector seeds beyond the seed-0 initial matrix remain `TBD`.
-- Full-scene model pairs, immutable revisions, scene matrix, diversity policy,
-  degradation policy, feasibility memory/runtime, and SDXL all-class templates
-  are recorded. Four SDXL classes, annotation/QC implementation, candidate
-  surplus, and production acceptance remain open; Qwen all-class work is paused.
+- Full-scene model pairs, immutable revisions, scene/diversity policy, and
+  degradation policy are recorded. The final SDXL implementation uses 32
+  reviewed structured background plates, class-specific source initialization,
+  target-only Canny geometry, support-aware poses, and pose-derived labels.
+  Qwen all-class work remains paused.
 - The retained SAM3 asset metadata proves source images, classes, annotation
   indices, and SAM scores, but does not prove the exact model revision or full
   extraction command used for every historical crop. The current extraction
@@ -286,7 +284,8 @@ all four quantities improved easy by +0.041279/+0.045278/+0.040799/+0.056419
 and hard by +0.016194/+0.020221/+0.050797/+0.035265, while clean changed by
 -0.010331/-0.001737/-0.002357/-0.013097. The source evidence is the four
 evaluation JSON files and checkpoint hashes in `EXPERIMENT_LOG.md`; the combined
-paper-candidate evidence is `copy_paste_matrix_summary.csv` and `.png`. These
+paper-candidate evidence is `runs/evaluation/cut_paste/matrix_summary.csv` and
+`.png`. These
 are single-detector-seed findings, not variance or significance estimates.
 
 `cp_v1_seed42` is accepted for CP-B0512--CP-B2048 as a simple cut-paste
@@ -299,6 +298,24 @@ The four CP runs were launched in fixed ascending order by
 evaluated, and plotted before the next begins. The orchestration is fail-fast
 and writes an ignored progress record; it never branches or changes parameters
 based on observed metrics.
+
+The canonical SDXL clean manifest SHA-256 is
+`ee9c4d2cc9cc7595e39bdfe92ba01835429fe566e9afd339f3c725d7392322c4`;
+the released mixed manifest SHA-256 is
+`90627a66ee9e40c9b636dc98cfe44859cc9580e4195009bae64daaf1af3db0da`.
+The mixed set contains 512 clean, 768 light, 512 medium, and 256 heavy images,
+with exact 32/48/32/16 counts per class. All 4,096 files decode as 1024x1024
+RGB; all 1,536 degraded outputs differ from their clean source; paired labels
+and annotation geometry match.
+
+The SDXL matrix ran at revision `bff18a3` on physical GPU 1 exposed as logical
+device 0. Input counts were 2,727/3,239/3,751/4,263 with no missing labels or
+duplicate paths. Clean/easy/hard mAP50-95 was respectively
+0.697123/0.409061/0.121801, 0.684565/0.420388/0.118238,
+0.673075/0.433494/0.099994, and 0.664612/0.428149/0.090928 for 512 through
+2,048. Exact checkpoint/evaluation hashes and durations are in
+`EXPERIMENT_LOG.md`. Evaluation outputs use method folders under
+`runs/evaluation/{baseline,cut_paste,sdxl,comparisons}/`.
 
 ### Placement literature context
 

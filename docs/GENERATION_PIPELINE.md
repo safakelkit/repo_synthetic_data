@@ -1,45 +1,55 @@
 # Active GenAI Generation Pipeline
 
-This file is the sole active description of the restarted GenAI pipeline.
-Earlier failed pilot records are pending approved cleanup and do not define the
-current implementation.
+This file describes the executed and approved canonical SDXL pipeline. Failed
+development pilots do not define the current implementation.
 
 ## Method
 
-- SDXL base and Canny ControlNet revisions remain fixed.
-- Every candidate is generated as one complete 1024x1024 image in one diffusion
-  pass. The pipeline performs no compositing, inpainting, or source-pixel reuse.
-- Fifteen classes retain the class-specific silhouette-Canny profiles that
-  produced usable outputs in the previous acceptance test.
-- Aerosol can uses a concise, text-only full-scene branch. Its ControlNet scale
-  is zero; the supplied inert control image is recorded only because the shared
-  SDXL ControlNet pipeline requires an image argument.
-- Aerosol prompts name concrete retail products (`spray-paint aerosol can` and
-  `deodorant body-spray aerosol can`) and request cap/nozzle hardware explicitly.
-- All candidate images remain forbidden from training until review, annotation,
-  degradation, and final QC pass.
+- SDXL inpainting and Canny ControlNet revisions are fixed by the canonical
+  configuration and recorded in every manifest.
+- Thirty-two reviewed structured background plates provide semantically valid,
+  diverse correctional-facility interiors with furniture, fixtures, depth, and
+  support surfaces.
+- Class-specific source initialization and target-only Canny geometry preserve
+  identity while allowing the model to integrate the object into the scene.
+  Background Canny edges are excluded from target conditioning.
+- Pose selection uses support geometry and scene perspective. YOLO boxes are
+  written from the realized pose alpha box rather than inferred from prompt text.
+- Aerosol uses an upright cylindrical spray-can initialization and explicit
+  cap/nozzle language. Its 128 canonical outputs passed visual and box review.
+- Generation first writes a clean 2,048-image dataset. Degradation is then
+  applied to the complete rendered image, keeping label geometry unchanged.
 
-## Acceptance test
+## Canonical release
 
-The first run contains 64 images: all 16 classes in their four frozen scene
-families. Production stays locked unless every class passes at least three of
-four samples and the complete test passes at least 56 of 64.
+- Clean root: `data/synthetic/sdxl_background_diversity_experiment/canonical_clean_2048_v1/`
+- Mixed root: `data/synthetic/sdxl_background_diversity_experiment/canonical_mixed_degradation_2048_v1/`
+- Images: 2,048; 128/class; 1024x1024 RGB; all decoded successfully.
+- Nested subsets: 512/1,024/1,536/2,048 with 32/64/96/128 images per class.
+- Mixed schedule: 512 clean, 768 light, 512 medium, 256 heavy; every class has
+  exact 32/48/32/16 counts.
+- All 1,536 non-clean outputs differ from their sources; all 512 clean members
+  remain unchanged. Labels are identical across paired clean/mixed images.
+- Researcher visual approval plus stratified independent review and complete
+  structural QC released the datasets for training on 2026-09-09.
 
 Source files:
 
-- `configs/generation/sdxl_generation_v1.yaml`
-- `src/generation/generate_sdxl_dataset.py`
+- `configs/generation/sdxl_generation.yaml`
+- `src/generation/run_sdxl_depth_background_experiment.py`
+- `configs/generation/genai_degradation_v1.yaml`
+- `src/augmentation/degrade_sdxl_dataset.py`
 
-Preflight:
-
-```bash
-../env_sam3/bin/python src/generation/generate_sdxl_dataset.py --preflight-only
-```
-
-Generation:
+Degradation-only detector matrix preflight:
 
 ```bash
-../env_sam3/bin/python src/generation/generate_sdxl_dataset.py
+CUDA_VISIBLE_DEVICES=1 ../env_sam3/bin/python src/training/train_sdxl_baselines.py --experiment mixed-all --preflight-only --evaluate
 ```
 
-The output root is `data/synthetic/sdxl_generation_v1/acceptance_test/`.
+Training and three-domain evaluation:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 ../env_sam3/bin/python src/training/train_sdxl_baselines.py --experiment mixed-all --evaluate
+```
+
+Evaluation artifacts are grouped under `runs/evaluation/sdxl/mixed_degradation/`.
