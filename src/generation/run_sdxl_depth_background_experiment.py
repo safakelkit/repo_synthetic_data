@@ -72,7 +72,11 @@ def resolved_scene_plate_prompts(config: dict[str, Any]) -> dict[str, list[str]]
     suffix = str(structured["realism_suffix"]).strip()
     return {
         scene_name: [
-            " ".join((prefix, viewpoint, str(blueprint).strip(), lighting, suffix))
+            # SDXL gives substantially more weight to the beginning of the
+            # prompt. Put scene-defining fixtures before style, viewpoint,
+            # and lighting so realistic but semantically wrong empty rooms
+            # are less likely before the mandatory visual-review gate.
+            " ".join((str(blueprint).strip(), viewpoint, lighting, prefix, suffix))
             for blueprint in blueprints
             for viewpoint in viewpoints
             for lighting in lightings

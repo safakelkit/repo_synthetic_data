@@ -37,9 +37,9 @@ source_review_gate:
 # candidates per scene. Human review will retain 32 per scene (25% surplus).
 structured_plate_prompts:
   realism_prefix: >-
-    Unstaged documentary photo of a plausible secure institutional interior.
+    Unstaged real documentary photograph, not a render or illustration.
   realism_suffix: >-
-    Natural perspective, irregular wear, sensor texture, clear empty support surface, no people.
+    Natural perspective, irregular wear, sensor texture, empty support surface, no people.
   viewpoints:
     - Eye-level doorway view.
     - Off-center three-quarter view.
@@ -50,59 +50,59 @@ structured_plate_prompts:
     - Uneven warm lighting with dim daylight, realistic shadows.
   scene_blueprints:
     cell_sleeping_area:
-      - Compact detention cell with one steel bunk, closed locker, secure window and worn floor.
-      - Older correctional sleeping room with stacked bunks, fixed shelf, solid door and ventilation grille.
-      - Narrow housing cell with one bed, recessed storage, writing ledge and scuffed wall-floor junction.
-      - Renovated secure cell with pale block walls, bolted bed, sealed cabinet and high window.
-      - Heavily used sleeping cell with mismatched repairs, metal bed, closed storage and visible room depth.
+      - Inside a compact prison sleeping cell; a complete steel bunk bed is clearly visible with a closed locker and secure window.
+      - Inside an older correctional sleeping cell; stacked metal bunks dominate the room beside a fixed shelf and solid door.
+      - Inside a narrow housing cell; one complete bed is plainly visible beside recessed storage and a worn writing ledge.
+      - Inside a renovated prison sleeping cell; a bolted bed is the main fixture with a sealed cabinet and high secure window.
+      - Inside a heavily used prison sleeping cell; a complete metal bed and closed storage are clearly visible amid mismatched repairs.
     cell_desk_area:
-      - Correctional cell writing alcove with fixed laminate desk, bolted stool, closed drawer and high window.
-      - Worn detention study corner with steel writing shelf, noticeboard glazing, locker and secure door.
-      - Compact housing-cell desk area with concrete shelf, fixed chair, ventilation grille and clear floor depth.
-      - Older cell workspace with repaired worktop, sealed cubby, steel stool and painted block walls.
-      - Institutional writing bay with long bare counter, closed storage, high secure window and diagonal depth.
+      - Inside a prison-cell writing alcove; a broad bare fixed desk and bolted stool are clearly visible below a high window.
+      - Inside a worn detention study corner; a bare steel writing desk dominates the view beside a locker and secure door.
+      - Inside a compact housing-cell workspace; a clear concrete desk and fixed chair are fully visible against block walls.
+      - Inside an older prison-cell workspace; a repaired bare worktop, sealed cubby and steel stool are the main fixtures.
+      - Inside a secure institutional writing bay; a long empty counter and closed storage are plainly visible below a high window.
     cell_storage_area:
-      - Secure linen store with fixed shelves, folded neutral bedding, closed lockers and mesh divider.
-      - Correctional property store with numbered cabinets, wire cage, packing bench and worn concrete floor.
-      - Narrow institutional storage aisle with steel shelving, sealed bins, controlled door and ventilation duct.
-      - Older evidence room with closed cupboards, mesh partition, sorting counter and patched floor.
-      - Compact supply store with linen racks, locked cabinets, service doorway and clear packing surface.
+      - Inside a secure prison linen store; fixed shelves of folded neutral bedding and closed lockers fill the room.
+      - Inside a correctional property store; numbered cabinets, a wire cage and a broad empty packing bench are clearly visible.
+      - Inside a narrow institutional storeroom; steel shelving, sealed bins and a controlled door define the room.
+      - Inside an older correctional evidence store; closed cupboards, a mesh partition and an empty sorting counter dominate the view.
+      - Inside a compact prison supply store; linen racks, locked cabinets and a clear packing surface are fully visible.
     cell_wash_area:
-      - Detention wash alcove with porcelain basin, aged tile, mirror recess, vent and dry side counter.
-      - Institutional washroom with stainless basins, long mirror, floor drain and high secure windows.
-      - Older correctional wash bay with deep sink, tiled privacy return, metal shelf and worn non-slip floor.
-      - Renovated secure wash area with concrete counter, fixed basin, sealed plumbing and ventilation grille.
-      - Narrow communal washroom with basin row, patched grout, service panel and clear dry ledge.
+      - Inside a detention wash alcove; a complete porcelain basin and dry side counter are clearly visible against aged tile.
+      - Inside a secure institutional washroom; a row of stainless basins and a long mirror dominate the room.
+      - Inside an older correctional wash bay; a deep fixed sink, tiled privacy return and bare metal shelf are fully visible.
+      - Inside a renovated prison wash area; a fixed basin set in a broad concrete counter is the main fixture.
+      - Inside a narrow correctional washroom; a complete basin row and a clear dry ledge are plainly visible against patched tile.
     communal_day_room:
-      - Correctional day room with bolted tables, attached seats, secure windows and scuffed linoleum.
-      - Older institutional common room with fixed benches, central column, radiator cover and controlled door.
-      - Compact housing-unit day space with heavy table, molded seats, mesh divider and corridor opening.
-      - Renovated secure common area with pale walls, fixed furniture, high windows and visible floor depth.
-      - Worn communal room with repaired benches, two bolted tables, wall panels and asymmetric layout.
+      - Inside a prison communal day room; complete bolted tables and attached seats dominate the space below secure windows.
+      - Inside an older correctional common room; fixed benches and a heavy central table are clearly visible near a controlled door.
+      - Inside a compact prison housing-unit day room; a heavy table, molded seats and mesh divider define the space.
+      - Inside a renovated secure common room; multiple complete pieces of fixed furniture are clearly visible below high windows.
+      - Inside a worn correctional communal room; two bolted tables and repaired benches dominate an asymmetric layout.
     property_inspection_station:
-      - Correctional belongings-search room with stainless inspection table, lockers and pass-through window.
-      - Secure property station with worn laminate counter, acrylic divider, closed drawers and corridor door.
-      - Institutional intake search bay with metal worktop, numbered cabinets, mesh partition and rolling cart.
-      - Older evidence inspection room with repaired counter, sealed cupboards, service slot and worn floor.
-      - Compact property-processing station with L-shaped bench, glazed divider, lockers and natural room depth.
+      - Inside a correctional belongings-search room; a broad empty stainless inspection table is clearly visible before lockers.
+      - Inside a secure prison property station; a worn bare counter and acrylic divider dominate the view above closed drawers.
+      - Inside an institutional intake search bay; an empty metal worktop, numbered cabinets and mesh partition are fully visible.
+      - Inside an older correctional evidence inspection room; a repaired bare counter and sealed cupboards define the room.
+      - Inside a compact prison property-processing station; a clear L-shaped bench, glazed divider and lockers are plainly visible.
     correctional_workshop:
-      - Secure prison repair workshop with bare steel bench, locked cabinets, empty pegboard and mesh partition.
-      - Institutional maintenance shop with timber workbench, parts drawers, extraction duct and high windows.
-      - Older correctional workshop with repaired bench, sealed equipment cupboards and worn concrete floor.
-      - Compact secure tool room with empty shadow board, steel worktop, caged storage and controlled door.
-      - Renovated prison workshop with broad bench, closed cabinets, conduit and asymmetric industrial layout.
+      - Inside a secure prison repair workshop; a broad bare steel workbench, locked cabinets and empty pegboard dominate the room.
+      - Inside an institutional maintenance shop; a complete empty timber workbench and closed parts drawers are clearly visible.
+      - Inside an older correctional workshop; a repaired bare bench and sealed equipment cupboards define the industrial room.
+      - Inside a compact secure tool room; an empty shadow board, broad steel worktop and caged storage are fully visible.
+      - Inside a renovated prison workshop; a broad clear bench and closed cabinets dominate an asymmetric industrial layout.
     maintenance_service_area:
-      - Correctional utility room with fixed cabinets, exposed conduit, ventilation trunk and broad clear floor.
-      - Secure maintenance corridor with locked service doors, recessed equipment bays and worn concrete.
-      - Institutional mechanical room with electrical enclosures, pipe runs, closed storage and empty workbench.
-      - Older prison service area with patched walls, steel shelving, cable trays and diagonal corridor depth.
-      - Compact facilities room with sealed cabinets, ventilation grilles, utility door and clear floor zone.
+      - Inside a correctional utility room; fixed cabinets, exposed conduit and a ventilation trunk surround a broad clear floor.
+      - Inside a secure prison maintenance bay; locked service doors and recessed equipment cabinets are clearly visible.
+      - Inside an institutional mechanical room; electrical enclosures, pipe runs and an empty workbench define the room.
+      - Inside an older prison service room; patched walls, steel shelving and cable trays surround a clear floor zone.
+      - Inside a compact correctional facilities room; sealed cabinets, ventilation grilles and a utility door are fully visible.
 
 plate_negative_prompt: >-
-  CGI, 3D render, illustration, game scene, showroom, perfect symmetry,
-  repeated furniture, plastic texture, warped architecture, impossible
-  perspective, floating fixtures, fisheye, excessive HDR, cinematic grading,
-  people, hands, loose contraband, tools, weapons, aerosol, battery, alcohol,
+  CGI, 3D render, illustration, showroom, perfect symmetry, repeated furniture,
+  plastic texture, warped architecture, impossible perspective, floating fixtures,
+  fisheye, cinematic grading, generic empty room, empty hallway, missing required
+  furniture, people, hands, contraband, tools, weapons, aerosol, battery, alcohol,
   phone, laptop, readable text, logo, watermark
 
 background_review_gate:
