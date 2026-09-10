@@ -60,6 +60,27 @@ def write_yolo_box_label(
     return normalized
 
 
+def resolved_scene_plate_prompts(config: dict[str, Any]) -> dict[str, list[str]]:
+    """Return explicit prompts or expand a structured documentary-photo grid."""
+    structured = config.get("structured_plate_prompts")
+    if not structured:
+        return config["scene_plate_prompts"]
+
+    viewpoints = [str(value).strip() for value in structured["viewpoints"]]
+    lightings = [str(value).strip() for value in structured["lightings"]]
+    prefix = str(structured["realism_prefix"]).strip()
+    suffix = str(structured["realism_suffix"]).strip()
+    return {
+        scene_name: [
+            " ".join((prefix, viewpoint, str(blueprint).strip(), lighting, suffix))
+            for blueprint in blueprints
+            for viewpoint in viewpoints
+            for lighting in lightings
+        ]
+        for scene_name, blueprints in structured["scene_blueprints"].items()
+    }
+
+
 def validate_environment(helper, feasibility, config: dict[str, Any], require_clean: bool) -> dict[str, Any]:
     versions = feasibility.installed_versions()
     mismatches = {
@@ -74,9 +95,10 @@ def validate_environment(helper, feasibility, config: dict[str, Any], require_cl
         raise RuntimeError("Commit the isolated experiment before GPU generation")
     if config.get("status") != "ready_for_experiment":
         raise RuntimeError("Experiment configuration is not launch-ready")
-    if len(config["scene_plate_prompts"]) != 8:
+    prompts_by_scene = resolved_scene_plate_prompts(config)
+    if len(prompts_by_scene) != 8:
         raise ValueError("Expected eight scene families")
-    for scene, prompts in config["scene_plate_prompts"].items():
+    for scene, prompts in prompts_by_scene.items():
         if len(prompts) != int(config["plate_variants_per_scene"]):
             raise ValueError(f"Scene {scene} has an unexpected number of variants")
     return {"git": git, "packages": versions}
@@ -117,7 +139,7 @@ def plate_records(config: dict[str, Any]) -> list[dict[str, Any]]:
         str(key): int(value)
         for key, value in config.get("plate_seed_overrides", {}).items()
     }
-    for scene_name, prompts in config["scene_plate_prompts"].items():
+    for scene_name, prompts in resolved_scene_plate_prompts(config).items():
         for variant, prompt in enumerate(prompts):
             plate_key = f"{scene_name}:{variant}"
             records.append({
@@ -158,8 +180,12 @@ def run_plates(
     output_dir = output_root / output_name
     if output_dir.exists():
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
-    output_dir.mkdir(parents=True)
     pipe = load_base_pipeline(models, gpu)
+    validate_clip_prompts(
+        pipe,
+        [*[record["prompt"] for record in records_to_generate], config["plate_negative_prompt"]],
+    )
+    output_dir.mkdir(parents=True)
     records = []
     for position, record in enumerate(records_to_generate, start=1):
         started = time.monotonic()
@@ -180,10 +206,34 @@ def run_plates(
     paths = [REPO_ROOT / row["output"] for row in records]
     make_contact_sheet(paths, output_dir / "contact_sheet.png",
                        [f"{r['scene_name']} v{r['variant']}" for r in records])
+    for scene_name in sorted({row["scene_name"] for row in records}):
+        scene_records = [row for row in records if row["scene_name"] == scene_name]
+        make_contact_sheet(
+            [REPO_ROOT / row["output"] for row in scene_records],
+            output_dir / f"contact_sheet_{scene_name}.png",
+            [f"v{row['variant']:02d} seed {row['seed']}" for row in scene_records],
+        )
     write_json(output_dir / "manifest.json", {
         "status": "generated_pending_visual_review", "training_use_forbidden": True,
+        "acceptance_target_per_scene": config.get("plate_acceptance_target_per_scene"),
         "records": records,
     })
+    with (output_dir / "review.csv").open("w", encoding="utf-8", newline="") as handle:
+        fields = [
+            "scene_name", "variant", "image_path", "review_status",
+            "organic_realism", "physical_geometry", "support_surface",
+            "target_free", "duplicate_free", "review_reason",
+        ]
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in records:
+            writer.writerow({
+                "scene_name": row["scene_name"], "variant": row["variant"],
+                "image_path": row["output"], "review_status": "pending",
+                "organic_realism": "pending", "physical_geometry": "pending",
+                "support_surface": "pending", "target_free": "pending",
+                "duplicate_free": "pending", "review_reason": "",
+            })
 
 
 def run_depth(helper, config: dict[str, Any], gpu: int, output_root: Path) -> None:
@@ -1147,6 +1197,12 @@ def main() -> None:
     generator = load_generator(); helper = generator.load_helpers(); feasibility = helper.feasibility_module()
     config_path = helper.repo_path(args.config)
     config, base_config_path = generator.load_generation_config(helper, config_path)
+    allowed_stages = config.get("allowed_stages")
+    if allowed_stages and args.stage not in allowed_stages:
+        raise RuntimeError(
+            f"Stage {args.stage!r} is blocked for this review-gated config; "
+            f"allowed stages: {allowed_stages}"
+        )
     models = helper.load_yaml(helper.repo_path(config["models_config"]))
     scenes = helper.load_yaml(helper.repo_path(config["scene_policy"]))
     environment = validate_environment(helper, feasibility, config, require_clean=not args.preflight_only)

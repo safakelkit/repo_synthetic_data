@@ -11,6 +11,7 @@ import argparse
 import csv
 import copy
 import gc
+import hashlib
 import importlib.util
 import json
 import os
@@ -56,17 +57,44 @@ def schedule(config: dict[str, Any], scenes: dict[str, Any]) -> list[dict[str, A
     return rows
 
 
+def ordered_mask_rows(config: dict[str, Any], rows: list[dict[str, str]], class_id: int):
+    """Order one class pool according to the configured deterministic policy."""
+    source_config = config["silhouette_source"]
+    strategy = str(source_config.get("selection_strategy", "preferred_or_sequential_cycle"))
+    preferred_by_class = source_config.get("preferred_stems") or {}
+    preferred = preferred_by_class.get(class_id)
+    if strategy == "preferred_or_sequential_cycle" and preferred:
+        ordered = []
+        for stem in preferred:
+            matches = [row for row in rows if row["stem"] == stem]
+            if len(matches) != 1:
+                raise ValueError(f"Preferred silhouette is not uniquely accepted: {stem}")
+            ordered.append(matches[0])
+        return ordered
+    offset = int(source_config["selection_seed_offset"])
+    if strategy == "preferred_or_sequential_cycle":
+        start = (int(config["seed"]) + offset) % len(rows)
+        return rows[start:] + rows[:start]
+    if strategy != "balanced_seeded_cycle":
+        raise ValueError(f"Unknown silhouette selection strategy: {strategy}")
+
+    # A stable hash permutation prevents manifest ordering from correlating with
+    # class attempt, while cycling through the complete accepted class pool
+    # before reusing an asset.  This keeps generation reproducible without
+    # collapsing identity-preserving classes onto one preferred prototype.
+    seed = int(config["seed"]) + offset + class_id
+    return sorted(
+        rows,
+        key=lambda row: hashlib.sha256(
+            f"{seed}:{row['asset_id']}".encode("utf-8")
+        ).digest(),
+    )
+
+
 def select_mask(helper, config: dict[str, Any], manifest: Path, sample: dict[str, Any]):
     rows = helper.read_masks(manifest, sample["class_id"])
-    preferred = config["silhouette_source"].get("preferred_stems", {}).get(sample["class_id"])
-    if preferred:
-        stem = preferred[sample["class_attempt_index"] % len(preferred)]
-        matches = [row for row in rows if row["stem"] == stem]
-        if len(matches) != 1:
-            raise ValueError(f"Preferred silhouette is not uniquely accepted: {stem}")
-        return matches[0]
-    offset = int(config["silhouette_source"]["selection_seed_offset"])
-    return rows[(int(config["seed"]) + offset + sample["class_attempt_index"]) % len(rows)]
+    ordered = ordered_mask_rows(config, rows, int(sample["class_id"]))
+    return ordered[int(sample["class_attempt_index"]) % len(ordered)]
 
 
 def merge_config(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

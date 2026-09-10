@@ -20,9 +20,9 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def write_matrix_status(state: dict) -> None:
-    MATRIX_STATUS.parent.mkdir(parents=True, exist_ok=True)
-    MATRIX_STATUS.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+def write_matrix_status(state: dict, status_path: Path) -> None:
+    status_path.parent.mkdir(parents=True, exist_ok=True)
+    status_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
 
 
 def evaluation_targets(run_name: str) -> tuple[Path, Path]:
@@ -55,7 +55,7 @@ def evaluate_and_plot(best_model: str, run_name: str) -> str:
     return str(result_json)
 
 
-def require_released_synthetic_manifest(data_yaml: str) -> None:
+def require_released_synthetic_manifest(data_yaml: str) -> dict:
     data_config = load_yaml(data_yaml)
     dataset_root = repo_path(data_yaml).parent
     entries = [Path(entry) for entry in data_config["train"] if str(entry).endswith(".txt")]
@@ -79,6 +79,24 @@ def require_released_synthetic_manifest(data_yaml: str) -> None:
     )
     if pending:
         raise RuntimeError(f"Synthetic manifest has {pending} pending visibility checks")
+    synthetic_lines = [
+        line.strip() for line in image_list.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    expected_total = int(data_config["expected_train_images"])
+    expected_synthetic = expected_total - 2215
+    if len(synthetic_lines) != expected_synthetic or len(set(synthetic_lines)) != len(synthetic_lines):
+        raise RuntimeError(
+            f"Synthetic list count/uniqueness mismatch in {image_list}: "
+            f"expected {expected_synthetic}, got {len(synthetic_lines)}"
+        )
+    return {
+        "data_yaml": data_yaml,
+        "manifest": str(manifest_path),
+        "manifest_status": manifest["status"],
+        "synthetic_images": len(synthetic_lines),
+        "expected_train_images": expected_total,
+    }
 
 
 def main() -> None:
@@ -88,11 +106,15 @@ def main() -> None:
         choices=(
             "clean-512", "clean-1024", "clean-1536", "clean-2048",
             "mixed-512", "mixed-1024", "mixed-1536", "mixed-2048",
-            "clean-all", "mixed-all", "all",
+            "clean-ablation", "clean-all", "mixed-all", "all",
         ),
         required=True,
     )
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument(
+        "--dataset-preflight-only", action="store_true",
+        help="Validate released manifests and list counts without requiring CUDA.",
+    )
     parser.add_argument("--evaluate", action="store_true")
     args = parser.parse_args()
 
@@ -110,6 +132,8 @@ def main() -> None:
     }
     if args.experiment == "all":
         experiments = list(registry.values())
+    elif args.experiment == "clean-ablation":
+        experiments = [registry["clean-512"], registry["clean-2048"]]
     elif args.experiment == "clean-all":
         experiments = [registry[f"clean-{quantity}"] for quantity in (512, 1024, 1536, 2048)]
     elif args.experiment == "mixed-all":
@@ -117,11 +141,20 @@ def main() -> None:
     else:
         experiments = [registry[args.experiment]]
 
-    for data_yaml, _ in experiments:
-        require_released_synthetic_manifest(data_yaml)
+    dataset_reports = [
+        require_released_synthetic_manifest(data_yaml) for data_yaml, _ in experiments
+    ]
     if args.evaluate:
         for _, run_name in experiments:
             require_evaluation_targets_absent(run_name)
+    if args.dataset_preflight_only:
+        print(json.dumps(dataset_reports, indent=2))
+        return
+    status_path = (
+        EVALUATION_ROOT / "clean_ablation_status.json"
+        if args.experiment == "clean-ablation"
+        else MATRIX_STATUS
+    )
     reports = [
         validate_training_preflight(
             model_path=train_cfg["model"], data_yaml=data_yaml,
@@ -146,34 +179,34 @@ def main() -> None:
             for data_yaml, run_name in experiments
         ],
     }
-    write_matrix_status(state)
+    write_matrix_status(state, status_path)
     try:
         for index, (data_yaml, run_name) in enumerate(experiments):
             state["experiments"][index].update(status="training", started_utc=utc_now())
-            write_matrix_status(state)
+            write_matrix_status(state, status_path)
             output = train_yolo(
                 model_path=train_cfg["model"], data_yaml=data_yaml,
                 train_cfg_path=train_cfg_path, epochs=train_cfg["epochs"],
                 run_name=run_name, resume=False,
             )
             state["experiments"][index].update(output, status="trained")
-            write_matrix_status(state)
+            write_matrix_status(state, status_path)
             if args.evaluate:
                 state["experiments"][index]["status"] = "evaluating"
-                write_matrix_status(state)
+                write_matrix_status(state, status_path)
                 state["experiments"][index]["evaluation_json"] = evaluate_and_plot(
                     output["best_model"], run_name
                 )
             state["experiments"][index].update(status="complete", completed_utc=utc_now())
-            write_matrix_status(state)
+            write_matrix_status(state, status_path)
     except BaseException as error:
         state["status"] = "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
         state["failed_utc"] = utc_now()
         state["error"] = f"{type(error).__name__}: {error}"
-        write_matrix_status(state)
+        write_matrix_status(state, status_path)
         raise
     state.update(status="complete", completed_utc=utc_now())
-    write_matrix_status(state)
+    write_matrix_status(state, status_path)
 
 
 if __name__ == "__main__":

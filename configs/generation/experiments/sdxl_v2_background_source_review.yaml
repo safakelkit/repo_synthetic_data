@@ -1,0 +1,118 @@
+base_config: configs/generation/experiments/sdxl_pose_background_diversity_32.yaml
+format_version: 1
+experiment_id: sdxl_v2_background_source_review
+status: ready_for_experiment
+output_root: data/synthetic/sdxl_v2_development
+
+# This configuration intentionally stops after target-free background creation.
+# Selected plates need visual review and support-plane annotation before any
+# target object can be rendered into them.
+allowed_stages: [plates]
+plate_variants_per_scene: 40
+plate_acceptance_target_per_scene: 32
+plate_seed: 91000
+plate_seed_overrides: {}
+
+# Cycle through every accepted SAM3 asset in a stable seed-derived order before
+# reusing one. At 128 samples/class this gives 39--128 unique sources/class and
+# caps reuse at four even for the smallest accepted class pool.
+silhouette_source:
+  selection_strategy: balanced_seeded_cycle
+  selection_seed_offset: 3000
+  projected_samples_per_class: 128
+  minimum_unique_per_class: 32
+  maximum_reuse_per_asset: 4
+
+source_review_gate:
+  candidates_per_class: 40
+  required_accepted_per_class: 32
+  reject_if:
+    - crop contains the wrong class or multiple inseparable objects
+    - alpha mask removes a class-defining part or includes unrelated content
+    - object form cannot be assigned a physically valid flat, upright, or hinged pose
+    - source is a near duplicate of another accepted source
+    - class-defining details are unreadable at the planned rendered size
+
+# Five physical layouts x four viewpoints x two illumination conditions = 40
+# candidates per scene. Human review will retain 32 per scene (25% surplus).
+structured_plate_prompts:
+  realism_prefix: >-
+    Unstaged documentary photo of a plausible secure institutional interior.
+  realism_suffix: >-
+    Natural perspective, irregular wear, sensor texture, clear empty support surface, no people.
+  viewpoints:
+    - Eye-level doorway view.
+    - Off-center three-quarter view.
+    - Side-angle view with foreground depth.
+    - Opposite-corner view with natural occlusion.
+  lightings:
+    - Mixed daylight and fluorescent light, realistic shadows.
+    - Uneven warm lighting with dim daylight, realistic shadows.
+  scene_blueprints:
+    cell_sleeping_area:
+      - Compact detention cell with one steel bunk, closed locker, secure window and worn floor.
+      - Older correctional sleeping room with stacked bunks, fixed shelf, solid door and ventilation grille.
+      - Narrow housing cell with one bed, recessed storage, writing ledge and scuffed wall-floor junction.
+      - Renovated secure cell with pale block walls, bolted bed, sealed cabinet and high window.
+      - Heavily used sleeping cell with mismatched repairs, metal bed, closed storage and visible room depth.
+    cell_desk_area:
+      - Correctional cell writing alcove with fixed laminate desk, bolted stool, closed drawer and high window.
+      - Worn detention study corner with steel writing shelf, noticeboard glazing, locker and secure door.
+      - Compact housing-cell desk area with concrete shelf, fixed chair, ventilation grille and clear floor depth.
+      - Older cell workspace with repaired worktop, sealed cubby, steel stool and painted block walls.
+      - Institutional writing bay with long bare counter, closed storage, high secure window and diagonal depth.
+    cell_storage_area:
+      - Secure linen store with fixed shelves, folded neutral bedding, closed lockers and mesh divider.
+      - Correctional property store with numbered cabinets, wire cage, packing bench and worn concrete floor.
+      - Narrow institutional storage aisle with steel shelving, sealed bins, controlled door and ventilation duct.
+      - Older evidence room with closed cupboards, mesh partition, sorting counter and patched floor.
+      - Compact supply store with linen racks, locked cabinets, service doorway and clear packing surface.
+    cell_wash_area:
+      - Detention wash alcove with porcelain basin, aged tile, mirror recess, vent and dry side counter.
+      - Institutional washroom with stainless basins, long mirror, floor drain and high secure windows.
+      - Older correctional wash bay with deep sink, tiled privacy return, metal shelf and worn non-slip floor.
+      - Renovated secure wash area with concrete counter, fixed basin, sealed plumbing and ventilation grille.
+      - Narrow communal washroom with basin row, patched grout, service panel and clear dry ledge.
+    communal_day_room:
+      - Correctional day room with bolted tables, attached seats, secure windows and scuffed linoleum.
+      - Older institutional common room with fixed benches, central column, radiator cover and controlled door.
+      - Compact housing-unit day space with heavy table, molded seats, mesh divider and corridor opening.
+      - Renovated secure common area with pale walls, fixed furniture, high windows and visible floor depth.
+      - Worn communal room with repaired benches, two bolted tables, wall panels and asymmetric layout.
+    property_inspection_station:
+      - Correctional belongings-search room with stainless inspection table, lockers and pass-through window.
+      - Secure property station with worn laminate counter, acrylic divider, closed drawers and corridor door.
+      - Institutional intake search bay with metal worktop, numbered cabinets, mesh partition and rolling cart.
+      - Older evidence inspection room with repaired counter, sealed cupboards, service slot and worn floor.
+      - Compact property-processing station with L-shaped bench, glazed divider, lockers and natural room depth.
+    correctional_workshop:
+      - Secure prison repair workshop with bare steel bench, locked cabinets, empty pegboard and mesh partition.
+      - Institutional maintenance shop with timber workbench, parts drawers, extraction duct and high windows.
+      - Older correctional workshop with repaired bench, sealed equipment cupboards and worn concrete floor.
+      - Compact secure tool room with empty shadow board, steel worktop, caged storage and controlled door.
+      - Renovated prison workshop with broad bench, closed cabinets, conduit and asymmetric industrial layout.
+    maintenance_service_area:
+      - Correctional utility room with fixed cabinets, exposed conduit, ventilation trunk and broad clear floor.
+      - Secure maintenance corridor with locked service doors, recessed equipment bays and worn concrete.
+      - Institutional mechanical room with electrical enclosures, pipe runs, closed storage and empty workbench.
+      - Older prison service area with patched walls, steel shelving, cable trays and diagonal corridor depth.
+      - Compact facilities room with sealed cabinets, ventilation grilles, utility door and clear floor zone.
+
+plate_negative_prompt: >-
+  CGI, 3D render, illustration, game scene, showroom, perfect symmetry,
+  repeated furniture, plastic texture, warped architecture, impossible
+  perspective, floating fixtures, fisheye, excessive HDR, cinematic grading,
+  people, hands, loose contraband, tools, weapons, aerosol, battery, alcohol,
+  phone, laptop, readable text, logo, watermark
+
+background_review_gate:
+  candidate_count: 320
+  required_accepted_count: 256
+  required_per_scene: 32
+  reject_if:
+    - scene identity is incorrect or ambiguous
+    - image looks like CGI, illustration, showroom, or cinematic concept art
+    - walls, furniture, doors, or perspective have impossible geometry
+    - no continuous empty support surface can be annotated safely
+    - a project target class, person, hand, readable logo, or watermark is visible
+    - image is a near duplicate of another accepted plate
