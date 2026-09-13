@@ -4,7 +4,29 @@ This file contains the active queue and milestone summary only. Run history is
 in `EXPERIMENT_LOG.md`; accepted methodology is in `DECISIONS.md`; exact paper
 values are in `METHODOLOGY_TRACEABILITY.md`.
 
-## Active — SDXL result analysis
+## Active — SDXL full-synthetic foreground/background follow-up
+
+- [x] Preserve the executed SDXL matrix and prohibit target-test-driven
+  revision of its generator.
+- [x] Implement and visually validate a real-background/real-object localized
+  SDXL harmonization pilot; classify it as a hybrid ablation rather than a pure
+  GenAI replacement.
+- [ ] Freeze the v2 foreground and background prompt/control schedules before
+  production; final pixels must not come from real object or background assets.
+- [ ] Generate at least 2,560 background candidates and accept exactly 2,048
+  genuinely distinct, target-free scenes (one per final image).
+- [ ] Generate at least 2,592 isolated-object candidates, with a 50% candidate
+  surplus for Aerosol, and accept exactly 128 foregrounds per class.
+- [ ] Segment every accepted foreground, reject malformed/duplicate/wrong-class
+  candidates, and retain the mask used to derive the final YOLO box.
+- [ ] Pair accepted backgrounds and foregrounds one-to-one, use support-aware
+  placement, and apply only localized diffusion harmonization.
+- [ ] Verify 2,048 unique background layouts, 2,048 unique foreground instances,
+  exact 128/class balance, labels, hashes, image integrity, and visual quality.
+- [ ] Release nested 512/1,024/1,536/2,048 manifests only after the frozen QC
+  gate passes; then run a separately named detector comparison.
+
+## Completed — SDXL result analysis
 
 - [x] Reset failed generation versions, outputs, and detailed failure logs while
   preserving successful profiles and reusable methodology decisions.
@@ -19,8 +41,10 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
 - [x] Compare E000, cut-paste, and SDXL overall and per-class results.
 - [ ] Determine whether the additional detector-seed experiment should focus
   on E000, CP-B1536, and SDXL-M0512 before making stability claims.
-- [ ] Analyze the hard-domain collapse for Matches, Pliers, Shaver, and Battery
-  without retuning the executed SDXL generator on target-test feedback.
+- [x] Analyze the hard-domain collapse for Matches, Pliers, Shaver, and Battery
+  without retuning the executed SDXL generator on target-test feedback; the
+  prospective remedy is broader source generation and is not selected from
+  target-test outcomes.
 
 ## Next — Qwen baseline
 

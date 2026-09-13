@@ -332,3 +332,19 @@ reproducible engineering design, not a literature-mandated standard step.
 SAM3 candidate source: https://huggingface.co/facebook/sam3 . The repository
 records its dedicated SAM License from
 https://huggingface.co/facebook/sam3/blob/main/LICENSE .
+
+## Prospective SDXL-FB2048 protocol (not executed)
+
+D031 defines a future foreground/background-separated full-synthetic method.
+The fixed target is 2,048 final 1024x1024 images, 128 per class, with nested
+32/64/96/128-per-class prefixes. It requires at least 2,560 generated background
+candidates, at least 160 isolated-object candidates per ordinary class, and 192
+Aerosol candidates. Each accepted final image uses a unique accepted background
+and unique accepted foreground instance. Exact hashes plus frozen perceptual
+background-layout and foreground-appearance near-duplicate checks are required.
+The retained foreground mask is the annotation source before and after localized
+harmonization. These are predeclared design values, not completed run evidence.
+
+The code under `src/generation/generate_sdxl_hybrid_dataset.py` uses real
+background and real object pixels. It is therefore traceable only as a
+`CP+SDXL harmonization` ablation and cannot provide evidence for SDXL-FB2048.

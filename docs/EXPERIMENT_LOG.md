@@ -293,3 +293,21 @@ matrix result paths were updated to the new locations, so the path-containing
 E000 and CP evaluation JSON hashes changed without changing any metric. The
 current hashes shown above are post-organization hashes; checkpoint hashes are
 unchanged. Future runners write directly into the grouped layout.
+
+## SDXL-HYB-P01 - Real-pixel localized harmonization ablation pilot
+
+- **Status:** 16-class pilot visually accepted; full production stopped and not released
+- **Date:** 2026-09-13
+- **Method:** Real reviewed room background plus real INSP-DET training object,
+  exact alpha-mask placement, target-only Canny, and localized SDXL inpainting
+- **Pilot:** 16 images, one per class; object identity, organic background,
+  physical contact, annotation box, target count, and artifact checks passed
+- **Input candidate:** 512 balanced initializations; 32 distinct originating
+  train images per class and 480 unique backgrounds in the final regenerated
+  candidate; three visually unsafe support regions were excluded
+- **Boundary:** This is `CP+SDXL harmonization`, not fully generated data. It is
+  training-forbidden and does not replace the executed CP or SDXL baselines.
+- **Stopped run:** A 512-image harmonization attempt was intentionally interrupted
+  after 44 completed outputs, before a manifest or release, when the method was
+  reclassified as an ablation and D031 became the active direction.
+- **Target-test use:** None; pilot decisions used source-side visual QC only.

@@ -55,7 +55,9 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 
 ### 5.2 Stable Diffusion + ControlNet
 
-- Complete-scene generation of both background and target object.
+- Executed structured-background, source-initialized target generation with
+  target-only Canny conditioning; report its actual construction rather than
+  describing it as foreground/background generation from scratch.
 - MAIJA-aligned scene families are not limited to the three cut-paste
   background categories. Contexts may be class-relevant but must overlap
   across classes to limit background shortcuts.
@@ -72,7 +74,18 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
   cut-paste baseline after clean-scene annotation.
 - Annotation and quality control.
 
-### 5.3 Qwen + ControlNet
+### 5.3 Prospective full-synthetic SDXL-FB2048 follow-up
+
+- Keep separate from the executed SDXL baseline unless its generation, QC,
+  detector training, and evaluation are completed.
+- Generate 2,048 accepted target-free backgrounds and 2,048 accepted isolated
+  foregrounds from scratch, with exactly 128 foregrounds per class.
+- Segment foregrounds before one-to-one compositing, apply localized diffusion
+  harmonization, and derive annotations from retained visible masks.
+- Report the real-background/real-object `CP+SDXL harmonization` implementation
+  only as a separately named ablation, never as this full-synthetic method.
+
+### 5.4 Qwen + ControlNet
 
 - Complete-scene generation under the same class, quantity, and scene-allocation policy as Section 5.2.
 - Preserve the same immutable 16-class taxonomy.
@@ -83,7 +96,7 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
   generating pixels independently.
 - Annotation and quality control.
 
-### 5.4 Class-balanced allocation
+### 5.5 Class-balanced allocation
 
 - No detector feedback.
 - Deterministic balanced ordering across 16 classes; divisible quantities require no remainder allocation.

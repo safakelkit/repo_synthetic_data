@@ -10,7 +10,8 @@ Active non-ADR generators:
 
 1. context-constrained cut-paste;
 2. Stable Diffusion XL + Canny ControlNet full-scene generation;
-3. Qwen-Image + ControlNet full-scene generation.
+3. Qwen-Image + ControlNet full-scene generation;
+4. the planned SDXL foreground/background-separated full-synthetic follow-up.
 
 ADR and detector-feedback-driven generation are deferred until all baselines
 are complete.
@@ -86,10 +87,14 @@ model feasibility is established, but its canonical work remains pending.
 
 1. Preserve the complete SDXL-M seed-0 result matrix without test-driven
    generator retuning.
-2. Diagnose why larger SDXL quantities reduce generalization and why Matches,
-   Pliers, Shaver, and Battery collapse on the hard domain.
-3. Complete the planned Qwen baseline under the same detector protocol.
-4. Decide additional detector seeds and the numerical clean-loss tolerance.
+2. Implement the predeclared full-synthetic SDXL follow-up: 2,048 unique
+   generated backgrounds paired one-to-one with 2,048 generated isolated
+   foregrounds, followed by mask-derived compositing and local harmonization.
+3. Treat the real-background/real-object SDXL harmonization pipeline only as a
+   separately named hybrid ablation; it does not replace the executed SDXL
+   baseline or qualify as fully generated data.
+4. Complete the planned Qwen baseline under the same detector protocol.
+5. Decide additional detector seeds and the numerical clean-loss tolerance.
 
 ## Validity boundaries
 

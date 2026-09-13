@@ -317,3 +317,30 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Result:** More SDXL data did not monotonically improve detector generalization. SDXL-M0512 was strongest overall among SDXL runs; M1536/M2048 reduced clean and hard performance. The Aerosol intervention improved over E000 in every domain at all four quantities, while several other classes retained hard-domain failure.
 - **Validity boundary:** Preserve and report the complete executed matrix. Do not revise this generator version using easy/hard test feedback. Additional causal or variance claims require predeclared follow-up experiments and detector seeds.
 - **Artifacts:** `runs/evaluation/sdxl/mixed_degradation/` and `runs/evaluation/comparisons/`.
+
+## D031 - Separate fully generated foreground/background follow-up
+
+- **Status:** Accepted design; implementation and production pending
+- **Date:** 2026-09-13
+- **Decision:** Preserve the executed SDXL matrix unchanged. The next SDXL
+  follow-up generates background and isolated foreground pools independently,
+  composes accepted pairs from retained masks, and uses localized diffusion
+  harmonization. Exactly 2,048 final images provide 128 targets per class.
+- **Purity boundary:** Final foreground and background pixels must be generated;
+  real INSP-DET objects and Places365 backgrounds may support analysis or prompt
+  design but may not be pasted into SDXL-FB2048 outputs.
+- **Uniqueness:** Require one accepted background and one accepted foreground
+  instance per final image. Verify perceptual/layout and object-appearance
+  near-duplicates in addition to exact file hashes.
+- **Candidate policy:** Generate at least 25% surplus for backgrounds and normal
+  classes, and 50% foreground surplus for Aerosol. Freeze rejection criteria
+  before production.
+- **Annotation:** Segment each isolated foreground before composition, retain
+  its mask through harmonization, and derive the final box from the visible
+  final mask. Reject wrong, duplicate, malformed, truncated, or unlocalizable
+  targets.
+- **Comparison boundary:** The implemented real-background/real-object localized
+  SDXL pipeline is named `CP+SDXL harmonization` and may only be reported as a
+  hybrid ablation. It does not replace either CP or the executed SDXL baseline.
+- **Validity:** No clean/easy/hard test result may choose prompts, generators,
+  similarity thresholds, rejection thresholds, quantities, or release status.

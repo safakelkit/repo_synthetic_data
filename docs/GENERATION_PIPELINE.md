@@ -1,9 +1,10 @@
-# Active GenAI Generation Pipeline
+# GenAI Generation Pipelines
 
-This file describes the executed and approved canonical SDXL pipeline. Failed
-development pilots do not define the current implementation.
+This file separates the executed SDXL baseline from the prospective
+foreground/background-separated follow-up. Planned work is not canonical data
+and has no detector result until generation, QC, release, and training finish.
 
-## Method
+## Executed SDXL baseline — preserved
 
 - SDXL inpainting and Canny ControlNet revisions are fixed by the canonical
   configuration and recorded in every manifest.
@@ -53,3 +54,47 @@ CUDA_VISIBLE_DEVICES=1 ../env_sam3/bin/python src/training/train_sdxl_baselines.
 ```
 
 Evaluation artifacts are grouped under `runs/evaluation/sdxl/mixed_degradation/`.
+
+## Active prospective method — SDXL-FB2048 v2
+
+The next SDXL experiment will generate foregrounds and backgrounds separately,
+then compose them with exact masks. All final scene pixels originate from GenAI;
+real INSP-DET and Places365 pixels are not pasted into this method.
+
+### Fixed construction
+
+1. Generate a surplus pool of target-free indoor backgrounds at 1024x1024.
+2. Accept exactly 2,048 backgrounds: one unique background per final image.
+3. Generate isolated foreground candidates from scratch with SDXL, accepting
+   exactly 128 valid instances for each of the 16 fixed classes.
+4. Extract and retain an alpha mask for every foreground. Reject wrong-class,
+   malformed, duplicate, truncated, or unsegmentable candidates.
+5. Pair foregrounds and backgrounds one-to-one under the frozen context matrix;
+   sample pose and scale without using clean/easy/hard test results.
+6. Compose from the retained mask and apply localized diffusion harmonization
+   for lighting, edge, shadow, and physical-contact consistency.
+7. Derive the YOLO box from the final retained visible mask, never from prompt
+   text or an expected control rectangle.
+
+### Diversity and quality gates
+
+- Final quantity is 2,048, not 2,024, so every class has exactly 128 targets.
+- Pixel hash uniqueness alone is insufficient. Background layout/scene
+  similarity and foreground appearance/shape similarity must also pass frozen
+  near-duplicate thresholds.
+- Minimum candidate surplus is 25% (at least 2,560 backgrounds and 160 object
+  candidates per ordinary class); Aerosol retains a 50% surplus because its
+  cap/nozzle identity has historically produced more failures.
+- Each final image contains one primary project-class target. Any additional
+  project-class instance must be annotated or the image rejected.
+- Nested 512/1,024/1,536/2,048 prefixes remain exactly class-balanced.
+- Production remains blocked until same-size all-class pilots validate object
+  identity, background realism, segmentation, compositing, harmonization, and
+  annotation integrity.
+
+### Method naming boundary
+
+The existing real-background + real-INSP-object + localized-SDXL code is a
+`CP+SDXL harmonization` hybrid ablation. It may be evaluated separately, but it
+must not be reported as SDXL-FB2048, pure GenAI data, or a replacement for the
+executed SDXL baseline.

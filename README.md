@@ -18,6 +18,11 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 - SDXL improves Aerosol can across all three domains at several quantities, but
   does not resolve the hard-domain collapse for Matches, Pliers, Shaver, and
   Battery. Qwen remains pending.
+- A prospective SDXL-FB2048 follow-up is now specified: generate 2,048 unique
+  backgrounds and 2,048 isolated foreground objects from scratch, then use
+  retained masks for one-to-one composition, localized harmonization, and exact
+  annotation. It is planned work, not an executed result. The real-pixel hybrid
+  harmonizer remains a separately named ablation.
 
 | Run | Synthetic | Clean | Easy | Hard |
 |---|---:|---:|---:|---:|
