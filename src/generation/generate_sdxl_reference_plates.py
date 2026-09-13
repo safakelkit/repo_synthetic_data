@@ -18,8 +18,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-import torch
+import cv2
 import numpy as np
+import torch
 from PIL import Image, ImageDraw
 
 
@@ -110,8 +111,10 @@ def validate_config(config: dict[str, Any], records: list[dict[str, Any]]) -> No
         raise RuntimeError("Reference-plate pilot is not launch-ready")
     generation = config["generation"]
     strengths = [float(value) for value in generation["strengths"]]
-    if not strengths or not all(0.0 < value <= 0.35 for value in strengths):
-        raise ValueError("Reference strengths must stay in the geometry-preserving range (0, 0.35]")
+    mode = str(generation.get("mode", "img2img"))
+    maximum_strength = 1.0 if mode == "support_inpaint" else 0.35
+    if not strengths or not all(0.0 < value <= maximum_strength for value in strengths):
+        raise ValueError(f"Strengths for {mode} must stay in (0, {maximum_strength}]")
     if set(generation["prompts"]) != set(config["source"]["support_types"]):
         raise ValueError("Exactly one prompt is required for every support type")
     # A conservative word-count guard catches obviously overlong prompts in
@@ -127,14 +130,28 @@ def validate_config(config: dict[str, Any], records: list[dict[str, Any]]) -> No
 def load_pipeline(models: dict[str, Any], gpu: int):
     from diffusers import StableDiffusionXLImg2ImgPipeline
 
+    return _load_pipeline_class(models, gpu, StableDiffusionXLImg2ImgPipeline)
+
+
+def _load_pipeline_class(models: dict[str, Any], gpu: int, pipeline_class):
     base = models["sdxl"]["base_model"]
-    pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+    pipe = pipeline_class.from_pretrained(
         base["id"], revision=base["revision"], torch_dtype=torch.float16,
         variant=models["sdxl"].get("variant"), use_safetensors=True,
     )
     pipe.enable_model_cpu_offload(gpu_id=gpu)
     pipe.vae.enable_slicing()
     return pipe
+
+
+def load_mode_pipeline(models: dict[str, Any], gpu: int, mode: str):
+    if mode == "img2img":
+        return load_pipeline(models, gpu)
+    if mode == "support_inpaint":
+        from diffusers import StableDiffusionXLInpaintPipeline
+
+        return _load_pipeline_class(models, gpu, StableDiffusionXLInpaintPipeline)
+    raise ValueError(f"Unknown reference-plate generation mode: {mode}")
 
 
 def validate_prompts(pipe, config: dict[str, Any]) -> None:
@@ -171,6 +188,20 @@ def crop_to_support(
     return source.crop(crop_box), region.crop(crop_box), crop_box
 
 
+def convex_inpaint_mask(region: Image.Image, dilation_pixels: int) -> Image.Image:
+    binary = (np.asarray(region, dtype=np.uint8) > 0).astype(np.uint8)
+    points = np.column_stack(np.nonzero(binary))[:, ::-1].astype(np.int32)
+    if len(points) < 3:
+        raise ValueError("Support mask needs at least three pixels")
+    hull = cv2.convexHull(points)
+    filled = np.zeros_like(binary)
+    cv2.fillConvexPoly(filled, hull, 255)
+    if dilation_pixels > 0:
+        size = dilation_pixels * 2 + 1
+        filled = cv2.dilate(filled, np.ones((size, size), np.uint8), iterations=1)
+    return Image.fromarray(filled, mode="L")
+
+
 def contact_sheet(items: list[tuple[Path, str]], output: Path) -> None:
     thumb, caption, columns = 256, 34, 4
     rows = (len(items) + columns - 1) // columns
@@ -195,12 +226,15 @@ def generate(
     output_dir = helper.repo_path(config["output_root"])
     if output_dir.exists():
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
+    generation = config["generation"]
     (output_dir / "images").mkdir(parents=True)
     (output_dir / "support_masks").mkdir()
     (output_dir / "source_crops").mkdir()
-    pipe = load_pipeline(models, gpu)
+    mode = str(generation.get("mode", "img2img"))
+    if mode == "support_inpaint":
+        (output_dir / "inpaint_masks").mkdir()
+    pipe = load_mode_pipeline(models, gpu, mode)
     validate_prompts(pipe, config)
-    generation = config["generation"]
     width, height = int(generation["width"]), int(generation["height"])
     strengths = [float(value) for value in generation["strengths"]]
     generated = []
@@ -219,23 +253,35 @@ def generate(
         )
         initial = source.resize((width, height), Image.Resampling.LANCZOS)
         region = region_source.resize((width, height), Image.Resampling.NEAREST)
+        inpaint_mask = None
+        if mode == "support_inpaint":
+            inpaint_mask = convex_inpaint_mask(
+                region, int(generation.get("inpaint_mask_dilation_pixels", 0))
+            )
         strength = strengths[record["index"] % len(strengths)]
         seed = int(generation["seed"]) + record["index"]
         started = time.monotonic()
-        image = pipe(
+        pipeline_arguments = dict(
             prompt=generation["prompts"][record["support_type"]],
             negative_prompt=generation["negative_prompt"], image=initial,
             strength=strength, width=width, height=height,
             num_inference_steps=int(generation["inference_steps"]),
             guidance_scale=float(generation["guidance_scale"]),
             generator=torch.Generator(device="cpu").manual_seed(seed),
-        ).images[0]
+        )
+        if inpaint_mask is not None:
+            pipeline_arguments["mask_image"] = inpaint_mask
+        image = pipe(**pipeline_arguments).images[0]
         torch.cuda.synchronize(gpu)
         stem = f"r{record['index']:03d}_{record['support_type']}"
         image_path = output_dir / "images" / f"{stem}.png"
         mask_path = output_dir / "support_masks" / f"{stem}.png"
         crop_path = output_dir / "source_crops" / f"{stem}.png"
         image.save(image_path); region.save(mask_path); initial.save(crop_path)
+        inpaint_mask_path = None
+        if inpaint_mask is not None:
+            inpaint_mask_path = output_dir / "inpaint_masks" / f"{stem}.png"
+            inpaint_mask.save(inpaint_mask_path)
         sx, sy = width / source.width, height / source.height
         anchors = [
             [round((x - crop_box[0]) * sx), round((y - crop_box[1]) * sy)]
@@ -245,6 +291,10 @@ def generate(
         source_pixels = np.asarray(initial, dtype=np.float32)
         output_pixels = np.asarray(image, dtype=np.float32)
         normalized_mae = float(np.abs(output_pixels - source_pixels).mean() / 255.0)
+        masked_mae = None
+        if inpaint_mask is not None:
+            changed = np.asarray(inpaint_mask) > 0
+            masked_mae = float(np.abs(output_pixels - source_pixels)[changed].mean() / 255.0)
         generated.append({
             **record, "source_size": list(source_size), "source_crop_xyxy": list(crop_box),
             "source_crop_size": list(source.size), "output_size": [width, height],
@@ -256,6 +306,9 @@ def generate(
             "source_crop_sha256": helper.sha256(crop_path),
             "support_mask": str(mask_path.relative_to(REPO_ROOT)), "support_mask_sha256": helper.sha256(mask_path),
             "anchor_points_xy": anchors, "normalized_source_output_mae": round(normalized_mae, 6),
+            "normalized_masked_source_output_mae": round(masked_mae, 6) if masked_mae is not None else None,
+            "inpaint_mask": str(inpaint_mask_path.relative_to(REPO_ROOT)) if inpaint_mask_path else None,
+            "inpaint_mask_sha256": helper.sha256(inpaint_mask_path) if inpaint_mask_path else None,
             "inference_seconds": round(time.monotonic() - started, 3),
             "training_use_forbidden": True,
         })
@@ -277,19 +330,26 @@ def generate(
         "source_dataset_revision": config["source"]["dataset_revision"],
         "config": str(config_path.relative_to(REPO_ROOT)),
         "config_sha256": helper.sha256(config_path),
+        "generation_mode": mode,
         "model_id": models["sdxl"]["base_model"]["id"],
         "model_revision": models["sdxl"]["base_model"]["revision"],
         "review_gate": config["review_gate"], "records": generated,
     })
-    fields = ["index", "support_type", "image_path", "review_status", "organic_realism",
-              "physical_geometry", "source_geometry_preserved", "support_surface_preserved",
-              "meaningful_source_difference", "target_free", "duplicate_free", "review_reason"]
+    if mode == "support_inpaint":
+        review_dimensions = ["organic_realism", "physical_geometry", "unmasked_context_preserved",
+                             "support_surface_usable", "inpaint_seam_free", "target_free", "duplicate_free"]
+    else:
+        review_dimensions = ["organic_realism", "physical_geometry", "source_geometry_preserved",
+                             "support_surface_preserved", "meaningful_source_difference",
+                             "target_free", "duplicate_free"]
+    fields = ["index", "support_type", "image_path", "review_status", *review_dimensions,
+              "review_reason"]
     with (output_dir / "review.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader()
         for row in generated:
             writer.writerow({"index": row["index"], "support_type": row["support_type"],
                              "image_path": row["output"], "review_status": "pending",
-                             **{field: "pending" for field in fields[4:-1]}, "review_reason": ""})
+                             **{field: "pending" for field in review_dimensions}, "review_reason": ""})
 
 
 def main() -> None:
