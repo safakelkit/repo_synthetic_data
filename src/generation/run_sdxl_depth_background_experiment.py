@@ -139,6 +139,11 @@ def load_base_pipeline(models: dict[str, Any], gpu: int):
 def plate_records(config: dict[str, Any]) -> list[dict[str, Any]]:
     records = []
     index = 0
+    global_negative = str(config["plate_negative_prompt"]).strip()
+    scene_negatives = {
+        str(key): str(value).strip()
+        for key, value in config.get("scene_plate_negative_prompts", {}).items()
+    }
     seed_overrides = {
         str(key): int(value)
         for key, value in config.get("plate_seed_overrides", {}).items()
@@ -152,6 +157,10 @@ def plate_records(config: dict[str, Any]) -> list[dict[str, Any]]:
                 "variant": variant,
                 "seed": seed_overrides.get(plate_key, int(config["plate_seed"]) + index),
                 "prompt": prompt,
+                "negative_prompt": " ".join(
+                    value for value in (global_negative, scene_negatives.get(scene_name, ""))
+                    if value
+                ),
             })
             index += 1
     return records
@@ -187,14 +196,17 @@ def run_plates(
     pipe = load_base_pipeline(models, gpu)
     validate_clip_prompts(
         pipe,
-        [*[record["prompt"] for record in records_to_generate], config["plate_negative_prompt"]],
+        [
+            *[record["prompt"] for record in records_to_generate],
+            *[record["negative_prompt"] for record in records_to_generate],
+        ],
     )
     output_dir.mkdir(parents=True)
     records = []
     for position, record in enumerate(records_to_generate, start=1):
         started = time.monotonic()
         image = pipe(
-            prompt=record["prompt"], negative_prompt=config["plate_negative_prompt"],
+            prompt=record["prompt"], negative_prompt=record["negative_prompt"],
             width=int(config["output_size"][0]), height=int(config["output_size"][1]),
             num_inference_steps=int(config["plate_inference_steps"]),
             guidance_scale=float(config["plate_guidance_scale"]),
