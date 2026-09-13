@@ -46,19 +46,6 @@ def next_round(records: list[dict[str, Any]], class_id: int) -> int:
     return sum(int(row["class_id"]) == class_id for row in records)
 
 
-def retry_background_prompt(config: dict[str, Any], scene_name: str, attempt: int) -> str:
-    settings = config["background_generation"]
-    return settings["retry_prompt_template"].format(
-        scene=scene_name.replace("_", " "),
-        support=settings["support_profiles"][attempt % len(settings["support_profiles"])],
-        layout=settings["layout_profiles"][(attempt // 2) % len(settings["layout_profiles"])],
-        wear=settings["wear_profiles"][(attempt // 3) % len(settings["wear_profiles"])],
-        occupancy=settings["occupancy_profiles"][(attempt // 5) % len(settings["occupancy_profiles"])],
-        camera=settings["camera_profiles"][attempt % len(settings["camera_profiles"])],
-        lighting=settings["lighting_profiles"][(attempt // 2) % len(settings["lighting_profiles"])],
-    )
-
-
 def retry_foreground_prompt(config: dict[str, Any], class_id: int, attempt: int) -> str:
     settings = config["foreground_generation"]
     prompts = {int(key): value for key, value in settings["class_prompts"].items()}
@@ -125,7 +112,7 @@ def main() -> None:
             attempt = start + offset
             scene_name = assignments[class_id][attempt % len(assignments[class_id])]
             prompts.append(
-                retry_background_prompt(config, scene_name, attempt)
+                fb.background_conditioning(config, scene_name, class_id, attempt)
                 if args.pool == "backgrounds"
                 else retry_foreground_prompt(config, class_id, attempt)
             )
@@ -135,8 +122,12 @@ def main() -> None:
     if not torch.cuda.is_available() or not 0 <= args.gpu < torch.cuda.device_count():
         raise RuntimeError(f"Logical CUDA device {args.gpu} is unavailable")
     pipe = fb.load_base_pipeline(models, args.gpu)
-    negative = config["background_generation" if args.pool == "backgrounds" else "foreground_generation"]["negative_prompt"]
-    fb.validate_prompts(pipe, prompts + [negative])
+    settings = config["background_generation" if args.pool == "backgrounds" else "foreground_generation"]
+    negative = settings["negative_prompt"]
+    if args.pool == "backgrounds":
+        fb.validate_background_conditionings(pipe, prompts)
+    else:
+        fb.validate_prompts(pipe, prompts + [negative])
     if args.preflight_only:
         fb.release(pipe)
         print(json.dumps({"status": "ready", "pool": args.pool, "class_ids": class_ids,
@@ -154,19 +145,26 @@ def main() -> None:
                 attempt = start + offset
                 candidate_id = f"{'bg' if args.pool == 'backgrounds' else 'fg'}_c{class_id:02d}_retry_{attempt:04d}"
                 scene_name = assignments[class_id][attempt % len(assignments[class_id])]
-                prompt = prompts[prompt_index]; prompt_index += 1
+                prompt_data = prompts[prompt_index]; prompt_index += 1
+                prompt = prompt_data["prompt"] if args.pool == "backgrounds" else prompt_data
                 seed_offset = 500000 if args.pool == "backgrounds" else 600000
                 seed = int(config["seed"]) + seed_offset + class_id * 10000 + attempt
                 path = root / "images" / f"{candidate_id}.png"
                 resumed = fb.verified_existing_image(path, (width, height))
                 started = time.monotonic()
                 if not resumed:
-                    image = pipe(
-                        prompt=prompt, negative_prompt=negative, width=width, height=height,
-                        num_inference_steps=int(config["inference_steps"]),
-                        guidance_scale=float(config["guidance_scale"]),
-                        generator=torch.Generator(device="cpu").manual_seed(seed),
-                    ).images[0]
+                    call_args = {
+                        "prompt": prompt, "negative_prompt": negative,
+                        "width": width, "height": height,
+                        "num_inference_steps": int(config["inference_steps"]),
+                        "guidance_scale": (prompt_data["guidance_scale"] if args.pool == "backgrounds"
+                                           else float(config["guidance_scale"])),
+                        "generator": torch.Generator(device="cpu").manual_seed(seed),
+                    }
+                    if args.pool == "backgrounds":
+                        call_args.update({"prompt_2": prompt_data["prompt_2"],
+                                          "negative_prompt_2": prompt_data["negative_prompt_2"]})
+                    image = pipe(**call_args).images[0]
                     fb.save_image_atomic(image, path)
                 record = {"candidate_id": candidate_id, "class_id": class_id,
                           "class_name": names[class_id], "image_path": str(path.relative_to(REPO_ROOT)),
@@ -176,7 +174,12 @@ def main() -> None:
                 if args.pool == "backgrounds":
                     record.update({"planned_class_id": class_id,
                                    "scene_slot": attempt % len(assignments[class_id]),
-                                   "scene_name": scene_name})
+                                   "scene_name": scene_name,
+                                   "prompt_2": prompt_data["prompt_2"],
+                                   "negative_prompt": prompt_data["negative_prompt"],
+                                   "negative_prompt_2": prompt_data["negative_prompt_2"],
+                                   "guidance_scale": prompt_data["guidance_scale"],
+                                   "variation_indices": prompt_data["variation_indices"]})
                 added.append(record)
                 print(f"[{args.pool} retry {len(added)}/{len(prompts)}] {candidate_id}", flush=True)
         records.extend(added)

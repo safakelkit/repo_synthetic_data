@@ -29,77 +29,150 @@ production:
   nested_prefixes: [512, 1024, 1536, 2048]
 
 background_generation:
+  guidance_scales: [4.2, 4.6, 5.0]
   negative_prompt: >-
-    person, hands, lighter, matches,
+    person, hand, lighter, matches,
     scissors, pliers, knife, razor, hammer, cigarettes, saw, screwdriver,
-    wrench, aerosol can, battery, alcohol bottle, phone, laptop, readable text,
-    logo, watermark, cartoon, CGI, fisheye, blur, impossible geometry,
-    floating furniture, foreground clutter
-  prompt_templates:
-    - >-
-      Realistic candid inspection photo of {scene}. Lower foreground: {support}.
-      {layout}. {wear}. {occupancy}. {camera}. {lighting}. Unstaged, no people
-      or target objects.
-    - >-
-      Organic unstaged photo inside {scene}. Usable surface: {support}. {layout}.
-      {wear}. {occupancy}. {camera}. {lighting}. No people or target objects.
-  retry_prompt_template: >-
-    Realistic candid photo of {scene}. Lower foreground: {support}. {layout}.
-    {wear}. {occupancy}. {camera}. {lighting}. No people or target objects.
+    wrench, aerosol can, battery, alcohol bottle, phone, laptop, text, logo,
+    watermark, floating object
+  negative_prompt_2: >-
+    artificial render, synthetic surfaces, plastic texture, excessive HDR,
+    cinematic color grading, dramatic studio lighting, pristine showroom,
+    catalog interior, hotel room, luxury furniture, perfect symmetry,
+    repeated furniture, warped architecture, oversharpening, depth-of-field blur
+  prompt_template: >-
+    Candid correctional inspection photo. {scene_recipe}. {support}.
+    {composition}.
+  prompt_2_template: >-
+    Unstaged mobile documentary photo. {capture}. {lighting}. {materials}.
+    {use_trace}.
+  scene_recipes:
+    cell_sleeping_area:
+      - older narrow cell with painted masonry walls, a steel bunk, thin rumpled bedding, and a recessed barred window
+      - renovated single cell with a molded bed platform, patched pale walls, a compact shelf, and a heavy door partly in frame
+      - shared sleeping room with two offset bunks, mixed blanket colors, exposed pipework, and a worn resilient floor
+      - small ground-floor cell with a low concrete bed base, radiator pipes, uneven wall repairs, and daylight from a high window
+      - long cell viewed from the doorway, bed along one wall, fixed shelving opposite, and personal fabric stored at the far end
+      - aging sleeping area with a chipped metal bed frame, painted blockwork, old ventilation grille, and mismatched fixed fittings
+      - recently maintained cell where new paint meets older skirting, with a simple bunk, folded bedding, and scuffed door hardware
+      - compact sleeping alcove with an inset bed, rough plaster repairs, a narrow window reveal, and asymmetrical wall fixtures
+    cell_desk_area:
+      - compact cell study corner with a wall-mounted writing ledge, fixed stool, pin-marked wall, and bed edge in the distance
+      - older cell with a scratched laminate desk, mismatched chair, exposed conduit, and shallow shelving along one wall
+      - narrow writing area beneath a high window, with a built-in concrete ledge, patched paint, and an off-center light fixture
+      - renovated cell desk zone with a simple composite table, molded chair, notice board without legible writing, and mixed-age fittings
+      - cramped doorway view toward a small timber-look desk, fixed bed beyond it, worn floor seams, and an irregular wall recess
+      - shared-room study area with two offset chairs, a broad institutional table, distant shelving, and ordinary paper folders at the edge
+      - austere desk nook with a steel-framed table, old radiator, chipped skirting, and shadows from a small security window
+      - lived-in writing corner with a narrow desk, folded neutral cloth on a distant shelf, patched masonry, and uneven furniture spacing
+    cell_storage_area:
+      - personal storage wall with dented steel lockers, open cubbies, folded neutral textiles, and a narrow sorting bench
+      - older cell storage corner with painted shelves, chipped cabinet doors, masonry repairs, and a low counter beneath them
+      - compact property alcove with mismatched lockers, numbered shapes without readable text, a worn bench, and exposed hinges
+      - renovated storage bay with pale laminate cupboards, one recessed shelf, older floor tiles, and an offset inspection counter
+      - narrow shelving aisle inside a detention unit, mixed metal and timber shelves, folded bedding, and a clear utility table
+      - deep storage corner viewed obliquely, with partly open cabinet doors, ventilation pipework, and scuffed wall protection
+      - shared personal-effects area with wire baskets, fixed cubbies, muted fabric bundles at the sides, and a broad sorting surface
+      - aging locker area with repainted doors, uneven handles, dusty upper shelves, and a compact worktop under flat ceiling light
+    cell_wash_area:
+      - compact wash corner with a stainless basin, old tiled splashback, exposed plumbing, mirrorless wall, and a dry side counter
+      - renovated cell wash area with a molded sink unit, patched sealant, mixed wall finishes, and a narrow adjacent ledge
+      - older tiled washroom with a deep ceramic basin, worn grout, utility pipes, and a laminate folding counter near the doorway
+      - shared wash area with offset basins, privacy partition edges, damp floor variation, and a broad dry grooming shelf
+      - small bathroom alcove with a steel sink, painted blockwork, ventilation grille, water marks, and an unobstructed side table
+      - institutional vanity corner with a long composite counter, mismatched taps, aged tile repairs, and darker recesses beyond
+      - utility wash space with a deep basin, pipe boxing, patched plaster, folded neutral towels far away, and a scuffed work surface
+      - doorway view into a narrow wash cell, sink to one side, old wall tiles, repaired floor joints, and a clear counter in front
+    communal_day_room:
+      - well-used day room with mixed molded chairs, two offset laminate tables, a wall radiator, and broad windows with muted daylight
+      - older common room with painted block walls, scattered fixed seating, a notice board without readable text, and a worn central table
+      - compact television lounge without a visible screen, with mismatched chairs, low shelving, patched floor tiles, and a side table
+      - shared activity room with several unevenly spaced tables, stacked plain board-game boxes at the edge, and mixed ceiling fixtures
+      - cafeteria-like day space with fixed stools, long tables, acoustic wall panels, and natural wear along main walking paths
+      - renovated communal room where new chairs mix with older tables, window blinds sit at different heights, and corners remain shadowed
+      - quiet library corner with shallow book shapes lacking readable titles, a broad study table, assorted chairs, and scuffed skirting
+      - deep day-room view from an open doorway, with layered seating groups, irregular table alignment, and ordinary signs of daily use
+    property_inspection_station:
+      - working property-intake room with a broad scratched counter, wire storage cages, shallow sorting trays at the far edge, and plain walls
+      - compact search station with a heavy laminate table, two mismatched chairs, lockers behind it, and a ceiling camera housing
+      - older inspection room with a steel-framed counter, patched painted masonry, empty archive boxes on distant shelves, and worn flooring
+      - renovated intake bay with a composite sorting island, translucent storage bins at the perimeter, acoustic ceiling panels, and an open doorway
+      - narrow property-processing room with a long counter under diffuse window light, mixed cabinets, and clear circulation space around it
+      - practical documentation station with an L-shaped worktop, plain paper folders away from center, conduit, and a scuffed wall guard
+      - security-search alcove with a waist-high counter, metal mesh partition in the background, aged hinges, and uneven overhead light
+      - busy but orderly intake room with offset sorting tables, empty chairs, storage racks, and a clear near tabletop for examination
+    correctional_workshop:
+      - supervised repair workshop with a scarred timber workbench, empty wall panels, material offcuts at the far edge, and concrete flooring
+      - institutional craft room with broad laminate benches, mismatched stools, closed storage cabinets, and diffuse high-window daylight
+      - older maintenance workshop with a steel worktable, pegboard without tools, exposed conduit, patched walls, and a dusty floor perimeter
+      - compact assembly room with a thick composite bench, stacked plain timber pieces in the distance, ventilation ducting, and worn floor paint
+      - renovated vocational room with mixed-age worktables, empty racks, acoustic ceiling tiles, and one partly open service door
+      - masonry workshop bay with a heavy wooden bench, fixed shelving, paint marks, material bins away from center, and side-window shadows
+      - deep supervised workspace with offset benches, old cabinets, overhead cable trays, and natural grime along inaccessible edges
+      - small workroom viewed from the doorway, with a scratched central bench, mismatched surfaces, repaired plaster, and practical fluorescent light
+    maintenance_service_area:
+      - aging utility room with a painted steel bench, exposed pipes, electrical cabinets without readable labels, and a worn concrete floor
+      - narrow service corridor alcove with a laminate worktop, conduit runs, patched blockwork, and an open plant-room doorway beyond
+      - compact supply room with mixed shelving, closed plastic crates at the edges, a broad sorting bench, and uneven ceiling light
+      - boiler-room work bay with insulated pipework, old valves in the distance, a scarred timber bench, and natural dust in corners
+      - renovated maintenance closet with a composite counter, new cabinets beside older masonry, exposed service panels, and floor scuffs
+      - deep utility storage area with offset racks, empty material bins, a steel worktable, and mixed cool and warm practical lighting
+      - institutional laundry-service corner with a folding counter, plumbing lines, closed cupboards, neutral cloth stacks far from center, and worn tiles
+      - basement service room with rough painted walls, overhead pipe shadows, mismatched cabinets, and a clear waist-high inspection surface
   support_profiles:
-    - worn laminate table, clear center
-    - wooden desk, visible grain and front edge
-    - matte institutional metal workbench
-    - clear bedside shelf or low table
-    - painted utility bench, unobstructed center
-    - composite tabletop in natural perspective
-    - slightly scuffed inspection counter
-    - clear compact side table
-  layout_profiles:
-    - narrow asymmetrical room, mismatched fixtures
-    - wide room, layered depth, off-center fixtures
-    - compact lived-in layout, irregular spacing
-    - renovated interior, mixed furniture ages
-    - partial doorway and occluded corners
-    - varied wall and floor materials
-    - deep room, distinct architectural details
-    - close composition, constrained space
-  wear_profiles:
-    - subtle scratches and uneven paint
-    - natural dust and worn floor patches
-    - small stains and aged hardware
-    - realistic scuffs and mixed finishes
-    - slight discoloration and maintenance marks
-    - uneven material aging
-    - restrained corner grime
-    - cleaned areas beside worn finishes
-  occupancy_profiles:
-    - folded neutral fabric at the room edge
-    - plain papers away from the clear surface
-    - ordinary fixed room details
-    - restrained distant non-target clutter
-    - rumpled bedding away from the surface
-    - empty chairs and fixed storage
-    - subtle signs of daily use
-    - unstaged asymmetrical furniture
-  camera_profiles:
-    - eye-level 28 mm mobile-camera view
-    - slightly elevated 35 mm inspection view
-    - chest-height 32 mm documentary view
-    - oblique corner view with natural convergence
-    - doorway view at a three-quarter angle
-    - close view emphasizing the support plane
-    - wide view with layered scene depth
-    - off-center handheld composition
+    - a worn matte laminate tabletop crosses the lower third, with its front edge visible
+    - a scratched timber-look desk occupies the lower foreground, showing grain and rounded edge wear
+    - a dull painted-steel workbench fills the near foreground, with small chips but an unobstructed center
+    - a compact composite counter enters from one side in convincing perspective, leaving a broad clear area
+    - a waist-high institutional sorting table sits close to camera, with a visible edge and realistic surface abrasion
+    - a fixed wall ledge spans the lower middle of frame, dry and clear enough for object placement
+    - a mismatched side table is nearest the camera, slightly off-center with a plainly visible horizontal top
+    - a broad utilitarian counter anchors the foreground, its corners and thickness clearly defined
+  composition_profiles:
+    - eye-level doorway composition with an off-center vanishing point and layered depth
+    - chest-height three-quarter view with the support plane covering roughly the lower quarter
+    - slightly elevated oblique view showing both the support surface and room beyond
+    - close environmental view with the clear surface prominent but not isolated like a product table
+    - wide corner view with partial doorframe occlusion and natural architectural convergence
+    - ordinary standing-height view with asymmetric furniture spacing and breathing room around the support
+    - restrained handheld framing with one cropped fixed fixture at the edge and no dramatic angle
+    - medium-wide inspection view with foreground, middle ground, and background all legible
+  capture_profiles:
+    - older 28 mm smartphone, slight barrel distortion and restrained sensor noise
+    - 35 mm phone camera, modest dynamic range and neutral auto white balance
+    - handheld 30 mm camera, tiny tilt and fine noise in shadows
+    - 26 mm mobile lens, mild corner softness and realistic highlight roll-off
+    - 32 mm documentary camera, deep focus and no artificial bokeh
+    - practical phone snapshot, slight exposure inconsistency and soft extreme corners
+    - inspection camera, natural vertical convergence and unpolished framing
+    - contemporary mobile camera, restrained sharpening and realistic indoor color
   lighting_profiles:
-    - diffuse side-window daylight with soft fill
-    - neutral fluorescent light with natural falloff
-    - mixed cool daylight and warm indoor light
-    - overcast daylight with soft shadows
-    - directional late-afternoon window light
-    - institutional ceiling light with darker corners
-    - weak window light plus a ceiling fixture
-    - bright non-studio ambient light
+    - overcast side-window daylight with weak ceiling fill and gentle shadow gradients
+    - aging fluorescent tubes with uneven brightness, slightly green highlights, and darker corners
+    - mixed cool window light and warmer corridor spill through the doorway
+    - low winter daylight from a high window with practical ceiling fixtures switched on
+    - late-afternoon side light softened by blinds, with believable exposure variation
+    - flat cloudy daylight, muted colors, and no dramatic cinematic shadows
+    - warm older ceiling lamps mixed with cool service-area light in the distance
+    - bright but non-studio ambient light with localized falloff beneath shelves and furniture
+  material_profiles:
+    - blockwork, laminate, steel, sealant and flooring retain distinct roughness
+    - old and new repairs differ subtly in hue, sheen and edge wear
+    - porous masonry, brushed metal, molded plastic and wood remain distinct
+    - reflections are subdued and uneven, with credible fixture contact shadows
+    - floor seams, wall texture and furniture edges show realistic construction
+    - mixed material ages create restrained variation without decorative styling
+    - touched edges are smoother while recesses retain dust and dull paint
+    - utilitarian finishes show abrasion, patching and maintenance, not decay
+  use_trace_profiles:
+    - wiped central surfaces contrast with dust along walls and rear corners
+    - walking-path scuffs and furniture-leg marks appear in plausible places
+    - folded neutral textiles or plain folders stay peripheral, leaving center clear
+    - irregular chairs and partly open storage suggest temporary vacancy
+    - water marks, paint touch-ups and aged sealant occur plausibly
+    - uneven fading and isolated scratches suggest repeated daily use
+    - cleaned areas contrast with older wear around hinges and skirting
+    - slight far-edge clutter adds occupancy while the foreground stays usable
 foreground_generation:
   prompt_template: >-
     Studio product photograph of exactly {target}. One isolated centered object,

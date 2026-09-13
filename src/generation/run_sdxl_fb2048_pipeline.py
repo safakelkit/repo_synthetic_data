@@ -89,31 +89,73 @@ def validate_prompts(pipe: Any, prompts: list[str]) -> None:
                 raise ValueError(f"{tokenizer_name} prompt length {length} exceeds {limit}: {prompt}")
 
 
-def background_prompt(config: dict[str, Any], scene_name: str, attempt: int) -> str:
-    settings = config["background_generation"]
-    template = settings["prompt_templates"][(attempt // 4) % len(settings["prompt_templates"])]
-    return template.format(
-        scene=scene_name.replace("_", " "),
-        support=settings["support_profiles"][attempt % len(settings["support_profiles"])],
-        layout=settings["layout_profiles"][(attempt // 2) % len(settings["layout_profiles"])],
-        wear=settings["wear_profiles"][(attempt // 3) % len(settings["wear_profiles"])],
-        occupancy=settings["occupancy_profiles"][(attempt // 5) % len(settings["occupancy_profiles"])],
-        camera=settings["camera_profiles"][attempt % len(settings["camera_profiles"])],
-        lighting=settings["lighting_profiles"][(attempt // 2) % len(settings["lighting_profiles"])],
-    )
+def deterministic_choice(values: list[Any], key: str) -> tuple[int, Any]:
+    if not values:
+        raise ValueError(f"Empty background variation axis: {key}")
+    digest = hashlib.sha256(key.encode("utf-8")).digest()
+    index = int.from_bytes(digest[:8], "big") % len(values)
+    return index, values[index]
 
 
-def background_prompts(config: dict[str, Any], scenes: dict[str, Any]) -> list[str]:
+def background_conditioning(
+    config: dict[str, Any], scene_name: str, class_id: int, attempt: int,
+) -> dict[str, Any]:
     settings = config["background_generation"]
-    maximum_attempts = max(
-        int(config["production"]["background_candidates"]) // CLASS_COUNT,
-        int(config["pilot"]["background_candidates"]) // CLASS_COUNT,
-    )
+    base_key = f"{config['seed']}:background:{class_id}:{attempt}:{scene_name}"
+    selected: dict[str, Any] = {}
+    for axis, values in (
+        ("scene_recipe", settings["scene_recipes"][scene_name]),
+        ("support", settings["support_profiles"]),
+        ("composition", settings["composition_profiles"]),
+        ("capture", settings["capture_profiles"]),
+        ("lighting", settings["lighting_profiles"]),
+        ("materials", settings["material_profiles"]),
+        ("use_trace", settings["use_trace_profiles"]),
+        ("guidance_scale", settings["guidance_scales"]),
+    ):
+        index, value = deterministic_choice(values, f"{base_key}:{axis}")
+        selected[axis] = value
+        selected[f"{axis}_index"] = index
+    return {
+        "prompt": settings["prompt_template"].format(**selected),
+        "prompt_2": settings["prompt_2_template"].format(**selected),
+        "negative_prompt": settings["negative_prompt"],
+        "negative_prompt_2": settings["negative_prompt_2"],
+        "guidance_scale": float(selected["guidance_scale"]),
+        "variation_indices": {
+            key.removesuffix("_index"): value
+            for key, value in selected.items() if key.endswith("_index")
+        },
+    }
+
+
+def scheduled_background_conditionings(
+    config: dict[str, Any], scenes: dict[str, Any], count: int,
+) -> list[dict[str, Any]]:
+    assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
+    base, remainder = divmod(count, CLASS_COUNT)
     return [
-        background_prompt(config, scene_name, attempt)
-        for attempt in range(maximum_attempts)
-        for scene_name in scenes["scene_families"]
-    ] + [settings["negative_prompt"]]
+        background_conditioning(
+            config, assignments[class_id][attempt % len(assignments[class_id])], class_id, attempt,
+        )
+        for class_id in range(CLASS_COUNT)
+        for attempt in range(base + (1 if class_id < remainder else 0))
+    ]
+
+
+def validate_background_conditionings(pipe: Any, conditionings: list[dict[str, Any]]) -> None:
+    for tokenizer_name, positive_key, negative_key in (
+        ("tokenizer", "prompt", "negative_prompt"),
+        ("tokenizer_2", "prompt_2", "negative_prompt_2"),
+    ):
+        tokenizer = getattr(pipe, tokenizer_name)
+        limit = int(tokenizer.model_max_length)
+        prompts = [row[positive_key] for row in conditionings]
+        prompts.extend(dict.fromkeys(row[negative_key] for row in conditionings))
+        for prompt in prompts:
+            length = len(tokenizer(prompt, truncation=False)["input_ids"])
+            if length > limit:
+                raise ValueError(f"{tokenizer_name} prompt length {length} exceeds {limit}: {prompt}")
 
 
 def foreground_prompts(config: dict[str, Any]) -> list[str]:
@@ -144,6 +186,26 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
         raise ValueError("Exactly 16 immutable class prompts are required")
     if len(scenes["class_policy"]["names"]) != CLASS_COUNT:
         raise ValueError("Scene policy must contain exactly 16 classes")
+    background = config["background_generation"]
+    scene_names = set(scenes["scene_families"])
+    recipe_names = set(background["scene_recipes"])
+    if recipe_names != scene_names:
+        raise ValueError(
+            f"Background scene recipes do not match scene policy; "
+            f"missing={sorted(scene_names - recipe_names)}, extra={sorted(recipe_names - scene_names)}"
+        )
+    required_axes = (
+        "support_profiles", "composition_profiles", "capture_profiles", "lighting_profiles",
+        "material_profiles", "use_trace_profiles", "guidance_scales",
+    )
+    if any(not background.get(axis) for axis in required_axes):
+        raise ValueError("Every background variation axis must contain at least one value")
+    production_conditionings = scheduled_background_conditionings(
+        config, scenes, int(config["production"]["background_candidates"]),
+    )
+    prompt_pairs = {(row["prompt"], row["prompt_2"]) for row in production_conditionings}
+    if len(prompt_pairs) != len(production_conditionings):
+        raise ValueError("Production background schedule contains duplicate prompt pairs")
     policy = config[mode]
     if mode == "production" and policy.get("locked", True):
         raise RuntimeError("Production is locked until the all-class pilot is reviewed")
@@ -291,12 +353,12 @@ def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
     require_launch_ready(gpu, output, allow_partial=True)
     images = output / "images"
     pipe = load_base_pipeline(load_yaml(repo_path(config["models_config"])), gpu)
-    settings = config["background_generation"]
     names = {int(key): value for key, value in scenes["class_policy"]["names"].items()}
     assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
     width, height = map(int, config["output_size"])
     records = []
-    validate_prompts(pipe, background_prompts(config, scenes))
+    conditionings = scheduled_background_conditionings(config, scenes, counts["background_candidates"])
+    validate_background_conditionings(pipe, conditionings)
     images.mkdir(parents=True)
     base, remainder = divmod(counts["background_candidates"], CLASS_COUNT)
     schedule = [
@@ -309,15 +371,18 @@ def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
     for index, (class_id, attempt) in enumerate(schedule):
         scene_slot = attempt % len(assignments[class_id])
         scene_name = assignments[class_id][scene_slot]
-        prompt = background_prompt(config, scene_name, attempt)
+        conditioning = conditionings[index]
         seed = int(config["seed"]) + index
         path = images / f"bg_{index:05d}_{scene_name}.png"
         resumed = verified_existing_image(path, (width, height))
         started = time.monotonic()
         if not resumed:
             image = pipe(
-                prompt=prompt, negative_prompt=settings["negative_prompt"], width=width, height=height,
-                num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
+                prompt=conditioning["prompt"], prompt_2=conditioning["prompt_2"],
+                negative_prompt=conditioning["negative_prompt"],
+                negative_prompt_2=conditioning["negative_prompt_2"], width=width, height=height,
+                num_inference_steps=int(config["inference_steps"]),
+                guidance_scale=conditioning["guidance_scale"],
                 generator=torch.Generator(device="cpu").manual_seed(seed),
             ).images[0]
             save_image_atomic(image, path)
@@ -326,7 +391,12 @@ def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
                         "planned_class_id": class_id, "scene_slot": scene_slot,
                         "scene_name": scene_name,
                         "image_path": str(path.relative_to(REPO_ROOT)), "sha256": sha256(path),
-                        "seed": seed, "prompt": prompt,
+                        "seed": seed, "prompt": conditioning["prompt"],
+                        "prompt_2": conditioning["prompt_2"],
+                        "negative_prompt": conditioning["negative_prompt"],
+                        "negative_prompt_2": conditioning["negative_prompt_2"],
+                        "guidance_scale": conditioning["guidance_scale"],
+                        "variation_indices": conditioning["variation_indices"],
                         "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),
                         "resumed_existing": resumed})
         action = "resume" if resumed else "generate"
@@ -630,7 +700,9 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
     write_review(output / "review.csv", [dict(row, candidate_id=f"final_{row['index']:05d}") for row in records], "final_identity_contact_realism_annotation")
 
 
-def runtime_preflight(config: dict[str, Any], scenes: dict[str, Any], stage: str, gpu: int) -> None:
+def runtime_preflight(
+    config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, int], stage: str, gpu: int,
+) -> None:
     if git_state()["dirty"]:
         raise RuntimeError("Commit the pipeline before runtime preflight")
     if not torch.cuda.is_available() or not 0 <= gpu < torch.cuda.device_count():
@@ -638,8 +710,12 @@ def runtime_preflight(config: dict[str, Any], scenes: dict[str, Any], stage: str
     models = load_yaml(repo_path(config["models_config"]))
     if stage in {"backgrounds", "foregrounds"}:
         pipe = load_base_pipeline(models, gpu)
-        prompts = background_prompts(config, scenes) if stage == "backgrounds" else foreground_prompts(config)
-        validate_prompts(pipe, prompts)
+        if stage == "backgrounds":
+            validate_background_conditionings(
+                pipe, scheduled_background_conditionings(config, scenes, counts["background_candidates"]),
+            )
+        else:
+            validate_prompts(pipe, foreground_prompts(config))
         release(pipe)
     elif stage == "segment":
         from transformers import Sam3Model, Sam3Processor
@@ -674,7 +750,7 @@ def main() -> None:
               "config_sha256": sha256(config_path), "git": git_state(),
               "review_gates": config["quality_gates"]}
     if args.preflight_only:
-        runtime_preflight(config, scenes, args.stage, args.gpu)
+        runtime_preflight(config, scenes, counts, args.stage, args.gpu)
         report["runtime_models_and_prompts_validated"] = True
         print(json.dumps(report, indent=2)); return
     with stage_lock(root, args.stage):
