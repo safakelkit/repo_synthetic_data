@@ -1,0 +1,201 @@
+format_version: 1
+pipeline_id: sdxl_fb2048_v1
+status: ready_for_all_class_pilot
+models_config: configs/generation/genai_models_v1.yaml
+scene_policy: configs/generation/genai_scene_policy_v1.yaml
+output_root: data/synthetic/sdxl_fb2048_v1
+seed: 74000
+output_size: [1024, 1024]
+inference_steps: 30
+guidance_scale: 6.0
+training_use_forbidden: true
+target_test_used: false
+
+pilot:
+  final_images: 16
+  background_candidates: 32
+  foreground_candidates_per_class: 2
+  accepted_backgrounds: 16
+  accepted_foregrounds_per_class: 1
+
+production:
+  locked: true
+  final_images: 2048
+  background_candidates: 2560
+  accepted_backgrounds: 2048
+  foreground_candidates_per_class: 160
+  aerosol_foreground_candidates: 192
+  accepted_foregrounds_per_class: 128
+  nested_prefixes: [512, 1024, 1536, 2048]
+
+background_generation:
+  negative_prompt: >-
+    person, hands, lighter, matches,
+    scissors, pliers, knife, razor, hammer, cigarettes, saw, screwdriver,
+    wrench, aerosol can, battery, alcohol bottle, phone, laptop, readable text,
+    logo, watermark, cartoon, CGI, fisheye, blur, impossible geometry,
+    floating furniture, foreground clutter
+  prompt_templates:
+    - >-
+      Realistic candid inspection photo of {scene}. Lower foreground: {support}.
+      {layout}. {wear}. {occupancy}. {camera}. {lighting}. Unstaged, no people
+      or target objects.
+    - >-
+      Organic unstaged photo inside {scene}. Usable surface: {support}. {layout}.
+      {wear}. {occupancy}. {camera}. {lighting}. No people or target objects.
+  retry_prompt_template: >-
+    Realistic candid photo of {scene}. Lower foreground: {support}. {layout}.
+    {wear}. {occupancy}. {camera}. {lighting}. No people or target objects.
+  support_profiles:
+    - worn laminate table, clear center
+    - wooden desk, visible grain and front edge
+    - matte institutional metal workbench
+    - clear bedside shelf or low table
+    - painted utility bench, unobstructed center
+    - composite tabletop in natural perspective
+    - slightly scuffed inspection counter
+    - clear compact side table
+  layout_profiles:
+    - narrow asymmetrical room, mismatched fixtures
+    - wide room, layered depth, off-center fixtures
+    - compact lived-in layout, irregular spacing
+    - renovated interior, mixed furniture ages
+    - partial doorway and occluded corners
+    - varied wall and floor materials
+    - deep room, distinct architectural details
+    - close composition, constrained space
+  wear_profiles:
+    - subtle scratches and uneven paint
+    - natural dust and worn floor patches
+    - small stains and aged hardware
+    - realistic scuffs and mixed finishes
+    - slight discoloration and maintenance marks
+    - uneven material aging
+    - restrained corner grime
+    - cleaned areas beside worn finishes
+  occupancy_profiles:
+    - folded neutral fabric at the room edge
+    - plain papers away from the clear surface
+    - ordinary fixed room details
+    - restrained distant non-target clutter
+    - rumpled bedding away from the surface
+    - empty chairs and fixed storage
+    - subtle signs of daily use
+    - unstaged asymmetrical furniture
+  camera_profiles:
+    - eye-level 28 mm mobile-camera view
+    - slightly elevated 35 mm inspection view
+    - chest-height 32 mm documentary view
+    - oblique corner view with natural convergence
+    - doorway view at a three-quarter angle
+    - close view emphasizing the support plane
+    - wide view with layered scene depth
+    - off-center handheld composition
+  lighting_profiles:
+    - diffuse side-window daylight with soft fill
+    - neutral fluorescent light with natural falloff
+    - mixed cool daylight and warm indoor light
+    - overcast daylight with soft shadows
+    - directional late-afternoon window light
+    - institutional ceiling light with darker corners
+    - weak window light plus a ceiling fixture
+    - bright non-studio ambient light
+foreground_generation:
+  prompt_template: >-
+    Studio product photograph of exactly {target}. One isolated centered object,
+    fully visible, realistic, sharp boundary, plain light-gray seamless backdrop,
+    no furniture or hand. {variation}.
+  negative_prompt: >-
+    multiple objects, duplicate, wrong object, extra tool, cropped, truncated,
+    occluded, deformed, fused parts, floating fragments, person, hand, room,
+    table, shelf, complex background, patterned background, readable text,
+    logo, watermark, illustration, cartoon, CGI, blur
+  class_prompts:
+    0: one disposable pocket lighter with ignition wheel and metal top
+    1: one open cardboard matchbox containing wooden safety matches with visible match heads
+    2: one pair of household scissors with two finger handles and two metal blades
+    3: one pair of combination pliers with two handles, gripping jaws and central pivot
+    4: one handheld knife with a single metal blade and handle
+    5: one disposable T-shaped manual razor with broad razor head and short handle
+    6: one claw hammer with metal head and wooden handle
+    7: one cigarette pack with several tobacco cigarettes visible at the open top
+    8: one handheld hacksaw with rigid frame, handle and toothed blade
+    9: one manual screwdriver with handle and long metal shaft
+    10: one metal wrench with a clearly visible jaw or ring end
+    11: one upright deodorant aerosol spray can with cylindrical metal body, rounded cap, push-button nozzle and flat base
+    12: one rectangular 9-volt battery with two snap terminals on top
+    13: one small glass bottle of alcoholic drink with neck and cap
+    14: one modern rectangular smartphone with glass screen, bezel and camera
+    15: one open laptop with hinged screen, keyboard and trackpad
+  variation_phrases:
+    - front three-quarter view, common consumer design, neutral color
+    - opposite three-quarter view, visibly different product design and color
+    - slightly elevated camera view, lightly used realistic surface finish
+    - near-frontal view, inexpensive everyday construction and distinct proportions
+    - shallow side angle, alternate material finish and restrained wear
+    - elevated oblique view, different brandless design with no readable markings
+    - low three-quarter view, darker colorway and realistic edge wear
+    - centered catalog view, lighter colorway and a distinct silhouette variant
+  retry_guidance:
+    2: two loops, two blades, one pivot; no shears
+    7: closed pack only; no loose cigarettes or pile
+    8: complete manual bow frame and blade; no motor
+    12: PP3 form; no cable, holder or loose cells
+    14: single slab phone; no stack or folding device
+  controlled_retry:
+    class_ids: [2, 7, 8, 12]
+    candidates_per_class: 2
+    controlnet_conditioning_scale: 0.95
+    prompt_template: >-
+      Realistic studio product photo of exactly {target}. One complete isolated
+      object matching the supplied geometry, centered on a plain light-gray
+      background, natural material and minor wear, no hand. {guidance}.
+    negative_prompt: >-
+      multiple objects, duplicate, extra parts, disconnected parts, wrong
+      object, malformed, cropped, hand, person, furniture, clutter, text, logo,
+      watermark, cartoon, illustration, CGI, blur
+
+segmentation:
+  model_id: facebook/sam3
+  score_threshold: 0.30
+  mask_threshold: 0.50
+  prompt_box_margin_px: 24
+  min_mask_area_ratio: 0.03
+  max_mask_area_ratio: 0.80
+  border_clearance_px: 8
+
+composition:
+  object_height_fraction: [0.16, 0.30]
+  placement_centers:
+    cell_sleeping_area: [0.60, 0.61]
+    cell_desk_area: [0.58, 0.59]
+    cell_storage_area: [0.56, 0.64]
+    cell_wash_area: [0.58, 0.60]
+    communal_day_room: [0.52, 0.62]
+    property_inspection_station: [0.50, 0.58]
+    correctional_workshop: [0.54, 0.61]
+    maintenance_service_area: [0.53, 0.61]
+  horizontal_jitter_fraction: 0.08
+  vertical_jitter_fraction: 0.025
+
+harmonization:
+  mask_padding_px: 24
+  foreground_color_match_strength: 0.30
+  strength: 0.35
+  canny_scale: 0.90
+  prompt_template: >-
+    Realistic photograph of {target} on a support surface in {scene}. Match
+    perspective and lighting, with a subtle contact shadow. Preserve exact
+    identity, shape and position. One object, no people.
+  negative_prompt: >-
+    wrong object, duplicate, extra target, deformed, fused, floating, embedded,
+    cropped, hand, person, text, logo, watermark, illustration, cartoon, CGI
+
+quality_gates:
+  require_manual_pool_acceptance: true
+  exact_hash_uniqueness: true
+  perceptual_duplicate_review_required: true
+  background_target_free_review_required: true
+  final_visual_review_required: true
+  annotation_source: retained_visible_foreground_mask
+  extra_project_class_policy: annotate_all_or_reject

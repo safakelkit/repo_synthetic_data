@@ -87,9 +87,9 @@ model feasibility is established, but its canonical work remains pending.
 
 1. Preserve the complete SDXL-M seed-0 result matrix without test-driven
    generator retuning.
-2. Implement the predeclared full-synthetic SDXL follow-up: 2,048 unique
-   generated backgrounds paired one-to-one with 2,048 generated isolated
-   foregrounds, followed by mask-derived compositing and local harmonization.
+2. Run and review the implemented 16-class SDXL-FB2048 pilot. Only after it
+   passes, unlock production of 2,048 unique generated background/foreground
+   pairs, mask-derived composition, and local harmonization.
 3. Complete the planned Qwen baseline under the same detector protocol.
 4. Decide additional detector seeds and the numerical clean-loss tolerance.
 

@@ -8,6 +8,21 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
 
 - [x] Preserve the executed SDXL matrix and prohibit target-test-driven
   revision of its generator.
+- [x] Implement a review-gated all-class pilot runner for independent background
+  generation, foreground generation, SAM3 masking, pairing, harmonization, and
+  final mask-derived labels; keep production mechanically locked.
+- [x] Generate the initial 32-background/32-foreground candidate pools; verify
+  64/64 image integrity, unique hashes, resolution, and exact class counts.
+- [ ] Complete source-side visual acceptance with targeted retries for unsafe
+  support surfaces and malformed/duplicate foreground classes; then accept one
+  background and one segmented foreground per class.
+- [x] Replace the production background prompt schedule with explicit support,
+  layout, wear, occupancy, camera, and lighting axes; add a same-policy organic
+  all-class retry before freezing production.
+- [x] Add real-pixel-free synthetic Canny retry geometry for Scissors,
+  Cigarettes, Saw, and Battery after text-only retries failed shape/count QC.
+- [ ] Compose and review the 16-image all-class pilot before changing the
+  production lock.
 - [ ] Freeze the v2 foreground and background prompt/control schedules before
   production; final pixels must not come from real object or background assets.
 - [ ] Generate at least 2,560 background candidates and accept exactly 2,048

@@ -320,7 +320,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D031 - Separate fully generated foreground/background follow-up
 
-- **Status:** Accepted design; implementation and production pending
+- **Status:** Accepted design; review-gated pilot implemented, execution and production pending
 - **Date:** 2026-09-13
 - **Decision:** Preserve the executed SDXL matrix unchanged. The next SDXL
   follow-up generates background and isolated foreground pools independently,
@@ -341,3 +341,11 @@ difficulty(c) = alpha * (1 - S_hard(c))
   targets.
 - **Validity:** No clean/easy/hard test result may choose prompts, generators,
   similarity thresholds, rejection thresholds, quantities, or release status.
+- **Implementation gate:** `run_sdxl_fb2048_pipeline.py` exposes separate
+  background, foreground, segmentation, and composition stages. Immutable
+  manifests are authoritative; review CSV files may select candidates but may
+  not alter their paths or metadata. Production remains mechanically locked.
+- **Pilot correction:** Background prompts vary support, layout, wear,
+  occupancy cues, camera, and lighting explicitly rather than relying on seeds.
+  Geometry-sensitive foreground failures may use programmatic synthetic Canny
+  controls; these contain no real pixels and do not weaken the purity boundary.

@@ -91,3 +91,49 @@ real INSP-DET and Places365 pixels are not pasted into this method.
 - Production remains blocked until same-size all-class pilots validate object
   identity, background realism, segmentation, compositing, harmonization, and
   annotation integrity.
+
+### Implemented pilot workflow
+
+The pilot configuration is `configs/generation/sdxl_fb2048_v1.yaml`; the runner
+is `src/generation/run_sdxl_fb2048_pipeline.py`. It generates 32 background and
+32 foreground candidates, then requires explicit review decisions before SAM3
+segmentation and again before the 16-image composition stage. Exact duplicate
+files, invalid mask geometry, incorrect class counts, review/manifest drift,
+and existing output directories stop the run. Production is locked in config.
+
+Run each preflight on its assigned GPU. Unlike a structural dry run, this loads
+the real model/tokenizers and checks every scheduled prompt against both CLIP
+77-token limits before creating output directories:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 ../env_sam3/bin/python src/generation/run_sdxl_fb2048_pipeline.py --stage backgrounds --gpu 0 --preflight-only
+CUDA_VISIBLE_DEVICES=1 ../env_sam3/bin/python src/generation/run_sdxl_fb2048_pipeline.py --stage foregrounds --gpu 0 --preflight-only
+```
+
+Remove `--preflight-only` only for the current stage. After background and
+foreground generation, edit only `review_status` and `review_reason` in their
+review CSV files. After segmentation, review the RGBA/mask rows in the same
+way. Every generated final remains training-forbidden pending final review.
+Background and foreground generation use separate stage locks, atomically write
+images, and reuse valid partial images after an interruption. They can therefore
+run concurrently on different GPUs and safely resume with the same command.
+
+The initial pool is extended without deleting accepted candidates by
+`src/generation/extend_sdxl_fb2048_candidates.py`. Extensions preserve existing
+review decisions, append new immutable manifest records, use new deterministic
+seeds, and add only the new candidates as `pending`. Background retries use an
+explicit lower-third support-surface prompt; foreground retries may use frozen
+class-specific corrective wording. The extension preflight loads the real SDXL
+tokenizers before producing any image.
+
+Background diversity is not seed-only. The pilot and production schedule now
+crosses eight choices each for support type, room layout, wear, occupancy cues,
+camera, and lighting while retaining target-free review. This avoids reverting
+to the sterile empty-room pattern in the 2,560-candidate production run.
+
+For geometry-sensitive classes that failed text-only retries, the controlled
+runner is `src/generation/generate_sdxl_fb2048_controlled_retries.py`. It draws
+non-photographic Canny geometry for Scissors, Cigarettes, Saw, and Battery and
+uses SDXL ControlNet to generate all final pixels. No real object pixels or real
+silhouettes enter these controls. Outputs append to the same immutable candidate
+manifest and remain pending review.
