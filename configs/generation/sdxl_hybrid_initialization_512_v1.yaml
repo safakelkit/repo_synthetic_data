@@ -21,6 +21,7 @@ placement:
   # occluded remote tabletop, not safe visible support surfaces.
   excluded_support_regions:
     - data/processed/background_support_masks/sam3_v2/full_geometry_v2/regions/bedroom/bedroom_00299/bed_top.png
+    - data/processed/background_support_masks/sam3_v2/full_geometry_v2/regions/dining_room/dining_room_00024/dining_table_top.png
     - data/processed/background_support_masks/sam3_v2/full_geometry_v2/regions/dining_room/dining_room_00330/dining_table_top.png
 
 degradation:
