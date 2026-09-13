@@ -702,6 +702,7 @@ def generate_dataset(
         )
         for class_id in expected_class_ids
     }
+    used_asset_groups: dict[int, set[str]] = {class_id: set() for class_id in expected_class_ids}
     saved_per_class = {class_id: 0 for class_id in expected_class_ids}
     if degradation_config is None:
         raise ValueError("A frozen degradation configuration is required")
@@ -767,7 +768,19 @@ def generate_dataset(
 
         # Retries retain the scheduled class, guaranteeing exact quotas.
         class_sequence_index = saved_per_class[class_id]
-        obj_path = asset_schedules[class_id][class_sequence_index]
+        if asset_groups is None:
+            obj_path = asset_schedules[class_id][class_sequence_index]
+        else:
+            available_assets = [
+                path for path in asset_schedules[class_id]
+                if asset_groups[path] not in used_asset_groups[class_id]
+            ]
+            if not available_assets:
+                raise RuntimeError(f"Source-image diversity schedule exhausted for class {class_id}")
+            asset_retry_index = min(
+                (current_sample_attempts - 1) // 10, len(available_assets) - 1
+            )
+            obj_path = available_assets[asset_retry_index]
         rgba = read_rgba(obj_path)
 
         if rgba is None:
@@ -950,6 +963,8 @@ def generate_dataset(
 
         saved_count += 1
         saved_per_class[class_id] += 1
+        if asset_groups is not None:
+            used_asset_groups[class_id].add(asset_groups[obj_path])
         background_use_counts[bg_path] += 1
         current_sample_attempts = 0
         progress.update(1)
