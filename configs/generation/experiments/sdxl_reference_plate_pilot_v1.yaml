@@ -37,11 +37,10 @@ generation:
       viewpoint, table position, perspective, and clear support surface. Subtle
       surface wear, ordinary mixed indoor light, realistic materials and sensor noise.
   negative_prompt: >-
-    changed composition, missing support surface, vertical table, distorted
-    perspective, warped furniture, clutter on the support surface, person, hand,
-    tool, weapon, contraband, scissors, pliers, hammer, saw, wrench, aerosol can,
-    text, logo, watermark, illustration, painting, cartoon, CGI, 3d render,
-    showroom, glossy plastic, oversmoothed, dramatic cinematic lighting
+    changed composition, missing horizontal support, distorted perspective,
+    warped furniture, cluttered surface, person, hand, tools, weapons,
+    contraband, aerosol can, text, logo, watermark, illustration, painting,
+    cartoon, CGI, 3d render, showroom, glossy plastic, oversmoothed
 
 review_gate:
   training_use_forbidden: true
@@ -54,4 +53,3 @@ review_gate:
     - duplicate_free
   acceptance_target_overall: 13
   acceptance_target_per_support_type: 6
-

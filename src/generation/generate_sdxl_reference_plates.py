@@ -112,6 +112,11 @@ def validate_config(config: dict[str, Any], records: list[dict[str, Any]]) -> No
         raise ValueError("Reference strengths must stay in the geometry-preserving range (0, 0.35]")
     if set(generation["prompts"]) != set(config["source"]["support_types"]):
         raise ValueError("Exactly one prompt is required for every support type")
+    # A conservative word-count guard catches obviously overlong prompts in
+    # CPU-only preflight; exact CLIP token lengths are checked after loading.
+    for prompt in [*generation["prompts"].values(), generation["negative_prompt"]]:
+        if len(str(prompt).split()) > 55:
+            raise ValueError("Prompt exceeds the 55-word preflight safety limit")
     expected = len(config["source"]["support_types"]) * int(config["source"]["samples_per_support_type"])
     if len(records) != expected:
         raise ValueError(f"Expected {expected} records, got {len(records)}")
