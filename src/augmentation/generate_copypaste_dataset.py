@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import hashlib
 import importlib.metadata
@@ -141,16 +142,49 @@ def build_balanced_asset_schedule(
     assets: list[Path],
     required: int,
     rng: random.Random,
+    group_keys: dict[Path, str] | None = None,
 ) -> list[Path]:
-    """Cycle through every class asset before reusing one."""
+    """Cycle through assets, optionally exhausting source-image groups first."""
     if not assets:
         raise ValueError("At least one object asset is required")
+    if group_keys is not None:
+        grouped: dict[str, list[Path]] = {}
+        for asset in assets:
+            if asset not in group_keys:
+                raise ValueError(f"Missing asset group key: {asset}")
+            grouped.setdefault(group_keys[asset], []).append(asset)
+        for values in grouped.values():
+            values.sort()
+            rng.shuffle(values)
+        group_order = sorted(grouped)
+        schedule: list[Path] = []
+        cycle_index = 0
+        while len(schedule) < required:
+            cycle = group_order.copy()
+            rng.shuffle(cycle)
+            for group in cycle:
+                values = grouped[group]
+                schedule.append(values[cycle_index % len(values)])
+                if len(schedule) == required:
+                    break
+            cycle_index += 1
+        return schedule
     schedule: list[Path] = []
     while len(schedule) < required:
         cycle = assets.copy()
         rng.shuffle(cycle)
         schedule.extend(cycle)
     return schedule[:required]
+
+
+def load_asset_source_groups(audit_manifest_path: str | Path) -> dict[Path, str]:
+    """Map each accepted RGBA to its originating INSP-DET train image."""
+    with repo_path(audit_manifest_path).open(encoding="utf-8", newline="") as handle:
+        rows = [row for row in csv.DictReader(handle) if row["status"] == "accepted"]
+    groups = {repo_path(row["rgba_path"]): row["source_image"] for row in rows}
+    if not groups or any(not value for value in groups.values()):
+        raise ValueError("Accepted object audit contains missing source-image provenance")
+    return groups
 
 
 def build_balanced_class_schedule(
@@ -184,6 +218,23 @@ def read_rgba(path: Path) -> np.ndarray | None:
     if img.ndim != 3 or img.shape[2] != 4:
         return None
     return img
+
+
+def rotate_rgba_bound(rgba: np.ndarray, angle_degrees: float) -> np.ndarray:
+    """Rotate an RGBA crop without clipping visible pixels."""
+    if abs(angle_degrees) < 1e-9:
+        return rgba
+    height, width = rgba.shape[:2]
+    matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle_degrees, 1.0)
+    cosine, sine = abs(matrix[0, 0]), abs(matrix[0, 1])
+    output_width = max(1, int(round(height * sine + width * cosine)))
+    output_height = max(1, int(round(height * cosine + width * sine)))
+    matrix[0, 2] += output_width / 2 - width / 2
+    matrix[1, 2] += output_height / 2 - height / 2
+    return cv2.warpAffine(
+        rgba, matrix, (output_width, output_height), flags=cv2.INTER_LANCZOS4,
+        borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0),
+    )
 
 
 def is_valid_rgba_object(
@@ -558,6 +609,7 @@ def generate_dataset(
     seed: int = 42,
     size_templates_path: str | Path = DEFAULT_SIZE_TEMPLATES,
     generator_version: str = "cp_v1",
+    method: str = "copy_paste",
     source_config_path: str | Path | None = None,
     object_audit_manifest_path: str | Path | None = None,
     lower_size_quantile: float = 0.10,
@@ -567,6 +619,10 @@ def generate_dataset(
     orientation_policy_path: str | Path | None = None,
     generation_attempts_per_image: int = 50,
     asset_schedule_seed: int | None = None,
+    asset_sampling_unit: str = "asset",
+    background_sampling: str = "random",
+    lying_rotation_degrees: list[float] | None = None,
+    save_compositing_masks: bool = False,
     alpha_threshold: int = 20,
     minimum_visible_pixels: int = 40,
     minimum_crop_dimension_pixels: int = 8,
@@ -582,6 +638,7 @@ def generate_dataset(
     output_root = repo_path(output_root)
     images_out = output_root / "images"
     labels_out = output_root / "labels"
+    masks_out = output_root / "compositing_masks"
 
     if output_root.exists() and any(output_root.iterdir()):
         raise FileExistsError(
@@ -591,6 +648,8 @@ def generate_dataset(
 
     images_out.mkdir(parents=True, exist_ok=True)
     labels_out.mkdir(parents=True, exist_ok=True)
+    if save_compositing_masks:
+        masks_out.mkdir(parents=True, exist_ok=True)
 
     object_bank = collect_object_bank(object_bank_root)
     size_templates = load_size_templates(
@@ -631,9 +690,15 @@ def generate_dataset(
     if asset_schedule_seed is None:
         asset_schedule_seed = seed + 1
     asset_rng = random.Random(asset_schedule_seed)
+    if asset_sampling_unit not in ("asset", "source_image"):
+        raise ValueError(f"Unsupported asset_sampling_unit: {asset_sampling_unit}")
+    asset_groups = (
+        load_asset_source_groups(object_audit_manifest_path)
+        if asset_sampling_unit == "source_image" else None
+    )
     asset_schedules = {
         class_id: build_balanced_asset_schedule(
-            object_bank[class_id], images_per_class, asset_rng
+            object_bank[class_id], images_per_class, asset_rng, asset_groups
         )
         for class_id in expected_class_ids
     }
@@ -656,6 +721,7 @@ def generate_dataset(
     metadata: list[dict[str, Any]] = []
     seen_image_hashes: set[str] = set()
     source_hash_cache: dict[Path, str] = {}
+    background_use_counts = {path: 0 for path in backgrounds}
 
     saved_count = 0
     attempt_count = 0
@@ -675,7 +741,17 @@ def generate_dataset(
         ]
         if not eligible_backgrounds:
             raise RuntimeError(f"No accepted support region is eligible for class {class_id}")
-        bg_path = random.choice(eligible_backgrounds)
+        if background_sampling == "random":
+            bg_path = random.choice(eligible_backgrounds)
+        elif background_sampling == "balanced_low_reuse":
+            minimum_use = min(background_use_counts[path] for path in eligible_backgrounds)
+            least_used = [
+                path for path in eligible_backgrounds
+                if background_use_counts[path] == minimum_use
+            ]
+            bg_path = random.choice(least_used)
+        else:
+            raise ValueError(f"Unsupported background_sampling: {background_sampling}")
         bg = cv2.imread(str(bg_path), cv2.IMREAD_COLOR)
 
         if bg is None:
@@ -699,6 +775,13 @@ def generate_dataset(
             minimum_visible_ratio=minimum_visible_crop_ratio,
         ):
             continue
+
+        rotation_degrees = 0.0
+        if class_policy["mode"] == "lying" and lying_rotation_degrees:
+            rotation_degrees = float(
+                lying_rotation_degrees[class_sequence_index % len(lying_rotation_degrees)]
+            )
+            rgba = rotate_rgba_bound(rgba, rotation_degrees)
 
         size_template = random.choice(size_templates[class_id])
         resized_result = resize_rgba_to_target_area(
@@ -777,6 +860,7 @@ def generate_dataset(
 
         image_name = f"copypaste_{saved_count:06d}.jpg"
         label_name = f"copypaste_{saved_count:06d}.txt"
+        mask_name = f"copypaste_{saved_count:06d}.png"
 
         image_path = images_out / image_name
         if not cv2.imwrite(str(image_path), bg_pasted):
@@ -790,6 +874,16 @@ def generate_dataset(
 
         with open(labels_out / label_name, "w", encoding="utf-8") as f:
             f.write(label_line + "\n")
+
+        compositing_mask_path = None
+        if save_compositing_masks:
+            compositing_mask = np.zeros((bg_h, bg_w), dtype=np.uint8)
+            compositing_mask[y:y + obj_h, x:x + obj_w] = rgba[:, :, 3]
+            compositing_mask_path = masks_out / mask_name
+            if not cv2.imwrite(str(compositing_mask_path), compositing_mask):
+                image_path.unlink(missing_ok=True)
+                (labels_out / label_name).unlink(missing_ok=True)
+                continue
 
         metadata.append(
             {
@@ -806,6 +900,7 @@ def generate_dataset(
                 "background_height": bg_h,
                 "placement_xy": [x, y],
                 "placement_mode": class_policy["mode"],
+                "rotation_degrees": rotation_degrees,
                 "support_type": selected_region["support_type"],
                 "support_region": repository_relative(selected_region["region_path"]),
                 "support_region_sha256": selected_region["region_sha256"],
@@ -823,11 +918,23 @@ def generate_dataset(
                     "target_normalized_area": size_template["area"],
                     "realized_normalized_area": realized_area,
                 },
+                "compositing_mask": (
+                    repository_relative(compositing_mask_path)
+                    if compositing_mask_path is not None else None
+                ),
+                "compositing_mask_sha256": (
+                    cached_file_sha256(compositing_mask_path, source_hash_cache)
+                    if compositing_mask_path is not None else None
+                ),
+                "object_source_image": (
+                    asset_groups[obj_path] if asset_groups is not None else None
+                ),
             }
         )
 
         saved_count += 1
         saved_per_class[class_id] += 1
+        background_use_counts[bg_path] += 1
         progress.update(1)
 
     progress.close()
@@ -837,7 +944,7 @@ def generate_dataset(
 
     generation_config = {
         "format_version": 2,
-        "method": "copy_paste",
+        "method": method,
         "generator_version": generator_version,
         "seed": seed,
         "requested_images": num_images,
@@ -850,9 +957,13 @@ def generate_dataset(
         "object_audit_manifest_sha256": file_sha256(repo_path(object_audit_manifest_path)),
         "object_assets": sum(len(paths) for paths in object_bank.values()),
         "object_asset_sampling": "deterministic_shuffled_cycles_without_reuse_until_exhausted",
+        "object_asset_sampling_unit": asset_sampling_unit,
         "object_asset_schedule_seed": asset_schedule_seed,
         "background_root": repository_relative(background_root),
         "background_images": len(backgrounds),
+        "background_sampling": background_sampling,
+        "unique_backgrounds_used": sum(value > 0 for value in background_use_counts.values()),
+        "maximum_background_reuse": max(background_use_counts.values(), default=0),
         "size_templates_path": repository_relative(size_templates_path),
         "size_templates_sha256": file_sha256(size_templates_path),
         "size_sampling": "observed_INSP-DET_train_area_within_class_quantile_range",
@@ -868,6 +979,8 @@ def generate_dataset(
         "images_per_class": num_images // len(expected_class_ids),
         "class_block_size": len(expected_class_ids),
         "objects_per_image": 1,
+        "lying_rotation_degrees": lying_rotation_degrees or [0.0],
+        "compositing_masks_saved": save_compositing_masks,
         "placement": "human_reviewed_semantic_support_regions",
         "support_manifest": repository_relative(repo_path(support_manifest_path)),
         "support_manifest_sha256": file_sha256(repo_path(support_manifest_path)),
@@ -894,14 +1007,17 @@ def generate_dataset(
             "The partial output is not a valid dataset and must not be used for training."
         )
 
-def create_subset_manifests(full_root: Path) -> None:
+def create_subset_manifests(full_root: Path, splits: list[int] | None = None) -> None:
     """Create YOLO image lists without duplicating generated image files."""
-    splits = [512, 1024, 1536, 2048]
+    splits = splits or [512, 1024, 1536, 2048]
+    splits = sorted({int(value) for value in splits})
+    if not splits or any(value <= 0 for value in splits):
+        raise ValueError(f"Invalid subset sizes: {splits}")
 
     full_root = repo_path(full_root)
     images = sorted((full_root / "images").glob("*.jpg"))
     if len(images) != max(splits):
-        raise ValueError(f"Expected exactly 2048 images, found {len(images)}")
+        raise ValueError(f"Expected exactly {max(splits)} images, found {len(images)}")
 
     manifest_records: list[dict[str, Any]] = []
     for n in splits:
@@ -940,11 +1056,31 @@ def create_subset_manifests(full_root: Path) -> None:
 
 
 def load_generation_config(config_path: Path) -> dict[str, Any]:
-    with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    if not isinstance(config, dict):
-        raise ValueError(f"Invalid generation config: {config_path}")
-    return config
+    def merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+        result = copy.deepcopy(base)
+        for key, value in override.items():
+            if key == "base_config":
+                continue
+            if isinstance(value, dict) and isinstance(result.get(key), dict):
+                result[key] = merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    def resolve(path: Path, ancestry: set[Path]) -> dict[str, Any]:
+        path = repo_path(path)
+        if path in ancestry:
+            raise ValueError(f"Cyclic generation config inheritance at {path}")
+        with path.open("r", encoding="utf-8") as handle:
+            config = yaml.safe_load(handle)
+        if not isinstance(config, dict):
+            raise ValueError(f"Invalid generation config: {path}")
+        base = config.get("base_config")
+        if base is None:
+            return config
+        return merge(resolve(repo_path(base), ancestry | {path}), config)
+
+    return resolve(config_path, set())
 
 
 def main() -> None:
@@ -1001,6 +1137,7 @@ def main() -> None:
         seed=int(config["seed"]),
         size_templates_path=config["sizing"]["templates_path"],
         generator_version=str(config["version"]),
+        method=str(config.get("method", "copy_paste")),
         source_config_path=config_path,
         lower_size_quantile=float(config["sizing"]["lower_quantile"]),
         upper_size_quantile=float(config["sizing"]["upper_quantile"]),
@@ -1009,6 +1146,12 @@ def main() -> None:
         orientation_policy_path=config["placement"]["orientation_policy"],
         generation_attempts_per_image=int(config["quality_control"]["generation_attempts_per_image"]),
         asset_schedule_seed=asset_schedule_seed,
+        asset_sampling_unit=str(config["allocation"].get("object_asset_sampling_unit", "asset")),
+        background_sampling=str(config["allocation"].get("background_sampling", "random")),
+        lying_rotation_degrees=[
+            float(value) for value in config["allocation"].get("lying_rotation_degrees", [0.0])
+        ],
+        save_compositing_masks=bool(production_config.get("save_compositing_masks", False)),
         alpha_threshold=int(config["sizing"]["alpha_visibility_threshold"]),
         minimum_visible_pixels=int(config["sizing"]["minimum_visible_pixels"]),
         minimum_crop_dimension_pixels=int(config["sizing"]["minimum_crop_dimension_pixels"]),
@@ -1016,7 +1159,11 @@ def main() -> None:
         degradation_config=config["degradation"],
     )
 
-    create_subset_manifests(full_root=output_root)
+    if production_config.get("create_subset_manifests", True):
+        create_subset_manifests(
+            full_root=output_root,
+            splits=[int(value) for value in production_config.get("nested_prefixes", [512, 1024, 1536, 2048])],
+        )
 
 if __name__ == "__main__":
     main()
