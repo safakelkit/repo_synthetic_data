@@ -725,12 +725,14 @@ def generate_dataset(
 
     saved_count = 0
     attempt_count = 0
+    current_sample_attempts = 0
     max_attempts = num_images * generation_attempts_per_image
 
     progress = tqdm(total=num_images, desc="Generating copy-paste dataset")
 
     while saved_count < num_images and attempt_count < max_attempts:
         attempt_count += 1
+        current_sample_attempts += 1
 
         class_id = class_schedule[saved_count]
         class_policy = orientation_policies[class_id]
@@ -745,9 +747,13 @@ def generate_dataset(
             bg_path = random.choice(eligible_backgrounds)
         elif background_sampling == "balanced_low_reuse":
             minimum_use = min(background_use_counts[path] for path in eligible_backgrounds)
+            # After repeated geometry failures, admit the next reuse tier. This
+            # avoids deadlock when the remaining never-used masks are too small
+            # for the current train-derived size while preserving low reuse.
+            reuse_slack = current_sample_attempts // 25
             least_used = [
                 path for path in eligible_backgrounds
-                if background_use_counts[path] == minimum_use
+                if background_use_counts[path] <= minimum_use + reuse_slack
             ]
             bg_path = random.choice(least_used)
         else:
@@ -783,7 +789,16 @@ def generate_dataset(
             )
             rgba = rotate_rgba_bound(rgba, rotation_degrees)
 
-        size_template = random.choice(size_templates[class_id])
+        class_size_templates = sorted(size_templates[class_id], key=lambda row: row["area"])
+        if current_sample_attempts <= 10:
+            size_candidates = class_size_templates
+        else:
+            # Stay strictly inside the frozen train p10--p90 pool, but
+            # progressively prefer its smaller members when placement fails.
+            retained_fraction = max(0.20, 1.0 - (current_sample_attempts - 10) / 50.0)
+            retained = max(1, int(round(len(class_size_templates) * retained_fraction)))
+            size_candidates = class_size_templates[:retained]
+        size_template = random.choice(size_candidates)
         resized_result = resize_rgba_to_target_area(
             rgba=rgba,
             target_area=size_template["area"],
@@ -907,6 +922,7 @@ def generate_dataset(
                 "support_anchor_xy": list(anchor_xy),
                 "degradation_severity": severity,
                 "degradations": applied_degradations,
+                "placement_attempts": current_sample_attempts,
                 "qc_status": "automated_checks_passed_pending_dataset_review",
                 "object": {
                     "class_id": class_id,
@@ -935,6 +951,7 @@ def generate_dataset(
         saved_count += 1
         saved_per_class[class_id] += 1
         background_use_counts[bg_path] += 1
+        current_sample_attempts = 0
         progress.update(1)
 
     progress.close()
