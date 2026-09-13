@@ -82,9 +82,6 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
   foregrounds from scratch, with exactly 128 foregrounds per class.
 - Segment foregrounds before one-to-one compositing, apply localized diffusion
   harmonization, and derive annotations from retained visible masks.
-- Report the real-background/real-object `CP+SDXL harmonization` implementation
-  only as a separately named ablation, never as this full-synthetic method.
-
 ### 5.4 Qwen + ControlNet
 
 - Complete-scene generation under the same class, quantity, and scene-allocation policy as Section 5.2.

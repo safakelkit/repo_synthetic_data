@@ -90,11 +90,8 @@ model feasibility is established, but its canonical work remains pending.
 2. Implement the predeclared full-synthetic SDXL follow-up: 2,048 unique
    generated backgrounds paired one-to-one with 2,048 generated isolated
    foregrounds, followed by mask-derived compositing and local harmonization.
-3. Treat the real-background/real-object SDXL harmonization pipeline only as a
-   separately named hybrid ablation; it does not replace the executed SDXL
-   baseline or qualify as fully generated data.
-4. Complete the planned Qwen baseline under the same detector protocol.
-5. Decide additional detector seeds and the numerical clean-loss tolerance.
+3. Complete the planned Qwen baseline under the same detector protocol.
+4. Decide additional detector seeds and the numerical clean-loss tolerance.
 
 ## Validity boundaries
 

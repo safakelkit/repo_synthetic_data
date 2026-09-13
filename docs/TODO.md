@@ -8,9 +8,6 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
 
 - [x] Preserve the executed SDXL matrix and prohibit target-test-driven
   revision of its generator.
-- [x] Implement and visually validate a real-background/real-object localized
-  SDXL harmonization pilot; classify it as a hybrid ablation rather than a pure
-  GenAI replacement.
 - [ ] Freeze the v2 foreground and background prompt/control schedules before
   production; final pixels must not come from real object or background assets.
 - [ ] Generate at least 2,560 background candidates and accept exactly 2,048

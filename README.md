@@ -21,8 +21,7 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 - A prospective SDXL-FB2048 follow-up is now specified: generate 2,048 unique
   backgrounds and 2,048 isolated foreground objects from scratch, then use
   retained masks for one-to-one composition, localized harmonization, and exact
-  annotation. It is planned work, not an executed result. The real-pixel hybrid
-  harmonizer remains a separately named ablation.
+  annotation. It is planned work, not an executed result.
 
 | Run | Synthetic | Clean | Easy | Hard |
 |---|---:|---:|---:|---:|
@@ -38,7 +37,7 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 
 ## Documentation
 
-Start with [docs/INDEX.md](docs/INDEX.md). In brief:
+Start with `docs/PROJECT_CONTEXT.md`. In brief:
 
 - `PROJECT_CONTEXT.md`: stable research scope and current stage;
 - `TODO.md`: only active work and major completed milestones;

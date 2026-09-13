@@ -344,7 +344,3 @@ and unique accepted foreground instance. Exact hashes plus frozen perceptual
 background-layout and foreground-appearance near-duplicate checks are required.
 The retained foreground mask is the annotation source before and after localized
 harmonization. These are predeclared design values, not completed run evidence.
-
-The code under `src/generation/generate_sdxl_hybrid_dataset.py` uses real
-background and real object pixels. It is therefore traceable only as a
-`CP+SDXL harmonization` ablation and cannot provide evidence for SDXL-FB2048.

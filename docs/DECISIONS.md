@@ -339,8 +339,5 @@ difficulty(c) = alpha * (1 - S_hard(c))
   its mask through harmonization, and derive the final box from the visible
   final mask. Reject wrong, duplicate, malformed, truncated, or unlocalizable
   targets.
-- **Comparison boundary:** The implemented real-background/real-object localized
-  SDXL pipeline is named `CP+SDXL harmonization` and may only be reported as a
-  hybrid ablation. It does not replace either CP or the executed SDXL baseline.
 - **Validity:** No clean/easy/hard test result may choose prompts, generators,
   similarity thresholds, rejection thresholds, quantities, or release status.

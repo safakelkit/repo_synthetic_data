@@ -91,10 +91,3 @@ real INSP-DET and Places365 pixels are not pasted into this method.
 - Production remains blocked until same-size all-class pilots validate object
   identity, background realism, segmentation, compositing, harmonization, and
   annotation integrity.
-
-### Method naming boundary
-
-The existing real-background + real-INSP-object + localized-SDXL code is a
-`CP+SDXL harmonization` hybrid ablation. It may be evaluated separately, but it
-must not be reported as SDXL-FB2048, pure GenAI data, or a replacement for the
-executed SDXL baseline.
