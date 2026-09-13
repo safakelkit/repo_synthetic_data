@@ -41,9 +41,7 @@ Start with [docs/INDEX.md](docs/INDEX.md). In brief:
 - `METHODOLOGY_TRACEABILITY.md`: exact paper values and code/evidence mapping;
 - `EXPERIMENT_LOG.md`: immutable run and pilot history;
 - `RESULTS_SUMMARY.md`: verified detector results;
-- `PAPER_OUTLINE.md`: manuscript structure;
-- `PAPER_TECHNICAL_RECORD_PRIVATE.md`: comprehensive local paper source,
-  intentionally ignored by Git.
+- `PAPER_OUTLINE.md`: manuscript structure.
 
 ## Repository layout
 

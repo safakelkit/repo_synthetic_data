@@ -12,7 +12,6 @@ Use the smallest document that answers the current question.
 | Active restarted GenAI pipeline | `GENERATION_PIPELINE.md` |
 | Verified detector metrics | `RESULTS_SUMMARY.md` |
 | Manuscript structure and planned figures | `PAPER_OUTLINE.md` |
-| Complete paper-writing source | `PAPER_TECHNICAL_RECORD_PRIVATE.md` (local, Git-ignored) |
 
 ## Maintenance rules
 
@@ -22,6 +21,4 @@ Use the smallest document that answers the current question.
   make a failed pilot appear successful.
 - Put exact numeric methodology values in `METHODOLOGY_TRACEABILITY.md` once.
 - Put detector metrics in `RESULTS_SUMMARY.md`; link rather than duplicate them.
-- Preserve paper-relevant environment, provenance, artifact, and visual-example
-  details in the private technical record.
 - Mark planned, implemented, executed, accepted, and rejected states explicitly.

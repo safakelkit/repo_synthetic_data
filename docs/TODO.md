@@ -2,7 +2,7 @@
 
 This file contains the active queue and milestone summary only. Run history is
 in `EXPERIMENT_LOG.md`; accepted methodology is in `DECISIONS.md`; exact paper
-values are in `METHODOLOGY_TRACEABILITY.md` and the private paper record.
+values are in `METHODOLOGY_TRACEABILITY.md`.
 
 ## Active — SDXL result analysis
 
