@@ -13,11 +13,13 @@ import csv
 import hashlib
 import importlib.util
 import json
+import math
 import time
 from pathlib import Path
 from typing import Any
 
 import torch
+import numpy as np
 from PIL import Image, ImageDraw
 
 
@@ -146,6 +148,29 @@ def validate_prompts(pipe, config: dict[str, Any]) -> None:
                 raise ValueError(f"{name} prompt length {length} exceeds {limit}: {prompt}")
 
 
+def crop_to_support(
+    source: Image.Image, region: Image.Image, crop_config: dict[str, Any] | None,
+) -> tuple[Image.Image, Image.Image, tuple[int, int, int, int]]:
+    """Return a square context crop centered on the reviewed support region."""
+    full_box = (0, 0, source.width, source.height)
+    if not crop_config or not crop_config.get("enabled", False):
+        return source, region, full_box
+    bbox = region.getbbox()
+    if bbox is None:
+        raise ValueError("Reviewed support region is empty")
+    support_width, support_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    side = math.ceil(max(
+        max(support_width, support_height) * float(crop_config["context_scale"]),
+        min(source.size) * float(crop_config["minimum_source_fraction"]),
+    ))
+    side = min(side, source.width, source.height)
+    center_x, center_y = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+    left = max(0, min(round(center_x - side / 2), source.width - side))
+    top = max(0, min(round(center_y - side / 2), source.height - side))
+    crop_box = (left, top, left + side, top + side)
+    return source.crop(crop_box), region.crop(crop_box), crop_box
+
+
 def contact_sheet(items: list[tuple[Path, str]], output: Path) -> None:
     thumb, caption, columns = 256, 34, 4
     rows = (len(items) + columns - 1) // columns
@@ -161,7 +186,10 @@ def contact_sheet(items: list[tuple[Path, str]], output: Path) -> None:
     canvas.save(output)
 
 
-def generate(helper, config: dict[str, Any], models: dict[str, Any], records: list[dict[str, Any]], gpu: int) -> None:
+def generate(
+    helper, config: dict[str, Any], config_path: Path, models: dict[str, Any],
+    records: list[dict[str, Any]], gpu: int,
+) -> None:
     if not torch.cuda.is_available() or not 0 <= gpu < torch.cuda.device_count():
         raise RuntimeError(f"Logical CUDA device {gpu} is unavailable")
     output_dir = helper.repo_path(config["output_root"])
@@ -169,6 +197,7 @@ def generate(helper, config: dict[str, Any], models: dict[str, Any], records: li
         raise FileExistsError(f"Refusing to overwrite {output_dir}")
     (output_dir / "images").mkdir(parents=True)
     (output_dir / "support_masks").mkdir()
+    (output_dir / "source_crops").mkdir()
     pipe = load_pipeline(models, gpu)
     validate_prompts(pipe, config)
     generation = config["generation"]
@@ -180,11 +209,16 @@ def generate(helper, config: dict[str, Any], models: dict[str, Any], records: li
         region_path = helper.repo_path(record["source_region"])
         with Image.open(source_path).convert("RGB") as raw_source:
             source_size = raw_source.size
-            initial = raw_source.resize((width, height), Image.Resampling.LANCZOS)
+            source = raw_source.copy()
         with Image.open(region_path).convert("L") as raw_region:
             if raw_region.size != source_size:
                 raise ValueError(f"Region/source size mismatch for {source_path}")
-            region = raw_region.resize((width, height), Image.Resampling.NEAREST)
+            region_source = raw_region.copy()
+        source, region_source, crop_box = crop_to_support(
+            source, region_source, generation.get("support_crop")
+        )
+        initial = source.resize((width, height), Image.Resampling.LANCZOS)
+        region = region_source.resize((width, height), Image.Resampling.NEAREST)
         strength = strengths[record["index"] % len(strengths)]
         seed = int(generation["seed"]) + record["index"]
         started = time.monotonic()
@@ -200,26 +234,39 @@ def generate(helper, config: dict[str, Any], models: dict[str, Any], records: li
         stem = f"r{record['index']:03d}_{record['support_type']}"
         image_path = output_dir / "images" / f"{stem}.png"
         mask_path = output_dir / "support_masks" / f"{stem}.png"
-        image.save(image_path); region.save(mask_path)
-        sx, sy = width / source_size[0], height / source_size[1]
-        anchors = [[round(x * sx), round(y * sy)] for x, y in record["source_anchor_points_xy"]]
+        crop_path = output_dir / "source_crops" / f"{stem}.png"
+        image.save(image_path); region.save(mask_path); initial.save(crop_path)
+        sx, sy = width / source.width, height / source.height
+        anchors = [
+            [round((x - crop_box[0]) * sx), round((y - crop_box[1]) * sy)]
+            for x, y in record["source_anchor_points_xy"]
+            if crop_box[0] <= x < crop_box[2] and crop_box[1] <= y < crop_box[3]
+        ]
+        source_pixels = np.asarray(initial, dtype=np.float32)
+        output_pixels = np.asarray(image, dtype=np.float32)
+        normalized_mae = float(np.abs(output_pixels - source_pixels).mean() / 255.0)
         generated.append({
-            **record, "source_size": list(source_size), "output_size": [width, height],
+            **record, "source_size": list(source_size), "source_crop_xyxy": list(crop_box),
+            "source_crop_size": list(source.size), "output_size": [width, height],
             "seed": seed, "strength": strength,
             "prompt": generation["prompts"][record["support_type"]],
             "negative_prompt": generation["negative_prompt"],
             "output": str(image_path.relative_to(REPO_ROOT)), "output_sha256": helper.sha256(image_path),
+            "source_crop": str(crop_path.relative_to(REPO_ROOT)),
+            "source_crop_sha256": helper.sha256(crop_path),
             "support_mask": str(mask_path.relative_to(REPO_ROOT)), "support_mask_sha256": helper.sha256(mask_path),
-            "anchor_points_xy": anchors,
+            "anchor_points_xy": anchors, "normalized_source_output_mae": round(normalized_mae, 6),
             "inference_seconds": round(time.monotonic() - started, 3),
             "training_use_forbidden": True,
         })
         print(f"[reference plate {position}/{len(records)}] {image_path.name}", flush=True)
-    contact_sheet(
-        [(helper.repo_path(row["source"]), f"SOURCE {row['index']:03d} {row['support_type']}") for row in generated]
-        + [(helper.repo_path(row["output"]), f"OUTPUT {row['index']:03d} s={row['strength']:.2f}") for row in generated],
-        output_dir / "source_output_contact_sheet.png",
-    )
+    paired_items = []
+    for row in generated:
+        paired_items.extend([
+            (helper.repo_path(row["source_crop"]), f"SOURCE {row['index']:03d} {row['support_type']}"),
+            (helper.repo_path(row["output"]), f"OUTPUT {row['index']:03d} s={row['strength']:.2f}"),
+        ])
+    contact_sheet(paired_items, output_dir / "source_output_contact_sheet.png")
     contact_sheet(
         [(helper.repo_path(row["output"]), f"{row['index']:03d} {row['support_type']} s={row['strength']:.2f}") for row in generated],
         output_dir / "contact_sheet.png",
@@ -228,11 +275,15 @@ def generate(helper, config: dict[str, Any], models: dict[str, Any], records: li
         "status": "generated_pending_human_review", "training_use_forbidden": True,
         "target_test_used": False, "source_dataset": config["source"]["dataset_id"],
         "source_dataset_revision": config["source"]["dataset_revision"],
+        "config": str(config_path.relative_to(REPO_ROOT)),
+        "config_sha256": helper.sha256(config_path),
+        "model_id": models["sdxl"]["base_model"]["id"],
+        "model_revision": models["sdxl"]["base_model"]["revision"],
         "review_gate": config["review_gate"], "records": generated,
     })
     fields = ["index", "support_type", "image_path", "review_status", "organic_realism",
               "physical_geometry", "source_geometry_preserved", "support_surface_preserved",
-              "target_free", "duplicate_free", "review_reason"]
+              "meaningful_source_difference", "target_free", "duplicate_free", "review_reason"]
     with (output_dir / "review.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader()
         for row in generated:
@@ -262,7 +313,7 @@ def main() -> None:
     if args.preflight_only:
         print(json.dumps(report, indent=2)); return
     models = helper.load_yaml(helper.repo_path(config["models_config"]))
-    generate(helper, config, models, records, args.gpu)
+    generate(helper, config, config_path, models, records, args.gpu)
 
 
 if __name__ == "__main__":

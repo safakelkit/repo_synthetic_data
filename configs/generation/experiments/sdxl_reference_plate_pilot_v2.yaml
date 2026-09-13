@@ -1,0 +1,58 @@
+format_version: 1
+experiment_id: sdxl_reference_plate_pilot_v2
+status: ready_for_experiment
+models_config: configs/generation/genai_models_v1.yaml
+output_root: data/synthetic/sdxl_v2_development/reference_plate_pilot_v2
+
+source:
+  eligible_backgrounds: data/processed/background_support_masks/sam3_v2/full_geometry_v2/eligible_backgrounds.csv
+  reviewed_support_regions: data/processed/background_support_masks/sam3_v2/full_geometry_v2/reviewed_support_regions.csv
+  required_status: accepted
+  support_types: [bed_top, dining_table_top]
+  samples_per_support_type: 8
+  selection_seed: 91350
+  maximum_source_reuse: 1
+  dataset_id: ljnlonoljpiljm/places365-256px
+  dataset_revision: historically_unrecorded
+
+generation:
+  width: 1024
+  height: 1024
+  inference_steps: 30
+  guidance_scale: 4.5
+  strengths: [0.28, 0.35]
+  seed: 91500
+  support_crop:
+    enabled: true
+    context_scale: 1.8
+    minimum_source_fraction: 0.55
+  prompts:
+    bed_top: >-
+      A natural unedited close documentary photograph of the same empty bed
+      surface in a plain institutional sleeping area. Preserve its viewpoint,
+      position, perspective, and clear top. Worn fabric, ordinary mixed indoor
+      light, realistic materials and sensor noise.
+    dining_table_top: >-
+      A natural unedited close documentary photograph of the same empty table
+      surface in a plain institutional multipurpose room. Preserve its viewpoint,
+      position, perspective, and clear top. Worn material, ordinary mixed indoor
+      light, realistic texture and sensor noise.
+  negative_prompt: >-
+    changed composition, missing horizontal support, distorted perspective,
+    warped furniture, cluttered surface, person, hand, tools, weapons,
+    contraband, aerosol can, text, logo, watermark, illustration, painting,
+    cartoon, CGI, 3d render, showroom, glossy plastic, oversmoothed
+
+review_gate:
+  training_use_forbidden: true
+  required_fields:
+    - organic_realism
+    - physical_geometry
+    - source_geometry_preserved
+    - support_surface_preserved
+    - meaningful_source_difference
+    - target_free
+    - duplicate_free
+  acceptance_target_overall: 13
+  acceptance_target_per_support_type: 6
+
