@@ -16,6 +16,13 @@ allocation:
   background_sampling: balanced_low_reuse
   lying_rotation_degrees: [-25, -15, -8, 0, 8, 15, 25, 180]
 
+placement:
+  # Pilot review found these accepted masks represent a headboard and an
+  # occluded remote tabletop, not safe visible support surfaces.
+  excluded_support_regions:
+    - data/processed/background_support_masks/sam3_v2/full_geometry_v2/regions/bedroom/bedroom_00299/bed_top.png
+    - data/processed/background_support_masks/sam3_v2/full_geometry_v2/regions/dining_room/dining_room_00330/dining_table_top.png
+
 degradation:
   status: frozen_implemented
   apply_to_complete_composite: false

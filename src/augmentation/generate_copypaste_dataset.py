@@ -616,6 +616,7 @@ def generate_dataset(
     upper_size_quantile: float = 0.90,
     maximum_object_dimension_ratio: float = 0.90,
     support_manifest_path: str | Path | None = None,
+    excluded_support_region_paths: list[str] | None = None,
     orientation_policy_path: str | Path | None = None,
     generation_attempts_per_image: int = 50,
     asset_schedule_seed: int | None = None,
@@ -661,6 +662,31 @@ def generate_dataset(
     if support_manifest_path is None or orientation_policy_path is None:
         raise ValueError("Accepted support manifest and orientation policy are required")
     support_regions = load_accepted_support_regions(support_manifest_path)
+    excluded_support_regions = {
+        repo_path(path) for path in (excluded_support_region_paths or [])
+    }
+    if excluded_support_regions:
+        available_regions = {
+            region["region_path"]
+            for regions in support_regions.values()
+            for region in regions
+        }
+        unknown = excluded_support_regions - available_regions
+        if unknown:
+            raise ValueError(
+                "Excluded support regions are not accepted manifest entries: "
+                + ", ".join(map(str, sorted(unknown)))
+            )
+        support_regions = {
+            background: [
+                region for region in regions
+                if region["region_path"] not in excluded_support_regions
+            ]
+            for background, regions in support_regions.items()
+        }
+        support_regions = {
+            background: regions for background, regions in support_regions.items() if regions
+        }
     orientation_policies = load_orientation_policy(orientation_policy_path)
     backgrounds = sorted(support_regions)
 
@@ -1016,6 +1042,9 @@ def generate_dataset(
         "placement": "human_reviewed_semantic_support_regions",
         "support_manifest": repository_relative(repo_path(support_manifest_path)),
         "support_manifest_sha256": file_sha256(repo_path(support_manifest_path)),
+        "excluded_support_regions": [
+            repository_relative(path) for path in sorted(excluded_support_regions)
+        ],
         "orientation_policy": repository_relative(repo_path(orientation_policy_path)),
         "orientation_policy_sha256": file_sha256(repo_path(orientation_policy_path)),
         "generation_attempts_per_image": generation_attempts_per_image,
@@ -1175,6 +1204,7 @@ def main() -> None:
         upper_size_quantile=float(config["sizing"]["upper_quantile"]),
         maximum_object_dimension_ratio=float(config["sizing"]["maximum_object_dimension_ratio"]),
         support_manifest_path=config["placement"]["support_manifest"],
+        excluded_support_region_paths=config["placement"].get("excluded_support_regions", []),
         orientation_policy_path=config["placement"]["orientation_policy"],
         generation_attempts_per_image=int(config["quality_control"]["generation_attempts_per_image"]),
         asset_schedule_seed=asset_schedule_seed,

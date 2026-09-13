@@ -119,17 +119,34 @@ def target_controls(mask: Image.Image, padding: int) -> tuple[Image.Image, Image
 
 
 def make_contact_sheet(records: list[dict[str, Any]], output: Path) -> None:
-    selected = records[:64]
-    thumb, caption, columns = 256, 34, 4
-    rows = (len(selected) + columns - 1) // columns
-    sheet = Image.new("RGB", (thumb * columns, (thumb + caption) * rows), "white")
+    selected = records[:32]
+    thumb, caption, samples_per_row = 320, 42, 2
+    sample_width = thumb * 2
+    rows = (len(selected) + samples_per_row - 1) // samples_per_row
+    sheet = Image.new("RGB", (sample_width * samples_per_row, (thumb + caption) * rows), "white")
     draw = ImageDraw.Draw(sheet)
     for index, record in enumerate(selected):
-        with Image.open(REPO_ROOT / record["output"]).convert("RGB") as image:
-            image.thumbnail((thumb, thumb))
-            x, y = index % columns * thumb, index // columns * (thumb + caption)
-            sheet.paste(image, (x, y))
-        draw.text((x + 4, y + thumb + 4), f"c{record['class_id']:02d} {record['support_type']}", fill="black")
+        x = index % samples_per_row * sample_width
+        y = index // samples_per_row * (thumb + caption)
+        with Image.open(REPO_ROOT / record["source_initialization"]).convert("RGB") as source:
+            sheet.paste(source.resize((thumb, thumb), Image.Resampling.LANCZOS), (x, y))
+        with Image.open(REPO_ROOT / record["output"]).convert("RGB") as result:
+            result = result.resize((thumb, thumb), Image.Resampling.LANCZOS)
+            label = (REPO_ROOT / record["label"]).read_text(encoding="utf-8").strip().split()
+            if len(label) == 5:
+                _, cx, cy, width, height = label
+                cx, cy, width, height = map(float, (cx, cy, width, height))
+                box = (
+                    int((cx - width / 2) * thumb), int((cy - height / 2) * thumb),
+                    int((cx + width / 2) * thumb), int((cy + height / 2) * thumb),
+                )
+                ImageDraw.Draw(result).rectangle(box, outline=(0, 255, 0), width=3)
+            sheet.paste(result, (x + thumb, y))
+        draw.text(
+            (x + 4, y + thumb + 4),
+            f"c{record['class_id']:02d} {record['support_type']} | init / SDXL + label",
+            fill="black",
+        )
     sheet.save(output)
 
 
