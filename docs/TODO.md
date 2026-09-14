@@ -21,6 +21,14 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
   all-class retry before freezing production.
 - [x] Add real-pixel-free synthetic Canny retry geometry for Scissors,
   Cigarettes, Saw, and Battery after text-only retries failed shape/count QC.
+- [x] Harden the v2 implementation with provenance-bound resume, structured
+  hard review gates, automatic person screening, reviewed support rectangles,
+  class-specific scale, unique foreground prompt schedules, perceptual duplicate
+  checks, balanced nested manifests, and a finalizer integrity gate.
+- [ ] Execute the new 64-background/64-foreground v2 pilot; the preserved v1
+  outputs do not validate the revised prompts, controls, or quality gates.
+- [ ] Decide whether filled-proxy controlled retry earns approval from its
+  separate experimental pilot; do not use it in production before approval.
 - [ ] Compose and review the 16-image all-class pilot before changing the
   production lock.
 - [ ] Freeze the v2 foreground and background prompt/control schedules before

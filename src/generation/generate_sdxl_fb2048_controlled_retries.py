@@ -18,7 +18,7 @@ from PIL import Image
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PIPELINE_SCRIPT = REPO_ROOT / "src/generation/run_sdxl_fb2048_pipeline.py"
 EXTENSION_SCRIPT = REPO_ROOT / "src/generation/extend_sdxl_fb2048_candidates.py"
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_fb2048_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_fb2048_v2.yaml"
 
 
 def load_module(name: str, path: Path):
@@ -49,42 +49,41 @@ def load_control_pipeline(models: dict[str, Any], gpu: int):
 
 
 def draw_scissors(canvas: np.ndarray) -> None:
-    cv2.ellipse(canvas, (385, 690), (105, 68), -25, 0, 360, 255, 18)
-    cv2.ellipse(canvas, (590, 690), (105, 68), 25, 0, 360, 255, 18)
-    cv2.line(canvas, (455, 625), (505, 520), 255, 18)
-    cv2.line(canvas, (530, 520), (525, 625), 255, 18)
-    cv2.circle(canvas, (518, 520), 22, 255, 8)
-    cv2.line(canvas, (505, 500), (325, 235), 255, 20)
-    cv2.line(canvas, (535, 500), (700, 245), 255, 20)
-    cv2.line(canvas, (325, 235), (495, 520), 255, 5)
-    cv2.line(canvas, (700, 245), (540, 520), 255, 5)
+    cv2.fillConvexPoly(canvas, np.array([[505, 520], [305, 220], [485, 500]], np.int32), 255)
+    cv2.fillConvexPoly(canvas, np.array([[530, 520], [720, 225], [550, 505]], np.int32), 255)
+    for center, angle in (((390, 690), -25), ((590, 690), 25)):
+        cv2.ellipse(canvas, center, (120, 82), angle, 0, 360, 255, -1)
+        cv2.ellipse(canvas, center, (78, 43), angle, 0, 360, 0, -1)
+    cv2.line(canvas, (455, 625), (510, 515), 255, 45)
+    cv2.line(canvas, (535, 515), (525, 625), 255, 45)
+    cv2.circle(canvas, (520, 515), 25, 255, -1)
 
 
 def draw_cigarette_pack(canvas: np.ndarray) -> None:
-    cv2.rectangle(canvas, (350, 245), (675, 790), 255, 18)
-    cv2.line(canvas, (350, 400), (675, 400), 255, 12)
-    cv2.line(canvas, (350, 400), (500, 480), 255, 8)
-    cv2.line(canvas, (675, 400), (525, 480), 255, 8)
-    cv2.rectangle(canvas, (455, 525), (570, 640), 255, 8)
+    cv2.rectangle(canvas, (350, 330), (675, 790), 255, -1)
+    cv2.rectangle(canvas, (350, 245), (675, 430), 255, -1)
+    cv2.fillConvexPoly(canvas, np.array([[350, 430], [505, 500], [675, 430]], np.int32), 255)
+    for x in range(375, 655, 45):
+        cv2.rectangle(canvas, (x, 270), (x + 25, 420), 0, -1)
+        cv2.circle(canvas, (x + 12, 275), 12, 255, -1)
 
 
 def draw_hacksaw(canvas: np.ndarray) -> None:
-    cv2.line(canvas, (285, 300), (735, 300), 255, 18)
-    cv2.line(canvas, (285, 300), (230, 650), 255, 18)
-    cv2.line(canvas, (735, 300), (790, 630), 255, 18)
-    cv2.line(canvas, (240, 650), (765, 650), 255, 10)
-    for x in range(255, 760, 24):
-        cv2.line(canvas, (x, 650), (x + 10, 665), 255, 4)
-    cv2.rectangle(canvas, (700, 560), (860, 760), 255, 18)
-    cv2.rectangle(canvas, (745, 605), (820, 710), 255, 12)
+    cv2.line(canvas, (280, 300), (735, 300), 255, 45)
+    cv2.line(canvas, (280, 300), (230, 650), 255, 45)
+    cv2.line(canvas, (735, 300), (785, 625), 255, 45)
+    cv2.line(canvas, (235, 650), (780, 650), 255, 18)
+    handle = np.array([[700, 545], [865, 575], [850, 770], [705, 735]], np.int32)
+    cv2.fillConvexPoly(canvas, handle, 255)
+    hole = np.array([[750, 605], [820, 620], [812, 710], [752, 700]], np.int32)
+    cv2.fillConvexPoly(canvas, hole, 0)
 
 
 def draw_battery(canvas: np.ndarray) -> None:
-    cv2.rectangle(canvas, (390, 260), (635, 790), 255, 18)
-    cv2.rectangle(canvas, (410, 280), (615, 760), 255, 5)
-    cv2.ellipse(canvas, (455, 250), (38, 22), 0, 0, 360, 255, 10)
-    cv2.ellipse(canvas, (570, 250), (27, 17), 0, 0, 360, 255, 9)
-    cv2.line(canvas, (405, 410), (620, 410), 255, 6)
+    cv2.rectangle(canvas, (390, 275), (635, 790), 255, -1)
+    cv2.rectangle(canvas, (410, 250), (615, 305), 255, -1)
+    cv2.ellipse(canvas, (455, 247), (42, 24), 0, 0, 360, 255, -1)
+    cv2.ellipse(canvas, (570, 247), (30, 18), 0, 0, 360, 255, -1)
 
 
 DRAWERS = {2: draw_scissors, 7: draw_cigarette_pack, 8: draw_hacksaw, 12: draw_battery}
@@ -94,13 +93,14 @@ def make_control(class_id: int, attempt: int, size: tuple[int, int]) -> Image.Im
     width, height = size
     if (width, height) != (1024, 1024):
         raise ValueError("Frozen controlled pilot geometry requires 1024x1024")
-    canvas = np.zeros((height, width), dtype=np.uint8)
-    DRAWERS[class_id](canvas)
+    silhouette = np.zeros((height, width), dtype=np.uint8)
+    DRAWERS[class_id](silhouette)
     angle = (-6.0, 6.0)[attempt % 2]
     matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1.0)
-    canvas = cv2.warpAffine(canvas, matrix, (width, height), flags=cv2.INTER_LINEAR,
-                            borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-    return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_GRAY2RGB))
+    silhouette = cv2.warpAffine(silhouette, matrix, (width, height), flags=cv2.INTER_LINEAR,
+                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    control = cv2.Canny(cv2.GaussianBlur(silhouette, (0, 0), 1.0), 32, 96)
+    return Image.fromarray(cv2.cvtColor(control, cv2.COLOR_GRAY2RGB))
 
 
 def main() -> None:
@@ -108,14 +108,21 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--allow-experimental", action="store_true")
     args = parser.parse_args()
     fb = load_module("sdxl_fb2048", PIPELINE_SCRIPT)
     extension = load_module("sdxl_fb2048_extension", EXTENSION_SCRIPT)
     config_path = fb.repo_path(args.config)
     config = fb.load_yaml(config_path)
+    config["_config_sha256"] = fb.sha256(config_path)
+    config["_models_sha256"] = fb.sha256(fb.repo_path(config["models_config"]))
     scenes = fb.load_yaml(fb.repo_path(config["scene_policy"]))
     models = fb.load_yaml(fb.repo_path(config["models_config"]))
     settings = config["foreground_generation"]["controlled_retry"]
+    if settings.get("status") != "approved" and not args.allow_experimental:
+        raise RuntimeError(
+            "Controlled retry is experimental; run its separate pilot with --allow-experimental"
+        )
     class_ids = [int(value) for value in settings["class_ids"]]
     if set(class_ids) != set(DRAWERS):
         raise ValueError("Controlled retry classes and frozen geometry drawers disagree")
@@ -160,18 +167,28 @@ def main() -> None:
                 seed = int(config["seed"]) + 700000 + class_id * 10000 + attempt
                 image_path = root / "images" / f"{candidate_id}.png"
                 control_path = root / "controls" / f"{candidate_id}.png"
-                resumed = fb.verified_existing_image(image_path, (width, height))
+                foreground_guidance = float(config["foreground_generation"]["guidance_scale"])
+                generation_spec = {
+                    "pipeline_id": config["pipeline_id"], "stage": "foreground_controlled_retry",
+                    "candidate_id": candidate_id, "config_sha256": config["_config_sha256"],
+                    "models_sha256": config["_models_sha256"], "seed": seed,
+                    "size": [width, height], "steps": int(config["inference_steps"]),
+                    "prompt": prompt, "negative_prompt": settings["negative_prompt"],
+                    "guidance_scale": foreground_guidance,
+                    "controlnet_conditioning_scale": float(settings["controlnet_conditioning_scale"]),
+                }
+                resumed = fb.verified_existing_image(image_path, (width, height), generation_spec)
                 started = time.monotonic()
                 control = make_control(class_id, attempt, (width, height))
                 if not resumed:
                     result = pipe(
                         prompt=prompt, negative_prompt=settings["negative_prompt"], image=control,
                         width=width, height=height, num_inference_steps=int(config["inference_steps"]),
-                        guidance_scale=float(config["guidance_scale"]),
+                        guidance_scale=foreground_guidance,
                         controlnet_conditioning_scale=float(settings["controlnet_conditioning_scale"]),
                         generator=torch.Generator(device="cpu").manual_seed(seed),
                     ).images[0]
-                    fb.save_image_atomic(result, image_path)
+                    fb.save_image_atomic(result, image_path, generation_spec)
                 fb.save_image_atomic(control, control_path)
                 added.append({
                     "candidate_id": candidate_id, "class_id": class_id,
@@ -180,10 +197,15 @@ def main() -> None:
                     "control_path": str(control_path.relative_to(REPO_ROOT)),
                     "control_sha256": fb.sha256(control_path), "control_source": "synthetic_programmatic_canny",
                     "real_pixels_reused": False, "controlled_retry": True, "retry": True,
+                    "negative_prompt": settings["negative_prompt"],
+                    "guidance_scale": foreground_guidance,
+                    "generation_fingerprint": fb.generation_fingerprint(generation_spec),
                     "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),
                     "resumed_existing": resumed,
                 })
                 print(f"[controlled retry {len(added)}/{len(prompts)}] {candidate_id}", flush=True)
+        fb.release(pipe)
+        fb.apply_person_screen(config, added, args.gpu)
         records.extend(added)
         manifest["records"] = records
         manifest.setdefault("extensions", []).append({
@@ -193,9 +215,11 @@ def main() -> None:
             "candidate_ids": [row["candidate_id"] for row in added],
         })
         fb.write_json(manifest_path, manifest)
-        rows = extension.append_review_rows(review_rows, added, "review_controlled_object_identity")
+        rows = extension.append_review_rows(
+            review_rows, added, "review_controlled_object_identity", fields,
+        )
         extension.write_review_atomic(review_path, fields, rows)
-    fb.release(pipe)
+    fb.release(None)
 
 
 if __name__ == "__main__":

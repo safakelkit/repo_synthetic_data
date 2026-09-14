@@ -26,11 +26,11 @@ import cv2
 import numpy as np
 import torch
 import yaml
-from PIL import Image
+from PIL import Image, PngImagePlugin
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_fb2048_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_fb2048_v2.yaml"
 CLASS_COUNT = 16
 
 
@@ -102,7 +102,7 @@ def background_conditioning(
 ) -> dict[str, Any]:
     settings = config["background_generation"]
     base_key = f"{config['seed']}:background:{class_id}:{attempt}:{scene_name}"
-    selected: dict[str, Any] = {}
+    selected: dict[str, Any] = {"scene_context": settings["scene_contexts"][scene_name]}
     for axis, values in (
         ("scene_recipe", settings["scene_recipes"][scene_name]),
         ("support", settings["support_profiles"]),
@@ -110,7 +110,6 @@ def background_conditioning(
         ("capture", settings["capture_profiles"]),
         ("lighting", settings["lighting_profiles"]),
         ("materials", settings["material_profiles"]),
-        ("use_trace", settings["use_trace_profiles"]),
         ("guidance_scale", settings["guidance_scales"]),
     ):
         index, value = deterministic_choice(values, f"{base_key}:{axis}")
@@ -158,12 +157,68 @@ def validate_background_conditionings(pipe: Any, conditionings: list[dict[str, A
                 raise ValueError(f"{tokenizer_name} prompt length {length} exceeds {limit}: {prompt}")
 
 
+def foreground_prompt(config: dict[str, Any], class_id: int, attempt: int) -> str:
+    settings = config["foreground_generation"]
+    prompts = {int(key): value for key, value in settings["class_prompts"].items()}
+    constraints = {int(key): value for key, value in settings["class_constraints"].items()}
+    variants = {int(key): value for key, value in settings["class_variants"].items()}[class_id]
+    conditions = settings["condition_profiles"]
+    viewpoints = settings["viewpoint_profiles"]
+    cycle = len(viewpoints) * len(variants) * len(conditions)
+    if attempt >= cycle:
+        raise ValueError(f"Foreground class {class_id} supports only {cycle} unique prompt combinations")
+    viewpoint = viewpoints[attempt % len(viewpoints)]
+    variant = variants[(attempt // len(viewpoints)) % len(variants)]
+    condition = conditions[(attempt // (len(viewpoints) * len(variants))) % len(conditions)]
+    return settings["prompt_template"].format(
+        target=prompts[class_id], constraint=constraints[class_id],
+        variant=variant, condition=condition, viewpoint=viewpoint,
+    )
+
+
+def pilot_foreground_attempts(config: dict[str, Any], class_id: int, count: int) -> list[int]:
+    """Select sparse prompt-cycle positions that cover every foreground axis."""
+    settings = config["foreground_generation"]
+    variants = {int(key): value for key, value in settings["class_variants"].items()}[class_id]
+    viewpoints = settings["viewpoint_profiles"]
+    conditions = settings["condition_profiles"]
+    required = max(len(variants), len(viewpoints), len(conditions))
+    if count < required:
+        raise ValueError(
+            f"Pilot foreground class {class_id} needs at least {required} candidates "
+            "to cover every variation axis"
+        )
+    cycle = len(viewpoints) * len(variants) * len(conditions)
+    if count > cycle:
+        raise ValueError(f"Pilot foreground class {class_id} supports at most {cycle} candidates")
+
+    attempts = []
+    for sample in range(count):
+        viewpoint_index = (sample + 3 * class_id) % len(viewpoints)
+        variant_index = sample % len(variants)
+        condition_index = (sample + class_id) % len(conditions)
+        attempt = viewpoint_index + len(viewpoints) * (
+            variant_index + len(variants) * condition_index
+        )
+        if attempt not in attempts:
+            attempts.append(attempt)
+
+    # Counts above the marginal-coverage minimum are filled deterministically.
+    if len(attempts) < count:
+        attempts.extend(attempt for attempt in range(cycle) if attempt not in attempts)
+    return attempts[:count]
+
+
 def foreground_prompts(config: dict[str, Any]) -> list[str]:
     settings = config["foreground_generation"]
     return [
-        settings["prompt_template"].format(target=target, variation=variation)
-        for target in settings["class_prompts"].values()
-        for variation in settings["variation_phrases"]
+        foreground_prompt(config, class_id, attempt)
+        for class_id in range(CLASS_COUNT)
+        for attempt in range(
+            len(settings["viewpoint_profiles"])
+            * len({int(key): value for key, value in settings["class_variants"].items()}[class_id])
+            * len(settings["condition_profiles"])
+        )
     ] + [settings["negative_prompt"]]
 
 
@@ -178,25 +233,31 @@ def harmonization_prompts(config: dict[str, Any], scenes: dict[str, Any]) -> lis
 
 
 def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -> dict[str, int]:
-    if config.get("status") != "ready_for_all_class_pilot":
+    if config.get("status") != "ready_for_hardened_all_class_pilot":
         raise ValueError("SDXL-FB2048 config is not released for the all-class pilot")
     if config.get("training_use_forbidden") is not True or config.get("target_test_used") is not False:
         raise ValueError("Pilot must be training-forbidden and target-test independent")
-    if len(config["foreground_generation"]["class_prompts"]) != CLASS_COUNT:
-        raise ValueError("Exactly 16 immutable class prompts are required")
+    foreground = config["foreground_generation"]
+    expected_classes = set(range(CLASS_COUNT))
+    for key in ("class_prompts", "class_constraints", "class_variants"):
+        values = {int(class_id): value for class_id, value in foreground[key].items()}
+        if set(values) != expected_classes or any(not value for value in values.values()):
+            raise ValueError(f"Foreground {key} must cover all 16 classes")
     if len(scenes["class_policy"]["names"]) != CLASS_COUNT:
         raise ValueError("Scene policy must contain exactly 16 classes")
     background = config["background_generation"]
     scene_names = set(scenes["scene_families"])
     recipe_names = set(background["scene_recipes"])
-    if recipe_names != scene_names:
+    context_names = set(background["scene_contexts"])
+    if recipe_names != scene_names or context_names != scene_names:
         raise ValueError(
-            f"Background scene recipes do not match scene policy; "
-            f"missing={sorted(scene_names - recipe_names)}, extra={sorted(recipe_names - scene_names)}"
+            "Background scene recipes/contexts do not match scene policy; "
+            f"recipe_missing={sorted(scene_names - recipe_names)}, "
+            f"context_missing={sorted(scene_names - context_names)}"
         )
     required_axes = (
         "support_profiles", "composition_profiles", "capture_profiles", "lighting_profiles",
-        "material_profiles", "use_trace_profiles", "guidance_scales",
+        "material_profiles", "guidance_scales",
     )
     if any(not background.get(axis) for axis in required_axes):
         raise ValueError("Every background variation axis must contain at least one value")
@@ -204,8 +265,67 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
         config, scenes, int(config["production"]["background_candidates"]),
     )
     prompt_pairs = {(row["prompt"], row["prompt_2"]) for row in production_conditionings}
-    if len(prompt_pairs) != len(production_conditionings):
-        raise ValueError("Production background schedule contains duplicate prompt pairs")
+    if len(prompt_pairs) < int(0.99 * len(production_conditionings)):
+        raise ValueError("Production background schedule has insufficient prompt-pair diversity")
+    assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
+    pilot_per_class = int(config["pilot"]["background_candidates"]) // CLASS_COUNT
+    uncovered = {
+        class_id: scene_names[pilot_per_class:]
+        for class_id, scene_names in assignments.items() if pilot_per_class < len(scene_names)
+    }
+    if uncovered:
+        raise ValueError(f"Pilot does not cover every assigned background scene: {uncovered}")
+    viewpoints = len(foreground["viewpoint_profiles"])
+    conditions = len(foreground["condition_profiles"])
+    pilot_foreground_count = int(config["pilot"]["foreground_candidates_per_class"])
+    if config["pilot"].get("foreground_sampling") != "stratified_axes":
+        raise ValueError("Pilot foreground sampling must use stratified_axes")
+    minimum_pilot_count = max(
+        viewpoints, conditions,
+        max(len(foreground["class_variants"][class_id]) for class_id in expected_classes),
+    )
+    if pilot_foreground_count < minimum_pilot_count:
+        raise ValueError(
+            f"Pilot needs at least {minimum_pilot_count} foreground candidates per class "
+            "to cover every variation axis"
+        )
+    foreground_cycles = {
+        class_id: viewpoints * conditions * len(foreground["class_variants"][class_id])
+        for class_id in expected_classes
+    }
+    required_attempts = {
+        class_id: (int(config["production"]["aerosol_foreground_candidates"])
+                   if class_id == 11 else int(config["production"]["foreground_candidates_per_class"]))
+        for class_id in expected_classes
+    }
+    if foreground_cycles != required_attempts:
+        raise ValueError(
+            f"Foreground prompt cycles must exactly match production candidate counts: "
+            f"cycles={foreground_cycles}, required={required_attempts}"
+        )
+    production_foreground_prompts = [
+        foreground_prompt(config, class_id, attempt)
+        for class_id, count in required_attempts.items() for attempt in range(count)
+    ]
+    if len(set(production_foreground_prompts)) != len(production_foreground_prompts):
+        raise ValueError("Production foreground schedule contains repeated prompts")
+    size_classes = {int(key) for key in config["composition"]["class_object_height_fraction"]}
+    if size_classes != expected_classes:
+        raise ValueError("Class-specific object size ranges must cover all 16 classes")
+    for class_id, limits in config["composition"]["class_object_height_fraction"].items():
+        low, high = map(float, limits)
+        if not 0 < low < high < 1:
+            raise ValueError(f"Invalid class-specific size range for {class_id}: {limits}")
+    review_checks = config["quality_gates"]["required_manual_checks"]
+    unknown_review_fields = {
+        field for fields in review_checks.values() for field in fields if field not in REVIEW_FIELDS
+    }
+    if unknown_review_fields:
+        raise ValueError(f"Unknown required manual review fields: {sorted(unknown_review_fields)}")
+    person_screen = config["quality_gates"]["person_screen"]
+    person_model = repo_path(person_screen["model"])
+    if not person_model.is_file() or sha256(person_model) != person_screen["model_sha256"]:
+        raise ValueError("Frozen person-screen model is missing or has the wrong hash")
     policy = config[mode]
     if mode == "production" and policy.get("locked", True):
         raise RuntimeError("Production is locked until the all-class pilot is reviewed")
@@ -280,14 +400,28 @@ def stage_lock(root: Path, stage: str):
         lock.unlink(missing_ok=True)
 
 
-def save_image_atomic(image: Image.Image, path: Path) -> None:
+def generation_fingerprint(specification: dict[str, Any]) -> str:
+    encoded = json.dumps(specification, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def save_image_atomic(
+    image: Image.Image, path: Path, generation_spec: dict[str, Any] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.stem}.partial{path.suffix}")
-    image.save(temporary)
+    if generation_spec is not None and path.suffix.lower() == ".png":
+        metadata = PngImagePlugin.PngInfo()
+        metadata.add_text("generation_fingerprint", generation_fingerprint(generation_spec))
+        image.save(temporary, pnginfo=metadata)
+    else:
+        image.save(temporary)
     temporary.replace(path)
 
 
-def verified_existing_image(path: Path, expected_size: tuple[int, int]) -> bool:
+def verified_existing_image(
+    path: Path, expected_size: tuple[int, int], generation_spec: dict[str, Any] | None = None,
+) -> bool:
     if not path.is_file():
         return False
     try:
@@ -295,20 +429,37 @@ def verified_existing_image(path: Path, expected_size: tuple[int, int]) -> bool:
             image.load()
             if image.size != expected_size:
                 raise ValueError(f"Partial image has wrong size: {path} ({image.size})")
+            if generation_spec is not None:
+                expected = generation_fingerprint(generation_spec)
+                actual = image.info.get("generation_fingerprint")
+                if actual != expected:
+                    raise ValueError(
+                        f"Partial image provenance mismatch: {path} "
+                        f"(actual={actual!r}, expected={expected})"
+                    )
     except Exception as exc:
-        raise ValueError(f"Partial image is not a valid resumable output: {path}") from exc
+        raise ValueError(f"Partial image is not a valid resumable output: {path}: {exc}") from exc
     return True
 
 
+REVIEW_FIELDS = [
+    "candidate_id", "class_id", "class_name", "scene_name", "image_path",
+    "review_status", "review_reason", "target_free", "identity_correct",
+    "single_object", "no_human", "photorealistic", "support_valid",
+    "support_x1", "support_y1", "support_x2", "support_y2", "mask_correct",
+    "placement_valid", "annotation_valid",
+    "auto_person_detected", "auto_person_confidence",
+]
+
+
 def write_review(path: Path, records: list[dict[str, Any]], kind: str) -> None:
-    fields = ["candidate_id", "class_id", "class_name", "scene_name", "image_path",
-              "review_status", "review_reason"]
     temporary = path.with_name(f".{path.name}.partial")
     with temporary.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=REVIEW_FIELDS)
         writer.writeheader()
         for row in records:
-            writer.writerow({
+            review_row = {field: "" for field in REVIEW_FIELDS}
+            review_row.update({
                 "candidate_id": row["candidate_id"],
                 "class_id": row.get("class_id", ""),
                 "class_name": row.get("class_name", ""),
@@ -316,11 +467,19 @@ def write_review(path: Path, records: list[dict[str, Any]], kind: str) -> None:
                 "image_path": row["image_path"],
                 "review_status": "pending",
                 "review_reason": f"review_{kind}",
+                "auto_person_detected": str(bool(row.get("auto_person_detected", False))).lower(),
+                "auto_person_confidence": row.get("auto_person_confidence", 0.0),
             })
+            if row.get("auto_person_detected", False):
+                review_row.update({"review_status": "rejected", "no_human": "no",
+                                   "review_reason": "automatic_person_detection"})
+            writer.writerow(review_row)
     temporary.replace(path)
 
 
-def accepted_records(manifest_path: Path, review_path: Path) -> list[dict[str, Any]]:
+def accepted_records(
+    manifest_path: Path, review_path: Path, required_checks: list[str] | tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
     if not manifest_path.is_file() or not review_path.is_file():
         raise FileNotFoundError(f"Missing manifest or manual review file: {manifest_path}, {review_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -335,17 +494,128 @@ def accepted_records(manifest_path: Path, review_path: Path) -> list[dict[str, A
     review_ids = [row["candidate_id"] for row in review]
     if len(set(review_ids)) != len(review_ids) or set(review_ids) != set(by_id):
         raise ValueError("Review candidate IDs must match the immutable manifest exactly")
-    accepted_ids = [
-        row["candidate_id"] for row in review
-        if row["review_status"].strip().lower() == "accepted"
-    ]
-    return [by_id[candidate_id] for candidate_id in accepted_ids]
+    allowed_statuses = {"pending", "accepted", "rejected"}
+    invalid_statuses = {
+        row["candidate_id"]: row.get("review_status", "") for row in review
+        if row.get("review_status", "").strip().lower() not in allowed_statuses
+    }
+    if invalid_statuses:
+        raise ValueError(f"Invalid review status values: {invalid_statuses}")
+    accepted = []
+    for review_row in review:
+        if review_row["review_status"].strip().lower() != "accepted":
+            continue
+        failed = [key for key in required_checks if review_row.get(key, "").strip().lower() != "yes"]
+        if failed:
+            raise ValueError(
+                f"Accepted candidate {review_row['candidate_id']} lacks required yes checks: {failed}"
+            )
+        record = dict(by_id[review_row["candidate_id"]])
+        if record.get("auto_person_detected", False):
+            raise ValueError(
+                f"Candidate {review_row['candidate_id']} cannot override automatic person rejection"
+            )
+        record["review"] = dict(review_row)
+        accepted.append(record)
+    return accepted
 
 
 def require_unique_files(records: list[dict[str, Any]], path_key: str, label: str) -> None:
     hashes = [sha256(repo_path(row[path_key])) for row in records]
     if len(set(hashes)) != len(hashes):
         raise ValueError(f"Exact duplicate detected among accepted {label}")
+
+
+def require_manifest_hashes(
+    records: list[dict[str, Any]], path_key: str, hash_key: str, label: str,
+) -> None:
+    mismatches = []
+    for row in records:
+        path = repo_path(row[path_key])
+        if not path.is_file() or sha256(path) != row.get(hash_key):
+            mismatches.append(str(row.get("candidate_id", path)))
+    if mismatches:
+        raise ValueError(f"Manifest/file hash mismatch among {label}: {mismatches[:20]}")
+
+
+def difference_hash(path: Path) -> int:
+    with Image.open(path) as source:
+        if "A" in source.getbands():
+            rgba = source.convert("RGBA")
+            image = Image.alpha_composite(Image.new("RGBA", rgba.size, "white"), rgba).convert("L")
+        else:
+            image = source.convert("L")
+        pixels = np.asarray(image.resize((9, 8), Image.Resampling.LANCZOS), dtype=np.int16)
+    bits = pixels[:, 1:] > pixels[:, :-1]
+    value = 0
+    for bit in bits.flat:
+        value = (value << 1) | int(bit)
+    return value
+
+
+def require_perceptual_uniqueness(
+    records: list[dict[str, Any]], path_key: str, label: str, max_distance: int,
+    group_key: str | None = None,
+) -> None:
+    groups: dict[Any, list[tuple[str, int]]] = {}
+    for row in records:
+        group = row.get(group_key) if group_key else "all"
+        groups.setdefault(group, []).append(
+            (str(row["candidate_id"]), difference_hash(repo_path(row[path_key])))
+        )
+    collisions = []
+    for values in groups.values():
+        for index, (left_id, left_hash) in enumerate(values):
+            for right_id, right_hash in values[index + 1:]:
+                distance = (left_hash ^ right_hash).bit_count()
+                if distance <= max_distance:
+                    collisions.append((left_id, right_id, distance))
+                    if len(collisions) >= 20:
+                        break
+            if len(collisions) >= 20:
+                break
+        if len(collisions) >= 20:
+            break
+    if collisions:
+        raise ValueError(f"Perceptual near-duplicates detected among {label}: {collisions}")
+
+
+def reviewed_support_bbox(row: dict[str, Any], width: int, height: int) -> tuple[int, int, int, int]:
+    review = row.get("review", {})
+    try:
+        normalized = tuple(float(review[key]) for key in ("support_x1", "support_y1", "support_x2", "support_y2"))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(f"Missing reviewed support coordinates for {row['candidate_id']}") from exc
+    x1, y1, x2, y2 = normalized
+    if not (0 <= x1 < x2 <= 1 and 0 <= y1 < y2 <= 1):
+        raise ValueError(f"Invalid normalized support box for {row['candidate_id']}: {normalized}")
+    if x2 - x1 < 0.12 or y2 - y1 < 0.03:
+        raise ValueError(f"Reviewed support box is too small for {row['candidate_id']}: {normalized}")
+    return round(x1 * width), round(y1 * height), round(x2 * width), round(y2 * height)
+
+
+def apply_person_screen(config: dict[str, Any], records: list[dict[str, Any]], gpu: int | str) -> None:
+    from ultralytics import YOLO
+    settings = config["quality_gates"]["person_screen"]
+    model_path = repo_path(settings["model"])
+    if not model_path.is_file():
+        raise FileNotFoundError(f"Missing frozen person-screen model: {model_path}")
+    actual_model_hash = sha256(model_path)
+    if actual_model_hash != settings["model_sha256"]:
+        raise ValueError(
+            f"Person-screen model hash mismatch: actual={actual_model_hash}, "
+            f"expected={settings['model_sha256']}"
+        )
+    model = YOLO(str(model_path))
+    paths = [str(repo_path(row["image_path"])) for row in records]
+    results = model.predict(
+        source=paths, classes=[int(settings["class_id"])],
+        conf=float(settings["confidence"]), device=gpu, verbose=False, stream=True,
+    )
+    for row, result in zip(records, results, strict=True):
+        confidences = result.boxes.conf.detach().cpu().tolist() if result.boxes is not None else []
+        row["auto_person_confidence"] = round(max(confidences, default=0.0), 6)
+        row["auto_person_detected"] = bool(confidences)
 
 
 def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, int], root: Path, gpu: int) -> None:
@@ -374,7 +644,17 @@ def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
         conditioning = conditionings[index]
         seed = int(config["seed"]) + index
         path = images / f"bg_{index:05d}_{scene_name}.png"
-        resumed = verified_existing_image(path, (width, height))
+        candidate_id = f"bg_c{class_id:02d}_{attempt:04d}"
+        generation_spec = {
+            "pipeline_id": config["pipeline_id"], "stage": "background", "candidate_id": candidate_id,
+            "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
+            "seed": seed, "size": [width, height], "steps": int(config["inference_steps"]),
+            "prompt": conditioning["prompt"], "prompt_2": conditioning["prompt_2"],
+            "negative_prompt": conditioning["negative_prompt"],
+            "negative_prompt_2": conditioning["negative_prompt_2"],
+            "guidance_scale": conditioning["guidance_scale"],
+        }
+        resumed = verified_existing_image(path, (width, height), generation_spec)
         started = time.monotonic()
         if not resumed:
             image = pipe(
@@ -385,8 +665,8 @@ def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
                 guidance_scale=conditioning["guidance_scale"],
                 generator=torch.Generator(device="cpu").manual_seed(seed),
             ).images[0]
-            save_image_atomic(image, path)
-        records.append({"candidate_id": f"bg_c{class_id:02d}_{attempt:04d}",
+            save_image_atomic(image, path, generation_spec)
+        records.append({"candidate_id": candidate_id,
                         "class_id": class_id, "class_name": names[class_id],
                         "planned_class_id": class_id, "scene_slot": scene_slot,
                         "scene_name": scene_name,
@@ -396,12 +676,14 @@ def generate_backgrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
                         "negative_prompt": conditioning["negative_prompt"],
                         "negative_prompt_2": conditioning["negative_prompt_2"],
                         "guidance_scale": conditioning["guidance_scale"],
+                        "generation_fingerprint": generation_fingerprint(generation_spec),
                         "variation_indices": conditioning["variation_indices"],
                         "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),
                         "resumed_existing": resumed})
         action = "resume" if resumed else "generate"
         print(f"[background {index + 1}/{counts['background_candidates']}] {action} {path.name}", flush=True)
     release(pipe)
+    apply_person_screen(config, records, gpu)
     write_json(output / "manifest.json", {"status": "pending_manual_review", "git": git_state(),
                "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
                "script_sha256": sha256(Path(__file__).resolve()), "records": records})
@@ -414,7 +696,12 @@ def foreground_schedule(config: dict[str, Any], counts: dict[str, int], mode: st
         count = counts["foreground_candidates_per_class"]
         if mode == "production" and class_id == 11:
             count = int(config["production"]["aerosol_foreground_candidates"])
-        rows.extend((class_id, attempt) for attempt in range(count))
+        attempts = (
+            pilot_foreground_attempts(config, class_id, count)
+            if mode == "pilot"
+            else range(count)
+        )
+        rows.extend((class_id, attempt) for attempt in attempts)
     return rows
 
 
@@ -425,36 +712,45 @@ def generate_foregrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
     pipe = load_base_pipeline(load_yaml(repo_path(config["models_config"])), gpu)
     settings = config["foreground_generation"]
     width, height = map(int, config["output_size"])
-    prompts = {int(key): value for key, value in settings["class_prompts"].items()}
     names = {int(key): value for key, value in scenes["class_policy"]["names"].items()}
     records = []
     schedule = foreground_schedule(config, counts, mode)
     validate_prompts(pipe, foreground_prompts(config))
     images.mkdir(parents=True)
     for index, (class_id, attempt) in enumerate(schedule):
-        prompt = settings["prompt_template"].format(
-            target=prompts[class_id],
-            variation=settings["variation_phrases"][attempt % len(settings["variation_phrases"])],
-        )
+        prompt = foreground_prompt(config, class_id, attempt)
         seed = int(config["seed"]) + 100000 + class_id * 10000 + attempt
         path = images / f"fg_c{class_id:02d}_{attempt:04d}.png"
-        resumed = verified_existing_image(path, (width, height))
+        candidate_id = f"fg_c{class_id:02d}_{attempt:04d}"
+        generation_spec = {
+            "pipeline_id": config["pipeline_id"], "stage": "foreground", "candidate_id": candidate_id,
+            "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
+            "seed": seed, "size": [width, height], "steps": int(config["inference_steps"]),
+            "prompt": prompt, "negative_prompt": settings["negative_prompt"],
+            "guidance_scale": float(settings["guidance_scale"]),
+        }
+        resumed = verified_existing_image(path, (width, height), generation_spec)
         started = time.monotonic()
         if not resumed:
             image = pipe(
                 prompt=prompt, negative_prompt=settings["negative_prompt"], width=width, height=height,
-                num_inference_steps=int(config["inference_steps"]), guidance_scale=float(config["guidance_scale"]),
+                num_inference_steps=int(config["inference_steps"]),
+                guidance_scale=float(settings["guidance_scale"]),
                 generator=torch.Generator(device="cpu").manual_seed(seed),
             ).images[0]
-            save_image_atomic(image, path)
-        records.append({"candidate_id": f"fg_c{class_id:02d}_{attempt:04d}", "class_id": class_id,
+            save_image_atomic(image, path, generation_spec)
+        records.append({"candidate_id": candidate_id, "class_id": class_id,
                         "class_name": names[class_id], "image_path": str(path.relative_to(REPO_ROOT)),
-                        "sha256": sha256(path), "seed": seed, "prompt": prompt,
+                        "sha256": sha256(path), "seed": seed, "attempt": attempt, "prompt": prompt,
+                        "negative_prompt": settings["negative_prompt"],
+                        "guidance_scale": float(settings["guidance_scale"]),
+                        "generation_fingerprint": generation_fingerprint(generation_spec),
                         "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),
                         "resumed_existing": resumed})
         action = "resume" if resumed else "generate"
         print(f"[foreground {index + 1}/{len(schedule)}] {action} {path.name}", flush=True)
     release(pipe)
+    apply_person_screen(config, records, gpu)
     write_json(output / "manifest.json", {"status": "pending_manual_review", "git": git_state(),
                "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
                "script_sha256": sha256(Path(__file__).resolve()), "records": records})
@@ -479,13 +775,20 @@ def best_sam_mask(processed: dict[str, Any], shape: tuple[int, int]) -> tuple[np
 def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Path, gpu: int) -> None:
     from transformers import Sam3Model, Sam3Processor
     source = root / "foregrounds"
-    accepted = accepted_records(source / "manifest.json", source / "review.csv")
+    checks = config["quality_gates"]["required_manual_checks"]["foregrounds"]
+    accepted = accepted_records(source / "manifest.json", source / "review.csv", checks)
+    require_manifest_hashes(accepted, "image_path", "sha256", "foreground candidates")
     require_unique_files(accepted, "image_path", "foreground candidates")
+    require_perceptual_uniqueness(
+        accepted, "image_path", "foreground candidates",
+        int(config["quality_gates"]["perceptual_hash"]["foreground_max_hamming_distance_within_class"]),
+        group_key="class_id",
+    )
     per_class = Counter(int(row["class_id"]) for row in accepted)
     needed = counts["accepted_foregrounds_per_class"]
-    missing = {class_id: needed - per_class[class_id] for class_id in range(CLASS_COUNT) if per_class[class_id] < needed}
-    if missing:
-        raise ValueError(f"Insufficient manually accepted foregrounds by class: {missing}")
+    wrong = {class_id: per_class[class_id] for class_id in range(CLASS_COUNT) if per_class[class_id] != needed}
+    if wrong:
+        raise ValueError(f"Require exactly {needed} accepted foregrounds per class: {wrong}")
     output = root / "segmented_foregrounds"
     require_launch_ready(gpu, output)
     (output / "masks").mkdir(parents=True)
@@ -530,7 +833,9 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
         records.append({"candidate_id": candidate_id, "class_id": int(row["class_id"]),
                         "class_name": row["class_name"], "source_path": row["image_path"],
                         "mask_path": str(mask_path.relative_to(REPO_ROOT)),
-                        "rgba_path": str(rgba_path.relative_to(REPO_ROOT)), "sam_score": score,
+                        "rgba_path": str(rgba_path.relative_to(REPO_ROOT)),
+                        "mask_sha256": sha256(mask_path), "rgba_sha256": sha256(rgba_path),
+                        "sam_score": score,
                         "mask_area_ratio": area_ratio, "automatic_geometry_valid": valid})
         print(f"[segment {index + 1}/{len(accepted)}] {candidate_id} valid={valid}", flush=True)
     del model, processor
@@ -575,13 +880,48 @@ def color_match_foreground(
     return Image.fromarray(rgba)
 
 
+def write_nested_manifests(output: Path, records: list[dict[str, Any]], prefixes: list[int]) -> None:
+    if not prefixes:
+        return
+    subset_root = output / "subsets"
+    subset_root.mkdir()
+    for prefix in map(int, prefixes):
+        if prefix <= 0 or prefix > len(records) or prefix % CLASS_COUNT:
+            raise ValueError(f"Invalid nested prefix: {prefix}")
+        subset = records[:prefix]
+        expected = prefix // CLASS_COUNT
+        counts = Counter(int(row["class_id"]) for row in subset)
+        if set(counts) != set(range(CLASS_COUNT)) or set(counts.values()) != {expected}:
+            raise ValueError(f"Nested prefix {prefix} is not class-balanced: {dict(counts)}")
+        write_json(subset_root / f"fb_{prefix}.json", {
+            "status": "generated_pending_final_review",
+            "images": prefix,
+            "images_per_class": expected,
+            "records": subset,
+        })
+
+
 def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, int], root: Path, gpu: int) -> None:
-    backgrounds = accepted_records(root / "backgrounds/manifest.json", root / "backgrounds/review.csv")
+    checks = config["quality_gates"]["required_manual_checks"]
+    backgrounds = accepted_records(
+        root / "backgrounds/manifest.json", root / "backgrounds/review.csv", checks["backgrounds"],
+    )
     foregrounds = accepted_records(
-        root / "segmented_foregrounds/manifest.json", root / "segmented_foregrounds/review.csv"
+        root / "segmented_foregrounds/manifest.json", root / "segmented_foregrounds/review.csv",
+        checks["segmented_foregrounds"],
     )
     require_unique_files(backgrounds, "image_path", "backgrounds")
     require_unique_files(foregrounds, "rgba_path", "segmented foregrounds")
+    require_manifest_hashes(backgrounds, "image_path", "sha256", "backgrounds")
+    require_manifest_hashes(foregrounds, "rgba_path", "rgba_sha256", "segmented foregrounds")
+    phash = config["quality_gates"]["perceptual_hash"]
+    require_perceptual_uniqueness(
+        backgrounds, "image_path", "backgrounds", int(phash["background_max_hamming_distance"]),
+    )
+    require_perceptual_uniqueness(
+        foregrounds, "rgba_path", "segmented foregrounds",
+        int(phash["foreground_max_hamming_distance_within_class"]), group_key="class_id",
+    )
     invalid_geometry = [row["candidate_id"] for row in foregrounds if not row["automatic_geometry_valid"]]
     if invalid_geometry:
         raise ValueError(f"Accepted foregrounds failed automatic mask geometry: {invalid_geometry}")
@@ -594,6 +934,12 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         raise ValueError(f"Require exactly {needed} accepted segmented foregrounds per class: {dict(per_class)}")
     if set(backgrounds_per_class) != set(range(CLASS_COUNT)) or set(backgrounds_per_class.values()) != {needed}:
         raise ValueError(f"Require exactly {needed} accepted backgrounds per planned class: {dict(backgrounds_per_class)}")
+    if counts["final"] < 2048:
+        missing_scenes = set(scenes["scene_families"]) - {row["scene_name"] for row in backgrounds}
+        if missing_scenes:
+            raise ValueError(
+                f"Pilot composition must cover every global scene family; missing={sorted(missing_scenes)}"
+            )
     if counts["final"] == 2048:
         scene_counts = Counter((int(row["class_id"]), row["scene_name"]) for row in backgrounds)
         assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
@@ -616,7 +962,18 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
     pipe = load_harmonizer(load_yaml(repo_path(config["models_config"])), gpu)
     validate_prompts(pipe, harmonization_prompts(config, scenes))
     records = []
-    foregrounds.sort(key=lambda row: (int(row["candidate_id"].rsplit("_", 1)[1]), int(row["class_id"])))
+    foreground_pools = {
+        class_id: sorted(
+            (row for row in foregrounds if int(row["class_id"]) == class_id),
+            key=lambda row: row["candidate_id"],
+        )
+        for class_id in range(CLASS_COUNT)
+    }
+    foregrounds = [
+        foreground_pools[class_id][round_index]
+        for round_index in range(needed)
+        for class_id in range(CLASS_COUNT)
+    ]
     background_pools = {
         class_id: sorted(
             (row for row in backgrounds if int(row["class_id"]) == class_id),
@@ -625,6 +982,7 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         for class_id in range(CLASS_COUNT)
     }
     width, height = map(int, config["output_size"])
+    size_ranges = {int(key): value for key, value in settings["class_object_height_fraction"].items()}
     for index, foreground_row in enumerate(foregrounds):
         class_id = int(foreground_row["class_id"])
         background_row = background_pools[class_id].pop(0)
@@ -637,16 +995,22 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         if bbox is None:
             raise ValueError(f"Empty accepted alpha: {segment['rgba_path']}")
         foreground = foreground.crop(bbox)
-        low, high = map(float, settings["object_height_fraction"])
+        low, high = map(float, size_ranges[class_id])
         target_h = round(height * rng.uniform(low, high))
         target_w = max(1, round(foreground.width * target_h / foreground.height))
-        if target_w > width * 0.48:
-            target_w = round(width * 0.48); target_h = round(foreground.height * target_w / foreground.width)
+        sx1, sy1, sx2, sy2 = reviewed_support_bbox(background_row, width, height)
+        support_margin = round((sx2 - sx1) * float(settings["support_edge_margin_fraction"]))
+        maximum_width = max(1, sx2 - sx1 - 2 * support_margin)
+        if target_w > maximum_width:
+            target_w = maximum_width
+            target_h = max(1, round(foreground.height * target_w / foreground.width))
         foreground = foreground.resize((target_w, target_h), Image.Resampling.LANCZOS)
         scene_name = background_row["scene_name"]
-        center_x, support_y = map(float, settings["placement_centers"][scene_name])
-        x = round(width * (center_x + rng.uniform(-float(settings["horizontal_jitter_fraction"]), float(settings["horizontal_jitter_fraction"]))) - target_w / 2)
-        y = round(height * (support_y + rng.uniform(-float(settings["vertical_jitter_fraction"]), float(settings["vertical_jitter_fraction"]))) - target_h)
+        minimum_x = sx1 + support_margin
+        maximum_x = max(minimum_x, sx2 - support_margin - target_w)
+        x = rng.randint(minimum_x, maximum_x)
+        contact_y = rng.randint(sy1, sy2)
+        y = contact_y - target_h
         x, y = min(max(x, 0), width-target_w), min(max(y, 0), height-target_h)
         foreground = color_match_foreground(
             foreground, background, x, y,
@@ -682,22 +1046,81 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         mask_path, control_path = output / "masks" / f"{stem}.png", output / "controls" / f"{stem}.png"
         result.save(image_path); label_path.write_text(label, encoding="utf-8")
         mask_canvas.save(mask_path); canny.save(control_path)
-        records.append({"index": index, "class_id": class_id, "class_name": foreground_row["class_name"],
+        records.append({"candidate_id": f"final_{index:05d}", "index": index,
+                        "class_id": class_id, "class_name": foreground_row["class_name"],
                         "scene_name": scene_name, "background_candidate_id": background_row["candidate_id"],
                         "foreground_candidate_id": foreground_row["candidate_id"], "seed": seed,
+                        "reviewed_support_xyxy": [sx1, sy1, sx2, sy2],
                         "image_path": str(image_path.relative_to(REPO_ROOT)),
                         "label_path": str(label_path.relative_to(REPO_ROOT)),
-                        "mask_path": str(mask_path.relative_to(REPO_ROOT)), "bbox_xyxy": list(final_bbox),
-                        "image_sha256": sha256(image_path), "training_use_forbidden": True})
+                        "mask_path": str(mask_path.relative_to(REPO_ROOT)),
+                        "control_path": str(control_path.relative_to(REPO_ROOT)),
+                        "bbox_xyxy": list(final_bbox),
+                        "image_sha256": sha256(image_path), "label_sha256": sha256(label_path),
+                        "mask_sha256": sha256(mask_path), "control_sha256": sha256(control_path),
+                        "training_use_forbidden": True})
         print(f"[compose {index + 1}/{counts['final']}] {stem}", flush=True)
     release(pipe)
     if len(records) != counts["final"]:
         raise ValueError(f"Expected {counts['final']} final records, got {len(records)}")
+    apply_person_screen(config, records, gpu)
+    require_unique_files(records, "image_path", "final images")
+    require_manifest_hashes(records, "image_path", "image_sha256", "final images")
+    require_manifest_hashes(records, "label_path", "label_sha256", "final labels")
+    require_manifest_hashes(records, "mask_path", "mask_sha256", "final masks")
+    require_manifest_hashes(records, "control_path", "control_sha256", "final controls")
     write_json(output / "manifest.json", {"status": "generated_pending_final_review",
                "training_use_forbidden": True, "target_test_used": False, "git": git_state(),
                "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
                "script_sha256": sha256(Path(__file__).resolve()), "records": records})
-    write_review(output / "review.csv", [dict(row, candidate_id=f"final_{row['index']:05d}") for row in records], "final_identity_contact_realism_annotation")
+    write_review(output / "review.csv", records, "final_identity_contact_realism_annotation")
+    write_nested_manifests(output, records, config["production"]["nested_prefixes"] if counts["final"] == 2048 else [])
+
+
+def finalize_review(config: dict[str, Any], counts: dict[str, int], root: Path) -> None:
+    if git_state()["dirty"]:
+        raise RuntimeError("Commit the reviewed pipeline before finalization")
+    output = root / "final"
+    release_path = output / "release_manifest.json"
+    if release_path.exists():
+        raise FileExistsError(f"Final review is already finalized: {release_path}")
+    checks = config["quality_gates"]["required_manual_checks"]["final"]
+    accepted = accepted_records(output / "manifest.json", output / "review.csv", checks)
+    if len(accepted) != counts["final"]:
+        raise ValueError(f"Require all {counts['final']} final images accepted, got {len(accepted)}")
+    require_unique_files(accepted, "image_path", "accepted final images")
+    require_manifest_hashes(accepted, "image_path", "image_sha256", "accepted final images")
+    require_manifest_hashes(accepted, "label_path", "label_sha256", "accepted final labels")
+    require_manifest_hashes(accepted, "mask_path", "mask_sha256", "accepted final masks")
+    require_manifest_hashes(accepted, "control_path", "control_sha256", "accepted final controls")
+    require_perceptual_uniqueness(
+        accepted, "image_path", "accepted final images",
+        int(config["quality_gates"]["perceptual_hash"]["final_max_hamming_distance"]),
+    )
+    width, height = map(int, config["output_size"])
+    for row in accepted:
+        label_path = repo_path(row["label_path"])
+        values = label_path.read_text(encoding="utf-8").strip().split()
+        if len(values) != 5 or int(values[0]) != int(row["class_id"]):
+            raise ValueError(f"Invalid final label identity: {label_path}")
+        coordinates = list(map(float, values[1:]))
+        if any(not 0 <= value <= 1 for value in coordinates) or coordinates[2] <= 0 or coordinates[3] <= 0:
+            raise ValueError(f"Invalid normalized final label: {label_path}")
+        x1, y1, x2, y2 = map(int, row["bbox_xyxy"])
+        expected = [(x1 + x2) / (2 * width), (y1 + y2) / (2 * height),
+                    (x2 - x1) / width, (y2 - y1) / height]
+        if any(abs(actual - wanted) > 1e-7 for actual, wanted in zip(coordinates, expected, strict=True)):
+            raise ValueError(f"Final label does not match retained mask box: {label_path}")
+        with Image.open(repo_path(row["image_path"])) as image:
+            if image.size != (width, height):
+                raise ValueError(f"Invalid final image size: {row['image_path']}")
+    write_json(release_path, {
+        "status": "pilot_accepted" if counts["final"] < 2048 else "production_accepted",
+        "training_use_forbidden": bool(config["training_use_forbidden"]),
+        "config_sha256": config["_config_sha256"],
+        "models_sha256": config["_models_sha256"],
+        "records": accepted,
+    })
 
 
 def runtime_preflight(
@@ -734,7 +1157,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--mode", choices=("pilot", "production"), default="pilot")
-    parser.add_argument("--stage", choices=("backgrounds", "foregrounds", "segment", "compose"), required=True)
+    parser.add_argument(
+        "--stage", choices=("backgrounds", "foregrounds", "segment", "compose", "finalize"), required=True,
+    )
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
@@ -749,6 +1174,8 @@ def main() -> None:
               "stage": args.stage, "counts": counts, "output_root": str(root.relative_to(REPO_ROOT)),
               "config_sha256": sha256(config_path), "git": git_state(),
               "review_gates": config["quality_gates"]}
+    if args.preflight_only and args.stage == "finalize":
+        raise ValueError("Finalize has no model preflight; run it only after completing final review")
     if args.preflight_only:
         runtime_preflight(config, scenes, counts, args.stage, args.gpu)
         report["runtime_models_and_prompts_validated"] = True
@@ -760,8 +1187,10 @@ def main() -> None:
             generate_foregrounds(config, scenes, counts, root, args.gpu, args.mode)
         elif args.stage == "segment":
             segment_foregrounds(config, counts, root, args.gpu)
-        else:
+        elif args.stage == "compose":
             compose(config, scenes, counts, root, args.gpu)
+        else:
+            finalize_review(config, counts, root)
 
 
 if __name__ == "__main__":

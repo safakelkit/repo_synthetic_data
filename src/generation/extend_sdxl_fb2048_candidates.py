@@ -6,6 +6,7 @@ import argparse
 import csv
 import importlib.util
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,7 @@ import torch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PIPELINE_SCRIPT = REPO_ROOT / "src/generation/run_sdxl_fb2048_pipeline.py"
-DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_fb2048_v1.yaml"
+DEFAULT_CONFIG = REPO_ROOT / "configs/generation/sdxl_fb2048_v2.yaml"
 
 
 def load_pipeline_module():
@@ -42,27 +43,34 @@ def write_review_atomic(path: Path, fields: list[str], rows: list[dict[str, str]
     temporary.replace(path)
 
 
-def next_round(records: list[dict[str, Any]], class_id: int) -> int:
-    return sum(int(row["class_id"]) == class_id for row in records)
+def record_attempt(record: dict[str, Any]) -> int:
+    if "attempt" in record:
+        return int(record["attempt"])
+    match = re.search(r"_(\d+)$", str(record["candidate_id"]))
+    if not match:
+        raise ValueError(f"Cannot recover attempt from {record['candidate_id']}")
+    return int(match.group(1))
 
 
-def retry_foreground_prompt(config: dict[str, Any], class_id: int, attempt: int) -> str:
-    settings = config["foreground_generation"]
-    prompts = {int(key): value for key, value in settings["class_prompts"].items()}
-    guidance = {int(key): value for key, value in settings.get("retry_guidance", {}).items()}
-    variation = settings["variation_phrases"][attempt % len(settings["variation_phrases"])]
-    prompt = settings["prompt_template"].format(target=prompts[class_id], variation=variation)
-    if class_id in guidance:
-        prompt = f"{prompt} {guidance[class_id]}."
-    return prompt
+def next_attempts(records: list[dict[str, Any]], class_id: int, count: int) -> list[int]:
+    used = {record_attempt(row) for row in records if int(row["class_id"]) == class_id}
+    attempts = []
+    candidate = 0
+    while len(attempts) < count:
+        if candidate not in used:
+            attempts.append(candidate)
+        candidate += 1
+    return attempts
 
 
 def append_review_rows(
     existing: list[dict[str, str]], records: list[dict[str, Any]], reason: str,
+    fields: list[str],
 ) -> list[dict[str, str]]:
     rows = list(existing)
     for record in records:
-        rows.append({
+        row = {field: "" for field in fields}
+        row.update({
             "candidate_id": record["candidate_id"],
             "class_id": str(record["class_id"]),
             "class_name": record["class_name"],
@@ -71,6 +79,12 @@ def append_review_rows(
             "review_status": "pending",
             "review_reason": reason,
         })
+        row["auto_person_detected"] = str(bool(record.get("auto_person_detected", False))).lower()
+        row["auto_person_confidence"] = str(record.get("auto_person_confidence", 0.0))
+        if record.get("auto_person_detected", False):
+            row.update({"review_status": "rejected", "no_human": "no",
+                        "review_reason": "automatic_person_detection"})
+        rows.append(row)
     return rows
 
 
@@ -92,6 +106,8 @@ def main() -> None:
     fb = load_pipeline_module()
     config_path = fb.repo_path(args.config)
     config = fb.load_yaml(config_path)
+    config["_config_sha256"] = fb.sha256(config_path)
+    config["_models_sha256"] = fb.sha256(fb.repo_path(config["models_config"]))
     scenes = fb.load_yaml(fb.repo_path(config["scene_policy"]))
     models = fb.load_yaml(fb.repo_path(config["models_config"]))
     root = fb.repo_path(config["output_root"]) / "pilot" / args.pool
@@ -105,16 +121,18 @@ def main() -> None:
         raise ValueError("Existing review and manifest candidate IDs do not match")
 
     prompts = []
+    attempts_by_class = {
+        class_id: next_attempts(records, class_id, args.count_per_class)
+        for class_id in class_ids
+    }
     assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
     for class_id in class_ids:
-        start = next_round(records, class_id)
-        for offset in range(args.count_per_class):
-            attempt = start + offset
+        for attempt in attempts_by_class[class_id]:
             scene_name = assignments[class_id][attempt % len(assignments[class_id])]
             prompts.append(
                 fb.background_conditioning(config, scene_name, class_id, attempt)
                 if args.pool == "backgrounds"
-                else retry_foreground_prompt(config, class_id, attempt)
+                else fb.foreground_prompt(config, class_id, attempt)
             )
 
     if fb.git_state()["dirty"]:
@@ -140,9 +158,7 @@ def main() -> None:
     with fb.stage_lock(root.parent, f"{args.pool}_extension"):
         prompt_index = 0
         for class_id in class_ids:
-            start = next_round(records, class_id)
-            for offset in range(args.count_per_class):
-                attempt = start + offset
+            for attempt in attempts_by_class[class_id]:
                 candidate_id = f"{'bg' if args.pool == 'backgrounds' else 'fg'}_c{class_id:02d}_retry_{attempt:04d}"
                 scene_name = assignments[class_id][attempt % len(assignments[class_id])]
                 prompt_data = prompts[prompt_index]; prompt_index += 1
@@ -150,7 +166,19 @@ def main() -> None:
                 seed_offset = 500000 if args.pool == "backgrounds" else 600000
                 seed = int(config["seed"]) + seed_offset + class_id * 10000 + attempt
                 path = root / "images" / f"{candidate_id}.png"
-                resumed = fb.verified_existing_image(path, (width, height))
+                generation_spec = {
+                    "pipeline_id": config["pipeline_id"], "stage": f"{args.pool}_retry",
+                    "candidate_id": candidate_id, "config_sha256": config["_config_sha256"],
+                    "models_sha256": config["_models_sha256"], "seed": seed,
+                    "size": [width, height], "steps": int(config["inference_steps"]),
+                    "prompt": prompt, "negative_prompt": negative,
+                    "guidance_scale": (prompt_data["guidance_scale"] if args.pool == "backgrounds"
+                                       else float(settings["guidance_scale"])),
+                }
+                if args.pool == "backgrounds":
+                    generation_spec.update({"prompt_2": prompt_data["prompt_2"],
+                                            "negative_prompt_2": prompt_data["negative_prompt_2"]})
+                resumed = fb.verified_existing_image(path, (width, height), generation_spec)
                 started = time.monotonic()
                 if not resumed:
                     call_args = {
@@ -158,17 +186,21 @@ def main() -> None:
                         "width": width, "height": height,
                         "num_inference_steps": int(config["inference_steps"]),
                         "guidance_scale": (prompt_data["guidance_scale"] if args.pool == "backgrounds"
-                                           else float(config["guidance_scale"])),
+                                           else float(settings["guidance_scale"])),
                         "generator": torch.Generator(device="cpu").manual_seed(seed),
                     }
                     if args.pool == "backgrounds":
                         call_args.update({"prompt_2": prompt_data["prompt_2"],
                                           "negative_prompt_2": prompt_data["negative_prompt_2"]})
                     image = pipe(**call_args).images[0]
-                    fb.save_image_atomic(image, path)
+                    fb.save_image_atomic(image, path, generation_spec)
                 record = {"candidate_id": candidate_id, "class_id": class_id,
                           "class_name": names[class_id], "image_path": str(path.relative_to(REPO_ROOT)),
                           "sha256": fb.sha256(path), "seed": seed, "prompt": prompt,
+                          "attempt": attempt,
+                          "negative_prompt": negative,
+                          "guidance_scale": generation_spec["guidance_scale"],
+                          "generation_fingerprint": fb.generation_fingerprint(generation_spec),
                           "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),
                           "resumed_existing": resumed, "retry": True}
                 if args.pool == "backgrounds":
@@ -182,6 +214,8 @@ def main() -> None:
                                    "variation_indices": prompt_data["variation_indices"]})
                 added.append(record)
                 print(f"[{args.pool} retry {len(added)}/{len(prompts)}] {candidate_id}", flush=True)
+        fb.release(pipe)
+        fb.apply_person_screen(config, added, args.gpu)
         records.extend(added)
         manifest["records"] = records
         manifest.setdefault("extensions", []).append({
@@ -191,8 +225,8 @@ def main() -> None:
         })
         fb.write_json(manifest_path, manifest)
         reason = "review_retry_support_surface" if args.pool == "backgrounds" else "review_retry_object_identity"
-        write_review_atomic(review_path, fields, append_review_rows(review_rows, added, reason))
-    fb.release(pipe)
+        write_review_atomic(review_path, fields, append_review_rows(review_rows, added, reason, fields))
+    fb.release(None)
 
 
 if __name__ == "__main__":

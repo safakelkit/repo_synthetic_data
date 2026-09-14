@@ -1,9 +1,9 @@
 format_version: 1
-pipeline_id: sdxl_fb2048_v1
-status: ready_for_all_class_pilot
+pipeline_id: sdxl_fb2048_v2
+status: ready_for_hardened_all_class_pilot
 models_config: configs/generation/genai_models_v1.yaml
 scene_policy: configs/generation/genai_scene_policy_v1.yaml
-output_root: data/synthetic/sdxl_fb2048_v1
+output_root: data/synthetic/sdxl_fb2048_v2
 seed: 74000
 output_size: [1024, 1024]
 inference_steps: 30
@@ -13,8 +13,9 @@ target_test_used: false
 
 pilot:
   final_images: 16
-  background_candidates: 32
-  foreground_candidates_per_class: 2
+  background_candidates: 64
+  foreground_candidates_per_class: 8
+  foreground_sampling: stratified_axes
   accepted_backgrounds: 16
   accepted_foregrounds_per_class: 1
 
@@ -34,18 +35,28 @@ background_generation:
     person, hand, lighter, matches,
     scissors, pliers, knife, razor, hammer, cigarettes, saw, screwdriver,
     wrench, aerosol can, battery, alcohol bottle, phone, laptop, text, logo,
-    watermark, floating object
+    watermark, floating object, outdoor, exterior, abandoned building, ruin,
+    rubble, demolition
   negative_prompt_2: >-
-    artificial render, synthetic surfaces, plastic texture, excessive HDR,
-    cinematic color grading, dramatic studio lighting, pristine showroom,
-    catalog interior, hotel room, luxury furniture, perfect symmetry,
-    repeated furniture, warped architecture, oversharpening, depth-of-field blur
+    person, human, silhouette, outdoor, street, landscape, abandoned, ruin,
+    rubble, demolition, lighter, matches, scissors, pliers, knife, razor,
+    hammer, cigarettes, saw, screwdriver, wrench, aerosol can, battery,
+    alcohol bottle, phone, laptop, CGI, render, text, logo, watermark
   prompt_template: >-
     Candid correctional inspection photo. {scene_recipe}. {support}.
     {composition}.
   prompt_2_template: >-
-    Unstaged mobile documentary photo. {capture}. {lighting}. {materials}.
-    {use_trace}.
+    Phone photo: {scene_context}; functional and unoccupied. Foreground table.
+    {capture}. {lighting}. {materials}.
+  scene_contexts:
+    cell_sleeping_area: a secure detention cell sleeping area with a bed and fixed furnishings
+    cell_desk_area: a secure detention cell desk area with fixed institutional furnishings
+    cell_storage_area: an indoor detention-unit storage area with lockers and shelving
+    cell_wash_area: an indoor detention wash area with a basin and fixed plumbing
+    communal_day_room: a correctional day room between scheduled activities
+    property_inspection_station: a functioning correctional property-inspection room
+    correctional_workshop: a supervised indoor correctional workshop between work sessions
+    maintenance_service_area: a functioning indoor correctional maintenance service room
   scene_recipes:
     cell_sleeping_area:
       - older narrow cell with painted masonry walls, a steel bunk, thin rumpled bedding, and a recessed barred window
@@ -162,27 +173,19 @@ background_generation:
     - reflections are subdued and uneven, with credible fixture contact shadows
     - floor seams, wall texture and furniture edges show realistic construction
     - mixed material ages create restrained variation without decorative styling
-    - touched edges are smoother while recesses retain dust and dull paint
-    - utilitarian finishes show abrasion, patching and maintenance, not decay
-  use_trace_profiles:
-    - wiped central surfaces contrast with dust along walls and rear corners
-    - walking-path scuffs and furniture-leg marks appear in plausible places
-    - folded neutral textiles or plain folders stay peripheral, leaving center clear
-    - irregular chairs and partly open storage suggest temporary vacancy
-    - water marks, paint touch-ups and aged sealant occur plausibly
-    - uneven fading and isolated scratches suggest repeated daily use
-    - cleaned areas contrast with older wear around hinges and skirting
-    - slight far-edge clutter adds occupancy while the foreground stays usable
+    - touched edges are smoother while recesses retain duller paint
+    - maintained utilitarian finishes show restrained abrasion and patching
 foreground_generation:
+  guidance_scale: 5.0
   prompt_template: >-
-    Studio product photograph of exactly {target}. One isolated centered object,
-    fully visible, realistic, sharp boundary, plain light-gray seamless backdrop,
-    no furniture or hand. {variation}.
+    Unretouched evidence photo: {target}. {constraint}. Centered, fully visible,
+    plain light-gray background. {variant}. {condition}. {viewpoint}.
   negative_prompt: >-
-    multiple objects, duplicate, wrong object, extra tool, cropped, truncated,
-    occluded, deformed, fused parts, floating fragments, person, hand, room,
-    table, shelf, complex background, patterned background, readable text,
-    logo, watermark, illustration, cartoon, CGI, blur
+    person, hand, fingers, holding, multiple objects, collection, pile,
+    scattered objects, duplicate, wrong object, extra tool,
+    extra parts, cropped, occluded, deformed, fused, cartoon, illustration, toy,
+    miniature, CGI, 3D render, glossy plastic, text, logo, watermark, room,
+    clutter, blur
   class_prompts:
     0: one disposable pocket lighter with ignition wheel and metal top
     1: one open cardboard matchbox containing wooden safety matches with visible match heads
@@ -195,27 +198,148 @@ foreground_generation:
     8: one handheld hacksaw with rigid frame, handle and toothed blade
     9: one manual screwdriver with handle and long metal shaft
     10: one metal wrench with a clearly visible jaw or ring end
-    11: one upright deodorant aerosol spray can with cylindrical metal body, rounded cap, push-button nozzle and flat base
+    11: one deodorant aerosol can with metal cylinder, cap, nozzle and flat base
     12: one rectangular 9-volt battery with two snap terminals on top
     13: one small glass bottle of alcoholic drink with neck and cap
     14: one modern rectangular smartphone with glass screen, bezel and camera
     15: one open laptop with hinged screen, keyboard and trackpad
-  variation_phrases:
-    - front three-quarter view, common consumer design, neutral color
-    - opposite three-quarter view, visibly different product design and color
-    - slightly elevated camera view, lightly used realistic surface finish
-    - near-frontal view, inexpensive everyday construction and distinct proportions
-    - shallow side angle, alternate material finish and restrained wear
-    - elevated oblique view, different brandless design with no readable markings
-    - low three-quarter view, darker colorway and realistic edge wear
-    - centered catalog view, lighter colorway and a distinct silhouette variant
+  class_constraints:
+    0: one lighter body and one ignition head; no second lighter or detached cap
+    1: one matchbox only; matches remain inside the box, no loose pile
+    2: exactly two handles, two blades and one pivot; no extra scissors
+    3: exactly two handles, two jaws and one central pivot; no second tool
+    4: one handle joined to one blade; no second knife or sheath
+    5: one handle joined to one razor head; no second razor
+    6: one hammer head joined to one handle; no axe blade or second tool
+    7: one open cigarette pack only; cigarettes stay inside, none scattered outside
+    8: one complete manual hacksaw with one frame, handle and blade; no power tool
+    9: one straight screwdriver only, one handle and one metal shaft
+    10: one conventional wrench only; no plier handles or bottle opener
+    11: single intact upright can; no second object
+    12: one PP3 9-volt battery only, rectangular body and two top terminals
+    13: one small sealed glass bottle only; no glass, cup or second bottle
+    14: one slab smartphone only; no stack, second phone, case or hand
+    15: one open laptop only; one screen base, keyboard base and central hinge
+  class_variants:
+    0:
+      - translucent colored plastic body
+      - opaque matte plastic body
+      - slim brushed-metal body
+      - rounded budget plastic body
+      - wide refillable-style metal body
+    1:
+      - compact cardboard safety-match box
+      - long household-match box
+      - narrow pocket matchbox
+      - thick kraft-card matchbox
+      - shallow white-card matchbox
+    2:
+      - black molded household handles
+      - colored office-scissor handles
+      - all-metal utility construction
+      - compact blunt-tip construction
+      - long-blade tailoring construction
+    3:
+      - black rubberized handles
+      - red vinyl-dipped handles
+      - blue molded handles
+      - bare steel handles
+      - compact electrician-style proportions
+    4:
+      - compact utility knife proportions
+      - narrow kitchen knife proportions
+      - short paring knife proportions
+      - broad fixed-blade proportions
+      - folding-pocket-knife proportions
+    5:
+      - blue disposable plastic handle
+      - black rubberized handle
+      - white budget plastic handle
+      - compact travel-razor proportions
+      - broad multi-blade head design
+    6:
+      - wooden handle and dark steel head
+      - fiberglass handle and polished head
+      - compact household proportions
+      - long carpentry-hammer proportions
+      - worn rubberized handle
+    7:
+      - soft paper pack with foil opening
+      - rigid cardboard flip-top pack
+      - narrow budget cigarette pack
+      - wide plain cigarette box
+      - slightly crushed paper pack
+    8:
+      - compact metal hacksaw frame
+      - deep rectangular hacksaw frame
+      - black molded pistol grip
+      - red polymer handle
+      - traditional all-metal frame
+    9:
+      - flat-head tip and amber handle
+      - Phillips tip and black handle
+      - short stubby proportions
+      - long narrow shaft and blue handle
+      - insulated red-and-yellow handle
+    10:
+      - open-end wrench
+      - ring-end wrench
+      - combination open-and-ring wrench
+      - adjustable crescent wrench
+      - short heavy-duty wrench
+    11:
+      - tall narrow aluminum can
+      - short wide steel can
+      - matte white cylindrical can
+      - brushed silver cylindrical can
+      - dark painted cylindrical can
+      - compact travel-size spray can
+    12:
+      - black alkaline casing
+      - silver industrial casing
+      - blue budget casing
+      - white rechargeable-style casing
+      - compact gray casing
+    13:
+      - clear miniature spirit bottle
+      - amber glass bottle
+      - green glass bottle
+      - short broad bottle
+      - tall narrow bottle
+    14:
+      - compact black smartphone
+      - large silver smartphone
+      - older thick-bezel smartphone
+      - budget blue smartphone
+      - white-backed smartphone
+    15:
+      - compact dark business laptop
+      - silver consumer laptop
+      - thick older laptop
+      - small budget notebook computer
+      - rugged matte laptop
+  condition_profiles:
+    - clean but unretouched consumer condition
+    - lightly used with fine scratches and fingerprints
+    - inexpensive manufacturing with small finish irregularities
+    - moderate edge wear without damage or deformation
+  viewpoint_profiles:
+    - front three-quarter view
+    - opposite three-quarter view
+    - slightly elevated oblique view
+    - near-frontal view
+    - shallow side view
+    - low three-quarter view
+    - top-oblique view
+    - natural off-center documentary view
   retry_guidance:
     2: two loops, two blades, one pivot; no shears
-    7: closed pack only; no loose cigarettes or pile
+    7: open pack only; cigarettes remain inside, no loose pile
     8: complete manual bow frame and blade; no motor
     12: PP3 form; no cable, holder or loose cells
     14: single slab phone; no stack or folding device
   controlled_retry:
+    status: experimental_requires_separate_pilot
     class_ids: [2, 7, 8, 12]
     candidates_per_class: 2
     controlnet_conditioning_scale: 0.95
@@ -238,18 +362,25 @@ segmentation:
   border_clearance_px: 8
 
 composition:
-  object_height_fraction: [0.16, 0.30]
-  placement_centers:
-    cell_sleeping_area: [0.60, 0.61]
-    cell_desk_area: [0.58, 0.59]
-    cell_storage_area: [0.56, 0.64]
-    cell_wash_area: [0.58, 0.60]
-    communal_day_room: [0.52, 0.62]
-    property_inspection_station: [0.50, 0.58]
-    correctional_workshop: [0.54, 0.61]
-    maintenance_service_area: [0.53, 0.61]
-  horizontal_jitter_fraction: 0.08
-  vertical_jitter_fraction: 0.025
+  require_reviewed_support_region: true
+  support_edge_margin_fraction: 0.08
+  class_object_height_fraction:
+    0: [0.10, 0.16]
+    1: [0.10, 0.17]
+    2: [0.14, 0.24]
+    3: [0.14, 0.24]
+    4: [0.14, 0.25]
+    5: [0.11, 0.18]
+    6: [0.18, 0.29]
+    7: [0.11, 0.17]
+    8: [0.20, 0.32]
+    9: [0.15, 0.25]
+    10: [0.15, 0.25]
+    11: [0.15, 0.25]
+    12: [0.08, 0.13]
+    13: [0.13, 0.22]
+    14: [0.12, 0.20]
+    15: [0.19, 0.31]
 
 harmonization:
   mask_padding_px: 24
@@ -272,3 +403,17 @@ quality_gates:
   final_visual_review_required: true
   annotation_source: retained_visible_foreground_mask
   extra_project_class_policy: annotate_all_or_reject
+  person_screen:
+    model: yolo11s.pt
+    model_sha256: 85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5
+    class_id: 0
+    confidence: 0.20
+  perceptual_hash:
+    background_max_hamming_distance: 4
+    foreground_max_hamming_distance_within_class: 3
+    final_max_hamming_distance: 3
+  required_manual_checks:
+    backgrounds: [target_free, no_human, photorealistic, support_valid]
+    foregrounds: [identity_correct, single_object, no_human, photorealistic]
+    segmented_foregrounds: [mask_correct]
+    final: [identity_correct, single_object, no_human, photorealistic, placement_valid, annotation_valid]

@@ -349,3 +349,26 @@ difficulty(c) = alpha * (1 - S_hard(c))
   occupancy cues, camera, and lighting explicitly rather than relying on seeds.
   Geometry-sensitive foreground failures may use programmatic synthetic Canny
   controls; these contain no real pixels and do not weaken the purity boundary.
+
+## D032 - SDXL-FB2048 v2 hardening after pilot audit
+
+- **Status:** Implemented; fresh pilot execution pending
+- **Date:** 2026-09-14
+- **Reason:** The first generated pools exposed people, irrelevant content,
+  render-like objects, incomplete scene coverage, fixed-coordinate placement,
+  seed-heavy foreground diversity, and unsafe partial-output reuse.
+- **Version boundary:** Preserve `data/synthetic/sdxl_fb2048_v1/` as historical
+  rejected pilot evidence. All revised outputs use the independent
+  `data/synthetic/sdxl_fb2048_v2/` root and embedded generation fingerprints.
+- **Review boundary:** Automatic person detections cannot be overridden.
+  Manual yes/no checks for identity, object count, human absence, realism,
+  support validity, mask quality, placement, and annotation are mandatory.
+- **Placement:** Every accepted background supplies a reviewed normalized safe
+  support rectangle. Composition uses that region plus class-specific scale;
+  fixed scene-wide placement centers are prohibited.
+- **Diversity:** Production uses 160 unique prompts per normal foreground class
+  and 192 for Aerosol. The 64-background pilot covers all four assigned scenes
+  for every class.
+- **Release:** Exact/near-duplicate checks, manifest hashes, balanced nested
+  prefixes, final label validation, and complete final review are mechanical
+  release gates. Production remains locked until the revised pilot passes.

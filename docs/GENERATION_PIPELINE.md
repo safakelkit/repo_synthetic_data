@@ -94,12 +94,15 @@ real INSP-DET and Places365 pixels are not pasted into this method.
 
 ### Implemented pilot workflow
 
-The pilot configuration is `configs/generation/sdxl_fb2048_v1.yaml`; the runner
-is `src/generation/run_sdxl_fb2048_pipeline.py`. It generates 32 background and
-32 foreground candidates, then requires explicit review decisions before SAM3
+The pilot configuration is `configs/generation/sdxl_fb2048_v2.yaml`; the runner
+is `src/generation/run_sdxl_fb2048_pipeline.py`. It generates 64 background and
+128 foreground candidates (8 per class, stratified across every viewpoint,
+condition profile, and class-specific variant), then requires explicit review
+decisions before SAM3
 segmentation and again before the 16-image composition stage. Exact duplicate
 files, invalid mask geometry, incorrect class counts, review/manifest drift,
 and existing output directories stop the run. Production is locked in config.
+The 64-background pilot covers all four scene assignments for every class.
 
 Run each preflight on its assigned GPU. Unlike a structural dry run, this loads
 the real model/tokenizers and checks every scheduled prompt against both CLIP
@@ -111,12 +114,20 @@ CUDA_VISIBLE_DEVICES=1 ../env_sam3/bin/python src/generation/run_sdxl_fb2048_pip
 ```
 
 Remove `--preflight-only` only for the current stage. After background and
-foreground generation, edit only `review_status` and `review_reason` in their
-review CSV files. After segmentation, review the RGBA/mask rows in the same
-way. Every generated final remains training-forbidden pending final review.
+foreground generation, fill the required manual check columns and edit
+`review_status`/`review_reason` in their review CSV files. Accepted backgrounds
+also require a normalized safe support rectangle (`support_x1`, `support_y1`,
+`support_x2`, `support_y2`). After segmentation, review the RGBA/mask rows in
+the same way. Every generated final remains training-forbidden pending final review.
 Background and foreground generation use separate stage locks, atomically write
-images, and reuse valid partial images after an interruption. They can therefore
+images, and reuse partial images only when their embedded generation fingerprint
+matches the exact config, model, seed, prompt, and inference parameters. They can
 run concurrently on different GPUs and safely resume with the same command.
+
+The frozen COCO YOLO11s checkpoint screens every generated background,
+foreground, and final image for people. A detection is an irreversible automatic
+rejection for that candidate; manual `no_human=yes` remains required because a
+person detector may miss isolated hands or small figures.
 
 The initial pool is extended without deleting accepted candidates by
 `src/generation/extend_sdxl_fb2048_candidates.py`. Extensions preserve existing
@@ -126,14 +137,29 @@ explicit lower-third support-surface prompt; foreground retries may use frozen
 class-specific corrective wording. The extension preflight loads the real SDXL
 tokenizers before producing any image.
 
-Background diversity is not seed-only. The pilot and production schedule now
-crosses eight choices each for support type, room layout, wear, occupancy cues,
-camera, and lighting while retaining target-free review. This avoids reverting
-to the sterile empty-room pattern in the 2,560-candidate production run.
+Background diversity is not seed-only. Scene-specific recipes cross independent
+support, composition, camera, lighting, material, and guidance axes. Foreground
+diversity is also not seed-only: class-specific physical variants cross eight
+viewpoints and four condition profiles, producing 160 unique prompts per normal
+class and 192 for Aerosol.
 
-For geometry-sensitive classes that failed text-only retries, the controlled
+Composition uses the reviewer-marked safe support rectangle for each accepted
+background and class-specific object-size ranges. Fixed scene-wide placement
+centers are no longer used. Exact hashes, within-class foreground dHash checks,
+background dHash checks, immutable file hashes, and structured manual acceptance
+all gate composition. Production output is interleaved by class and writes
+balanced 512/1,024/1,536/2,048 subset manifests.
+
+For geometry-sensitive classes that failed text-only retries, the experimental controlled
 runner is `src/generation/generate_sdxl_fb2048_controlled_retries.py`. It draws
-non-photographic Canny geometry for Scissors, Cigarettes, Saw, and Battery and
+filled proxy silhouettes and derives non-photographic Canny geometry for
+Scissors, Cigarettes, Saw, and Battery. It
 uses SDXL ControlNet to generate all final pixels. No real object pixels or real
 silhouettes enter these controls. Outputs append to the same immutable candidate
-manifest and remain pending review.
+manifest and remain pending review. Because the earlier line-control version
+failed several identity checks, this path requires an explicit separate pilot
+and the `--allow-experimental` flag; it is not production-approved.
+
+After every final review row is accepted with all required checks, run the
+`finalize` stage. It revalidates image hashes, labels, class identity, perceptual
+uniqueness, and review completeness before writing `release_manifest.json`.
