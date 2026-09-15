@@ -136,8 +136,8 @@ def main() -> None:
             "Controlled retry is experimental; run its separate pilot with --allow-experimental"
         )
     class_ids = [int(value) for value in settings["class_ids"]]
-    if set(class_ids) != set(DRAWERS):
-        raise ValueError("Controlled retry classes and frozen geometry drawers disagree")
+    if not set(class_ids).issubset(DRAWERS):
+        raise ValueError("A controlled retry class lacks a frozen geometry drawer")
     count = int(settings["candidates_per_class"])
     names = {int(key): value for key, value in scenes["class_policy"]["names"].items()}
     targets = {int(key): value for key, value in config["foreground_generation"]["class_prompts"].items()}

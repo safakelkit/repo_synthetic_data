@@ -92,17 +92,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--pool", choices=("backgrounds", "foregrounds"), required=True)
-    parser.add_argument("--class-id", type=int, action="append", required=True, dest="class_ids")
-    parser.add_argument("--count-per-class", type=int, default=2)
+    parser.add_argument("--class-id", type=int, action="append", dest="class_ids")
+    parser.add_argument("--plan", help="Named focused_retry_plans entry from the config")
+    parser.add_argument("--count-per-class", type=int)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
-    if args.count_per_class < 1:
-        raise ValueError("--count-per-class must be positive")
-    class_ids = sorted(set(args.class_ids))
-    if any(class_id not in range(16) for class_id in class_ids):
-        raise ValueError(f"Class IDs must be in [0, 15]: {class_ids}")
-
     fb = load_pipeline_module()
     config_path = fb.repo_path(args.config)
     config = fb.load_yaml(config_path)
@@ -110,6 +105,26 @@ def main() -> None:
     config["_models_sha256"] = fb.sha256(fb.repo_path(config["models_config"]))
     scenes = fb.load_yaml(fb.repo_path(config["scene_policy"]))
     models = fb.load_yaml(fb.repo_path(config["models_config"]))
+    if args.plan:
+        if args.class_ids or args.count_per_class is not None:
+            raise ValueError("--plan cannot be combined with --class-id or --count-per-class")
+        plans = config["foreground_generation"].get("focused_retry_plans", {})
+        if args.plan not in plans:
+            raise ValueError(f"Unknown focused retry plan: {args.plan}")
+        plan = plans[args.plan]
+        if plan.get("status") != "ready" or plan.get("pool") != args.pool:
+            raise ValueError(f"Focused retry plan is not ready for {args.pool}: {args.plan}")
+        class_ids = sorted({int(class_id) for class_id in plan["class_ids"]})
+        count_per_class = int(plan["candidates_per_class"])
+    else:
+        if not args.class_ids:
+            raise ValueError("Provide --plan or at least one --class-id")
+        class_ids = sorted(set(args.class_ids))
+        count_per_class = 2 if args.count_per_class is None else args.count_per_class
+    if count_per_class < 1:
+        raise ValueError("Candidate count per class must be positive")
+    if any(class_id not in range(16) for class_id in class_ids):
+        raise ValueError(f"Class IDs must be in [0, 15]: {class_ids}")
     root = fb.repo_path(config["output_root"]) / "pilot" / args.pool
     manifest_path, review_path = root / "manifest.json", root / "review.csv"
     if not manifest_path.is_file() or not review_path.is_file():
@@ -123,7 +138,7 @@ def main() -> None:
     prompts = []
     negative_prompts = []
     attempts_by_class = {
-        class_id: next_attempts(records, class_id, args.count_per_class)
+        class_id: next_attempts(records, class_id, count_per_class)
         for class_id in class_ids
     }
     assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
@@ -225,7 +240,8 @@ def main() -> None:
         manifest.setdefault("extensions", []).append({
             "git": fb.git_state(), "script_sha256": fb.sha256(Path(__file__).resolve()),
             "config_sha256": fb.sha256(config_path), "class_ids": class_ids,
-            "count_per_class": args.count_per_class, "candidate_ids": [row["candidate_id"] for row in added],
+            "count_per_class": count_per_class, "plan": args.plan,
+            "candidate_ids": [row["candidate_id"] for row in added],
         })
         fb.write_json(manifest_path, manifest)
         reason = "review_retry_support_surface" if args.pool == "backgrounds" else "review_retry_object_identity"

@@ -132,10 +132,16 @@ person detector may miss isolated hands or small figures.
 Foreground retries are class-routed from the v2 pilot evidence. Every class now
 has a positive-only geometry description and a class-specific negative prompt.
 Simple classes remain text-to-image; ambiguous classes use text-to-image with
-strict review; Scissors, Pliers, Cigarettes, Saw, and Battery enter a separate
-synthetic-Canny pilot. Automatic person rejection is retained, while object
+strict review; Scissors and Cigarettes retain a separate synthetic-Canny route.
+Automatic person rejection is retained, while object
 count remains a manual hard gate because generic component counts cannot safely
 separate true duplicates from articulated parts, packaged contents, or shadows.
+
+The controlled pilot retained usable identity only for Scissors and Cigarettes.
+Pliers, Saw, and Battery are reassigned to the strict text-to-image route and
+have a named twelve-image fallback plan (`failed_control_text_fallback`). This
+focused plan appends new candidates without rerunning accepted backgrounds or
+the complete foreground pool.
 
 The initial pool is extended without deleting accepted candidates by
 `src/generation/extend_sdxl_fb2048_candidates.py`. Extensions preserve existing

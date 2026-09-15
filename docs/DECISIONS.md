@@ -397,3 +397,23 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Release boundary:** Controlled routing is still experimental until its
   class-wise pilot is reviewed. Neither prompt improvements nor automatic
   screens are assumed successful before generated evidence exists.
+
+## D034 - Fall back from over-constrained controls for three foreground classes
+
+- **Status:** Focused fallback pilot implemented; execution pending
+- **Date:** 2026-09-15
+- **Evidence:** The controlled v2 retry suppressed duplicate instances for all
+  five routed classes. Scissors retained usable identity and Cigarettes became
+  a single packaged unit. Pliers became scissor/tong-like, Saw became an
+  abstract frame, and Battery became a generic rectangular block. Their Canny
+  proxies were therefore controlling silhouette more strongly than SDXL could
+  recover class identity and material detail.
+- **Decision:** Keep Scissors and Cigarettes on the experimental controlled
+  route. Move Pliers, Saw, and Battery to strict-review text-to-image and test
+  their already frozen class-specific positive and negative prompts with four
+  new candidates per class. Do not modify successful backgrounds or rerun the
+  complete foreground pool.
+- **Execution:** The named `failed_control_text_fallback` plan appends exactly
+  twelve candidates to the existing manifest with provenance and person
+  screening. Production routing remains provisional until those outputs are
+  reviewed.

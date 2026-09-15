@@ -66,12 +66,22 @@ class PipelineStructureTests(unittest.TestCase):
                      ["generation_routes"]["controlled_geometry_pilot"])
         configured = set(self.config["foreground_generation"]["controlled_retry"]["class_ids"])
         self.assertEqual(routed, configured)
-        self.assertEqual(routed, set(controlled.DRAWERS))
+        self.assertTrue(routed.issubset(controlled.DRAWERS))
         for class_id in routed:
             control = controlled.make_control(class_id, 0, (1024, 1024))
             self.assertEqual((1024, 1024), control.size)
             extrema = control.convert("L").getextrema()
             self.assertEqual((0, 255), extrema)
+
+    def test_failed_control_fallback_plan_targets_strict_text_classes(self) -> None:
+        settings = self.config["foreground_generation"]
+        plan = settings["focused_retry_plans"]["failed_control_text_fallback"]
+        self.assertEqual("ready", plan["status"])
+        self.assertEqual("foregrounds", plan["pool"])
+        self.assertEqual({3, 8, 12}, set(plan["class_ids"]))
+        self.assertTrue(set(plan["class_ids"]).issubset(
+            settings["generation_routes"]["text_to_image_strict_review"]
+        ))
 
     def test_pilot_foregrounds_cover_every_variation_axis(self) -> None:
         counts = self.fb.validate_config(self.config, self.scenes, "pilot")

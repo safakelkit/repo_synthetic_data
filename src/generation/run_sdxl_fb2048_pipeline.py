@@ -270,6 +270,16 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
     retry_guidance_classes = {int(class_id) for class_id in foreground["retry_guidance"]}
     if controlled_classes != routed_controlled or retry_guidance_classes != routed_controlled:
         raise ValueError("Controlled routes, class IDs, and retry guidance must agree")
+    strict_text_classes = {
+        int(class_id) for class_id in foreground["generation_routes"]["text_to_image_strict_review"]
+    }
+    for plan_name, plan in foreground.get("focused_retry_plans", {}).items():
+        plan_classes = [int(class_id) for class_id in plan.get("class_ids", [])]
+        if (plan.get("status") != "ready" or plan.get("pool") != "foregrounds"
+                or not plan_classes or len(plan_classes) != len(set(plan_classes))
+                or not set(plan_classes).issubset(strict_text_classes)
+                or int(plan.get("candidates_per_class", 0)) < 1):
+            raise ValueError(f"Invalid focused foreground retry plan: {plan_name}")
     if len(scenes["class_policy"]["names"]) != CLASS_COUNT:
         raise ValueError("Scene policy must contain exactly 16 classes")
     background = config["background_generation"]

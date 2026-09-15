@@ -238,8 +238,14 @@ foreground_generation:
     15: second laptop, laptop lineup, stacked laptops, tablet, extra screen, detached keyboard, office scene
   generation_routes:
     text_to_image_primary: [0, 4, 5]
-    text_to_image_strict_review: [1, 6, 9, 10, 11, 13, 14, 15]
-    controlled_geometry_pilot: [2, 3, 7, 8, 12]
+    text_to_image_strict_review: [1, 3, 6, 8, 9, 10, 11, 12, 13, 14, 15]
+    controlled_geometry_pilot: [2, 7]
+  focused_retry_plans:
+    failed_control_text_fallback:
+      status: ready
+      pool: foregrounds
+      class_ids: [3, 8, 12]
+      candidates_per_class: 4
   class_variants:
     0:
       - translucent colored plastic body
@@ -354,13 +360,10 @@ foreground_generation:
     - natural off-center documentary view
   retry_guidance:
     2: joined blades and two finger loops share one central pivot
-    3: gripping jaws and two handles share one central pivot
     7: all visible cigarettes remain seated inside the open pack
-    8: the rigid bow frame, grip and thin blade form one assembled hand tool
-    12: compact PP3 casing with both snap terminals together on top
   controlled_retry:
     status: experimental_requires_separate_pilot
-    class_ids: [2, 3, 7, 8, 12]
+    class_ids: [2, 7]
     candidates_per_class: 4
     controlnet_conditioning_scale: 0.95
     prompt_template: >-
