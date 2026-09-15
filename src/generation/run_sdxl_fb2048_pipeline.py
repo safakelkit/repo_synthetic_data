@@ -176,6 +176,14 @@ def foreground_prompt(config: dict[str, Any], class_id: int, attempt: int) -> st
     )
 
 
+def foreground_negative_prompt(config: dict[str, Any], class_id: int) -> str:
+    settings = config["foreground_generation"]
+    class_negatives = {
+        int(key): value for key, value in settings["class_negative_prompts"].items()
+    }
+    return f"{settings['negative_prompt']}, {class_negatives[class_id]}"
+
+
 def pilot_foreground_attempts(config: dict[str, Any], class_id: int, count: int) -> list[int]:
     """Select sparse prompt-cycle positions that cover every foreground axis."""
     settings = config["foreground_generation"]
@@ -219,7 +227,7 @@ def foreground_prompts(config: dict[str, Any]) -> list[str]:
             * len({int(key): value for key, value in settings["class_variants"].items()}[class_id])
             * len(settings["condition_profiles"])
         )
-    ] + [settings["negative_prompt"]]
+    ] + [foreground_negative_prompt(config, class_id) for class_id in range(CLASS_COUNT)]
 
 
 def harmonization_prompts(config: dict[str, Any], scenes: dict[str, Any]) -> list[str]:
@@ -243,6 +251,25 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
         values = {int(class_id): value for class_id, value in foreground[key].items()}
         if set(values) != expected_classes or any(not value for value in values.values()):
             raise ValueError(f"Foreground {key} must cover all 16 classes")
+    negative_classes = {int(class_id) for class_id in foreground["class_negative_prompts"]}
+    if negative_classes != expected_classes:
+        raise ValueError("Foreground class_negative_prompts must cover all 16 classes")
+    route_classes = [
+        int(class_id)
+        for class_ids in foreground["generation_routes"].values()
+        for class_id in class_ids
+    ]
+    if len(route_classes) != CLASS_COUNT or set(route_classes) != expected_classes:
+        raise ValueError("Foreground generation routes must partition classes 0..15")
+    controlled_classes = {
+        int(class_id) for class_id in foreground["controlled_retry"]["class_ids"]
+    }
+    routed_controlled = {
+        int(class_id) for class_id in foreground["generation_routes"]["controlled_geometry_pilot"]
+    }
+    retry_guidance_classes = {int(class_id) for class_id in foreground["retry_guidance"]}
+    if controlled_classes != routed_controlled or retry_guidance_classes != routed_controlled:
+        raise ValueError("Controlled routes, class IDs, and retry guidance must agree")
     if len(scenes["class_policy"]["names"]) != CLASS_COUNT:
         raise ValueError("Scene policy must contain exactly 16 classes")
     background = config["background_generation"]
@@ -719,6 +746,7 @@ def generate_foregrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
     images.mkdir(parents=True)
     for index, (class_id, attempt) in enumerate(schedule):
         prompt = foreground_prompt(config, class_id, attempt)
+        negative_prompt = foreground_negative_prompt(config, class_id)
         seed = int(config["seed"]) + 100000 + class_id * 10000 + attempt
         path = images / f"fg_c{class_id:02d}_{attempt:04d}.png"
         candidate_id = f"fg_c{class_id:02d}_{attempt:04d}"
@@ -726,14 +754,14 @@ def generate_foregrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
             "pipeline_id": config["pipeline_id"], "stage": "foreground", "candidate_id": candidate_id,
             "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
             "seed": seed, "size": [width, height], "steps": int(config["inference_steps"]),
-            "prompt": prompt, "negative_prompt": settings["negative_prompt"],
+            "prompt": prompt, "negative_prompt": negative_prompt,
             "guidance_scale": float(settings["guidance_scale"]),
         }
         resumed = verified_existing_image(path, (width, height), generation_spec)
         started = time.monotonic()
         if not resumed:
             image = pipe(
-                prompt=prompt, negative_prompt=settings["negative_prompt"], width=width, height=height,
+                prompt=prompt, negative_prompt=negative_prompt, width=width, height=height,
                 num_inference_steps=int(config["inference_steps"]),
                 guidance_scale=float(settings["guidance_scale"]),
                 generator=torch.Generator(device="cpu").manual_seed(seed),
@@ -742,7 +770,7 @@ def generate_foregrounds(config: dict[str, Any], scenes: dict[str, Any], counts:
         records.append({"candidate_id": candidate_id, "class_id": class_id,
                         "class_name": names[class_id], "image_path": str(path.relative_to(REPO_ROOT)),
                         "sha256": sha256(path), "seed": seed, "attempt": attempt, "prompt": prompt,
-                        "negative_prompt": settings["negative_prompt"],
+                        "negative_prompt": negative_prompt,
                         "guidance_scale": float(settings["guidance_scale"]),
                         "generation_fingerprint": generation_fingerprint(generation_spec),
                         "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),

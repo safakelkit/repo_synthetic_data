@@ -12,12 +12,22 @@ from PIL import Image
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PIPELINE_PATH = REPO_ROOT / "src/generation/run_sdxl_fb2048_pipeline.py"
+CONTROLLED_PATH = REPO_ROOT / "src/generation/generate_sdxl_fb2048_controlled_retries.py"
 
 
 def load_pipeline():
     spec = importlib.util.spec_from_file_location("sdxl_fb2048_test", PIPELINE_PATH)
     if spec is None or spec.loader is None:
         raise RuntimeError("Cannot import SDXL-FB2048 pipeline")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_controlled():
+    spec = importlib.util.spec_from_file_location("sdxl_fb2048_controlled_test", CONTROLLED_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Cannot import controlled SDXL-FB2048 pipeline")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -39,6 +49,29 @@ class PipelineStructureTests(unittest.TestCase):
                            for attempt in range(count))
         self.assertEqual(2592, len(prompts))
         self.assertEqual(len(prompts), len(set(prompts)))
+
+    def test_foreground_negatives_are_class_specific_and_routes_partition_classes(self) -> None:
+        negatives = [self.fb.foreground_negative_prompt(self.config, class_id)
+                     for class_id in range(16)]
+        self.assertEqual(16, len(set(negatives)))
+        constraints = self.config["foreground_generation"]["class_constraints"].values()
+        self.assertTrue(all(" no " not in f" {value.lower()} " for value in constraints))
+        routes = self.config["foreground_generation"]["generation_routes"]
+        routed = [int(class_id) for class_ids in routes.values() for class_id in class_ids]
+        self.assertEqual(list(range(16)), sorted(routed))
+
+    def test_controlled_pilot_has_geometry_for_every_routed_class(self) -> None:
+        controlled = load_controlled()
+        routed = set(self.config["foreground_generation"]
+                     ["generation_routes"]["controlled_geometry_pilot"])
+        configured = set(self.config["foreground_generation"]["controlled_retry"]["class_ids"])
+        self.assertEqual(routed, configured)
+        self.assertEqual(routed, set(controlled.DRAWERS))
+        for class_id in routed:
+            control = controlled.make_control(class_id, 0, (1024, 1024))
+            self.assertEqual((1024, 1024), control.size)
+            extrema = control.convert("L").getextrema()
+            self.assertEqual((0, 255), extrema)
 
     def test_pilot_foregrounds_cover_every_variation_axis(self) -> None:
         counts = self.fb.validate_config(self.config, self.scenes, "pilot")

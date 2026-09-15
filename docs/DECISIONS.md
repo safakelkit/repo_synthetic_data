@@ -372,3 +372,28 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Release:** Exact/near-duplicate checks, manifest hashes, balanced nested
   prefixes, final label validation, and complete final review are mechanical
   release gates. Production remains locked until the revised pilot passes.
+
+## D033 - Route foreground classes by observed generation failure
+
+- **Status:** Implemented for a focused foreground retry pilot; execution pending
+- **Date:** 2026-09-15
+- **Evidence:** The v2 pilot produced complete, unique files and broader prompt
+  coverage, but exact single-unit compliance remained weak. Failures clustered
+  in articulated tools, packaged contents, and product classes commonly shown
+  as sets. One screwdriver also contained a hand.
+- **Prompt correction:** Positive prompts contain only desired identity and
+  connected geometry. Every class has its own negative prompt for its observed
+  duplicate, neighboring-class, detached-part, and human-context failures.
+  Container classes describe one packaged unit so contained matches or
+  cigarettes do not contradict the global single-unit instruction.
+- **Routing:** Lighter, Knife, and Shaver remain primary text-to-image classes.
+  Matches, Hammer, Screwdriver, Wrench, Aerosol, Alcohol, Mobile phone, and
+  Laptop use text-to-image with strict review. Scissors, Pliers, Cigarettes,
+  Saw, and Battery require a separate synthetic-Canny controlled pilot.
+- **Automatic screening boundary:** The frozen person detector remains a hard
+  automatic rejection. Generic component counting is not an acceptance oracle:
+  legitimate handles, blades, contained items, gaps, and shadows can appear as
+  separate regions. `single_object` therefore remains a manual hard gate.
+- **Release boundary:** Controlled routing is still experimental until its
+  class-wise pilot is reviewed. Neither prompt improvements nor automatic
+  screens are assumed successful before generated evidence exists.

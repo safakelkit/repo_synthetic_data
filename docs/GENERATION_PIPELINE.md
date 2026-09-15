@@ -129,6 +129,14 @@ foreground, and final image for people. A detection is an irreversible automatic
 rejection for that candidate; manual `no_human=yes` remains required because a
 person detector may miss isolated hands or small figures.
 
+Foreground retries are class-routed from the v2 pilot evidence. Every class now
+has a positive-only geometry description and a class-specific negative prompt.
+Simple classes remain text-to-image; ambiguous classes use text-to-image with
+strict review; Scissors, Pliers, Cigarettes, Saw, and Battery enter a separate
+synthetic-Canny pilot. Automatic person rejection is retained, while object
+count remains a manual hard gate because generic component counts cannot safely
+separate true duplicates from articulated parts, packaged contents, or shadows.
+
 The initial pool is extended without deleting accepted candidates by
 `src/generation/extend_sdxl_fb2048_candidates.py`. Extensions preserve existing
 review decisions, append new immutable manifest records, use new deterministic

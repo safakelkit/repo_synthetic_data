@@ -178,48 +178,68 @@ background_generation:
 foreground_generation:
   guidance_scale: 5.0
   prompt_template: >-
-    Unretouched evidence photo: {target}. {constraint}. Centered, fully visible,
-    plain light-gray background. {variant}. {condition}. {viewpoint}.
+    Documentary inventory photo of one isolated unit: {target}. {constraint}
+    Centered and fully visible on a seamless light-gray background. {variant}.
+    {condition}. {viewpoint}.
   negative_prompt: >-
-    person, hand, fingers, holding, multiple objects, collection, pile,
-    scattered objects, duplicate, wrong object, extra tool,
-    extra parts, cropped, occluded, deformed, fused, cartoon, illustration, toy,
-    miniature, CGI, 3D render, glossy plastic, text, logo, watermark, room,
-    clutter, blur
+    person, hand, fingers, holding, duplicate, group, set, lineup, collage,
+    detached, cropped, malformed, cartoon, illustration, CGI, text, logo,
+    watermark, room, clutter, blur
   class_prompts:
-    0: one disposable pocket lighter with ignition wheel and metal top
-    1: one open cardboard matchbox containing wooden safety matches with visible match heads
-    2: one pair of household scissors with two finger handles and two metal blades
-    3: one pair of combination pliers with two handles, gripping jaws and central pivot
-    4: one handheld knife with a single metal blade and handle
-    5: one disposable T-shaped manual razor with broad razor head and short handle
-    6: one claw hammer with metal head and wooden handle
-    7: one cigarette pack with several tobacco cigarettes visible at the open top
-    8: one handheld hacksaw with rigid frame, handle and toothed blade
-    9: one manual screwdriver with handle and long metal shaft
-    10: one metal wrench with a clearly visible jaw or ring end
-    11: one deodorant aerosol can with metal cylinder, cap, nozzle and flat base
-    12: one rectangular 9-volt battery with two snap terminals on top
-    13: one small glass bottle of alcoholic drink with neck and cap
-    14: one modern rectangular smartphone with glass screen, bezel and camera
-    15: one open laptop with hinged screen, keyboard and trackpad
+    0: a disposable pocket lighter, unlit
+    1: an open cardboard safety-match box as a single packaged unit
+    2: one complete closed household scissors tool
+    3: one complete combination-pliers tool with closed jaws
+    4: one intact utility knife with its blade exposed
+    5: one disposable T-shaped manual razor
+    6: one conventional claw hammer
+    7: one open cigarette pack as a single packaged unit
+    8: one complete manual hacksaw
+    9: one manual screwdriver lying unsupported
+    10: one conventional metal wrench
+    11: one unbranded deodorant aerosol can standing upright
+    12: one rectangular PP3 nine-volt battery standing upright
+    13: one sealed miniature glass spirits bottle
+    14: one modern slab smartphone
+    15: one open laptop computer as a single device
   class_constraints:
-    0: one lighter body and one ignition head; no second lighter or detached cap
-    1: one matchbox only; matches remain inside the box, no loose pile
-    2: exactly two handles, two blades and one pivot; no extra scissors
-    3: exactly two handles, two jaws and one central pivot; no second tool
-    4: one handle joined to one blade; no second knife or sheath
-    5: one handle joined to one razor head; no second razor
-    6: one hammer head joined to one handle; no axe blade or second tool
-    7: one open cigarette pack only; cigarettes stay inside, none scattered outside
-    8: one complete manual hacksaw with one frame, handle and blade; no power tool
-    9: one straight screwdriver only, one handle and one metal shaft
-    10: one conventional wrench only; no plier handles or bottle opener
-    11: single intact upright can; no second object
-    12: one PP3 9-volt battery only, rectangular body and two top terminals
-    13: one small sealed glass bottle only; no glass, cup or second bottle
-    14: one slab smartphone only; no stack, second phone, case or hand
-    15: one open laptop only; one screen base, keyboard base and central hinge
+    0: The ignition wheel, metal hood and fuel body form one intact lighter.
+    1: The wooden matches sit neatly inside the open inner tray.
+    2: Joined blades and finger loops meet at one shared central pivot.
+    3: Both handles and gripping jaws meet at one shared central pivot.
+    4: The visible blade is firmly joined to its handle as one intact knife.
+    5: The broad cartridge head is firmly joined to its short handle.
+    6: The claw head is firmly mounted on one straight handle.
+    7: All visible cigarettes remain seated vertically inside the opened pack.
+    8: The rigid bow frame, grip and thin toothed blade form one assembled hand tool.
+    9: The shaped handle and straight metal shaft form one intact hand tool.
+    10: The shaft and working end form one solid forged hand tool.
+    11: The cylindrical body ends in an integrated spray head and flat base.
+    12: The compact rectangular casing has its two snap terminals together on top.
+    13: The narrow neck, sealed cap and glass body form one intact bottle.
+    14: The flat display body and camera hardware form one intact handset.
+    15: The hinged screen and keyboard base form one open device.
+  class_negative_prompts:
+    0: flame, lit lighter, second lighter, loose cap, match, candle
+    1: second matchbox, loose matches, spilled matches, match pile, repeating boxes, closed box
+    2: second scissors, spare scissors, shears, forceps, pliers, knife, detached blade, extra pivot
+    3: second pliers, spare pliers, scissors, pruning shears, wrench, detached jaw, extra pivot
+    4: second knife, knife set, crossed knives, sheath, fork, scissors, detached blade
+    5: second razor, razor pack, replacement cartridge, electric shaver, toothbrush
+    6: second hammer, hammer set, axe, hatchet, mallet, pickaxe, detached head
+    7: second cigarette pack, loose cigarette, spilled cigarettes, cigarette pile, ashtray, lighter
+    8: second saw, saw set, folding knife, pruning saw, bow saw, power saw, drill, detached blade
+    9: second screwdriver, screwdriver set, hand gripping tool, drill bit, pen, chisel
+    10: second wrench, wrench set, crossed wrenches, pliers, bottle opener, carabiner
+    11: second can, spray-can set, loose cap, bottle, thermos, cosmetic lineup
+    12: second battery, battery pack, AA battery, AAA battery, charger, cable, adapter, electrical device
+    13: second bottle, bottle group, drinking glass, cup, decanter, open bottle, liquid spill
+    14: second phone, phone stack, phone lineup, tablet, folding phone, case, charging cable
+    15: second laptop, laptop lineup, stacked laptops, tablet, extra screen, detached keyboard, office scene
+  generation_routes:
+    text_to_image_primary: [0, 4, 5]
+    text_to_image_strict_review: [1, 6, 9, 10, 11, 13, 14, 15]
+    controlled_geometry_pilot: [2, 3, 7, 8, 12]
   class_variants:
     0:
       - translucent colored plastic body
@@ -333,20 +353,20 @@ foreground_generation:
     - top-oblique view
     - natural off-center documentary view
   retry_guidance:
-    2: two loops, two blades, one pivot; no shears
-    7: open pack only; cigarettes remain inside, no loose pile
-    8: complete manual bow frame and blade; no motor
-    12: PP3 form; no cable, holder or loose cells
-    14: single slab phone; no stack or folding device
+    2: joined blades and two finger loops share one central pivot
+    3: gripping jaws and two handles share one central pivot
+    7: all visible cigarettes remain seated inside the open pack
+    8: the rigid bow frame, grip and thin blade form one assembled hand tool
+    12: compact PP3 casing with both snap terminals together on top
   controlled_retry:
     status: experimental_requires_separate_pilot
-    class_ids: [2, 7, 8, 12]
-    candidates_per_class: 2
+    class_ids: [2, 3, 7, 8, 12]
+    candidates_per_class: 4
     controlnet_conditioning_scale: 0.95
     prompt_template: >-
       Realistic studio product photo of exactly {target}. One complete isolated
       object matching the supplied geometry, centered on a plain light-gray
-      background, natural material and minor wear, no hand. {guidance}.
+      background with natural material and minor wear. {guidance}.
     negative_prompt: >-
       multiple objects, duplicate, extra parts, disconnected parts, wrong
       object, malformed, cropped, hand, person, furniture, clutter, text, logo,
@@ -408,6 +428,9 @@ quality_gates:
     model_sha256: 85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5
     class_id: 0
     confidence: 0.20
+  multi_object_screen:
+    status: manual_hard_gate
+    reason: generic connected-component counts cannot distinguish object parts, contents, and shadows
   perceptual_hash:
     background_max_hamming_distance: 4
     foreground_max_hamming_distance_within_class: 3

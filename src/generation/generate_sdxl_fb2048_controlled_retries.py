@@ -59,6 +59,17 @@ def draw_scissors(canvas: np.ndarray) -> None:
     cv2.circle(canvas, (520, 515), 25, 255, -1)
 
 
+def draw_pliers(canvas: np.ndarray) -> None:
+    pivot = (512, 480)
+    cv2.line(canvas, pivot, (355, 800), 255, 72)
+    cv2.line(canvas, pivot, (670, 800), 255, 72)
+    left_jaw = np.array([[500, 485], [350, 250], [405, 205], [535, 455]], np.int32)
+    right_jaw = np.array([[525, 485], [675, 250], [620, 205], [490, 455]], np.int32)
+    cv2.fillConvexPoly(canvas, left_jaw, 255)
+    cv2.fillConvexPoly(canvas, right_jaw, 255)
+    cv2.circle(canvas, pivot, 46, 255, -1)
+
+
 def draw_cigarette_pack(canvas: np.ndarray) -> None:
     cv2.rectangle(canvas, (350, 330), (675, 790), 255, -1)
     cv2.rectangle(canvas, (350, 245), (675, 430), 255, -1)
@@ -86,7 +97,8 @@ def draw_battery(canvas: np.ndarray) -> None:
     cv2.ellipse(canvas, (570, 247), (30, 18), 0, 0, 360, 255, -1)
 
 
-DRAWERS = {2: draw_scissors, 7: draw_cigarette_pack, 8: draw_hacksaw, 12: draw_battery}
+DRAWERS = {2: draw_scissors, 3: draw_pliers, 7: draw_cigarette_pack,
+           8: draw_hacksaw, 12: draw_battery}
 
 
 def make_control(class_id: int, attempt: int, size: tuple[int, int]) -> Image.Image:
@@ -129,6 +141,10 @@ def main() -> None:
     count = int(settings["candidates_per_class"])
     names = {int(key): value for key, value in scenes["class_policy"]["names"].items()}
     targets = {int(key): value for key, value in config["foreground_generation"]["class_prompts"].items()}
+    class_negatives = {
+        int(key): value
+        for key, value in config["foreground_generation"]["class_negative_prompts"].items()
+    }
     guidance = {int(key): value for key, value in config["foreground_generation"]["retry_guidance"].items()}
     prompts = [
         settings["prompt_template"].format(target=targets[class_id], guidance=guidance[class_id])
@@ -139,7 +155,11 @@ def main() -> None:
     if not torch.cuda.is_available() or not 0 <= args.gpu < torch.cuda.device_count():
         raise RuntimeError(f"Logical CUDA device {args.gpu} is unavailable")
     pipe = load_control_pipeline(models, args.gpu)
-    fb.validate_prompts(pipe, prompts + [settings["negative_prompt"]])
+    negative_by_class = {
+        class_id: f"{settings['negative_prompt']}, {class_negatives[class_id]}"
+        for class_id in class_ids
+    }
+    fb.validate_prompts(pipe, prompts + list(negative_by_class.values()))
     if args.preflight_only:
         fb.release(pipe)
         print(json.dumps({"status": "ready", "class_ids": class_ids,
@@ -155,12 +175,14 @@ def main() -> None:
     if set(row["candidate_id"] for row in review_rows) != set(row["candidate_id"] for row in records):
         raise ValueError("Existing review and manifest candidate IDs do not match")
     width, height = map(int, config["output_size"])
+    attempts_by_class = {
+        class_id: extension.next_attempts(records, class_id, count)
+        for class_id in class_ids
+    }
     added = []
     with fb.stage_lock(root.parent, "foregrounds_controlled_extension"):
         for class_id in class_ids:
-            start = extension.next_round(records, class_id)
-            for offset in range(count):
-                attempt = start + offset
+            for attempt in attempts_by_class[class_id]:
                 candidate_id = f"fg_c{class_id:02d}_control_{attempt:04d}"
                 prompt = settings["prompt_template"].format(
                     target=targets[class_id], guidance=guidance[class_id])
@@ -173,7 +195,7 @@ def main() -> None:
                     "candidate_id": candidate_id, "config_sha256": config["_config_sha256"],
                     "models_sha256": config["_models_sha256"], "seed": seed,
                     "size": [width, height], "steps": int(config["inference_steps"]),
-                    "prompt": prompt, "negative_prompt": settings["negative_prompt"],
+                    "prompt": prompt, "negative_prompt": negative_by_class[class_id],
                     "guidance_scale": foreground_guidance,
                     "controlnet_conditioning_scale": float(settings["controlnet_conditioning_scale"]),
                 }
@@ -182,7 +204,7 @@ def main() -> None:
                 control = make_control(class_id, attempt, (width, height))
                 if not resumed:
                     result = pipe(
-                        prompt=prompt, negative_prompt=settings["negative_prompt"], image=control,
+                        prompt=prompt, negative_prompt=negative_by_class[class_id], image=control,
                         width=width, height=height, num_inference_steps=int(config["inference_steps"]),
                         guidance_scale=foreground_guidance,
                         controlnet_conditioning_scale=float(settings["controlnet_conditioning_scale"]),
@@ -193,11 +215,12 @@ def main() -> None:
                 added.append({
                     "candidate_id": candidate_id, "class_id": class_id,
                     "class_name": names[class_id], "image_path": str(image_path.relative_to(REPO_ROOT)),
-                    "sha256": fb.sha256(image_path), "seed": seed, "prompt": prompt,
+                    "sha256": fb.sha256(image_path), "seed": seed, "attempt": attempt,
+                    "prompt": prompt,
                     "control_path": str(control_path.relative_to(REPO_ROOT)),
                     "control_sha256": fb.sha256(control_path), "control_source": "synthetic_programmatic_canny",
                     "real_pixels_reused": False, "controlled_retry": True, "retry": True,
-                    "negative_prompt": settings["negative_prompt"],
+                    "negative_prompt": negative_by_class[class_id],
                     "guidance_scale": foreground_guidance,
                     "generation_fingerprint": fb.generation_fingerprint(generation_spec),
                     "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),

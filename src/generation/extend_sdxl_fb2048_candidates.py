@@ -121,6 +121,7 @@ def main() -> None:
         raise ValueError("Existing review and manifest candidate IDs do not match")
 
     prompts = []
+    negative_prompts = []
     attempts_by_class = {
         class_id: next_attempts(records, class_id, args.count_per_class)
         for class_id in class_ids
@@ -134,6 +135,8 @@ def main() -> None:
                 if args.pool == "backgrounds"
                 else fb.foreground_prompt(config, class_id, attempt)
             )
+            if args.pool == "foregrounds":
+                negative_prompts.append(fb.foreground_negative_prompt(config, class_id))
 
     if fb.git_state()["dirty"]:
         raise RuntimeError("Commit retry code/config before launch")
@@ -141,11 +144,10 @@ def main() -> None:
         raise RuntimeError(f"Logical CUDA device {args.gpu} is unavailable")
     pipe = fb.load_base_pipeline(models, args.gpu)
     settings = config["background_generation" if args.pool == "backgrounds" else "foreground_generation"]
-    negative = settings["negative_prompt"]
     if args.pool == "backgrounds":
         fb.validate_background_conditionings(pipe, prompts)
     else:
-        fb.validate_prompts(pipe, prompts + [negative])
+        fb.validate_prompts(pipe, prompts + list(dict.fromkeys(negative_prompts)))
     if args.preflight_only:
         fb.release(pipe)
         print(json.dumps({"status": "ready", "pool": args.pool, "class_ids": class_ids,
@@ -163,6 +165,8 @@ def main() -> None:
                 scene_name = assignments[class_id][attempt % len(assignments[class_id])]
                 prompt_data = prompts[prompt_index]; prompt_index += 1
                 prompt = prompt_data["prompt"] if args.pool == "backgrounds" else prompt_data
+                negative = (settings["negative_prompt"] if args.pool == "backgrounds"
+                            else fb.foreground_negative_prompt(config, class_id))
                 seed_offset = 500000 if args.pool == "backgrounds" else 600000
                 seed = int(config["seed"]) + seed_offset + class_id * 10000 + attempt
                 path = root / "images" / f"{candidate_id}.png"
