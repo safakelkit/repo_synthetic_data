@@ -203,7 +203,7 @@ foreground_generation:
     8: one complete manual hacksaw
     9: one manual screwdriver lying unsupported
     10: one conventional metal wrench
-    11: one upright spray-paint aerosol can with exposed nozzle
+    11: one upright deodorant body-spray aerosol can, uncapped
     12: one rectangular PP3 nine-volt battery standing upright
     13: one sealed miniature glass spirits bottle
     14: one modern slab smartphone
@@ -220,7 +220,7 @@ foreground_generation:
     8: The rigid bow frame, grip and thin toothed blade form one assembled hand tool.
     9: The shaped handle and straight metal shaft form one intact hand tool.
     10: The shaft and working end form one solid forged hand tool.
-    11: Straight metal cylinder, flat base, domed shoulder and one push-button spray head.
+    11: Straight metal cylinder, flat base and small plastic push-button nozzle on top.
     12: The compact rectangular casing has its two snap terminals together on top.
     13: The narrow neck, sealed cap and glass body form one intact bottle.
     14: The flat display body and camera hardware form one intact handset.
@@ -237,7 +237,7 @@ foreground_generation:
     8: second saw, saw set, folding knife, pruning saw, bow saw, power saw, drill, detached blade
     9: second screwdriver, screwdriver set, hand gripping tool, drill bit, pen, chisel
     10: second wrench, wrench set, crossed wrenches, pliers, bottle opener, carabiner
-    11: second can, spray-can set, closed protective cap, loose cap, bottle, thermos, cosmetic lineup
+    11: fire extinguisher, hose, trigger, airbrush, loose cap, bottle, thermos, duplicate
     12: second battery, battery pack, AA battery, AAA battery, charger, cable, adapter, electrical device
     13: second bottle, bottle group, drinking glass, cup, decanter, open bottle, liquid spill
     14: second phone, phone stack, phone lineup, tablet, folding phone, case, charging cable
@@ -253,6 +253,11 @@ foreground_generation:
       class_ids: [3, 8, 12]
       candidates_per_class: 4
     aerosol_spray_identity:
+      status: ready
+      pool: foregrounds
+      class_ids: [11]
+      candidates_per_class: 4
+    aerosol_body_spray_identity:
       status: ready
       pool: foregrounds
       class_ids: [11]
