@@ -85,12 +85,12 @@ model feasibility is established, but its canonical work remains pending.
 
 1. Preserve the complete SDXL-M seed-0 result matrix without test-driven
    generator retuning.
-2. Review the new isolated shape-guided SDXL pilot for Scissors, Pliers, and
-   9V Battery. The earlier FB2048 v2 candidate images were removed on researcher
-   request after failing visual review. Regenerate an all-class pilot only once
-   the difficult foreground classes have a reliable source route. Then test
-   segmentation, 16-image composition, and local harmonization before any
-   2,048-image production release.
+2. Review the current 156-candidate FB2048 foreground pilot. Twenty synthetic
+   Canny retries improved the identity of Scissors, Pliers, Saw and 9V Battery;
+   controlled Aerosol failed, while the deodorant body-spray text retry yielded
+   two recognizable cans. None has been accepted for segmentation. After one
+   valid foreground per class passes researcher review, test segmentation,
+   16-image composition and local harmonization before any 2,048-image release.
 3. Complete the planned Qwen baseline under the same detector protocol.
 4. Decide additional detector seeds and the numerical clean-loss tolerance.
 

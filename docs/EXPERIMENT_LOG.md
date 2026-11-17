@@ -1,5 +1,27 @@
 # Experiment Log
 
+## 2026-11-18 — FB2048 foreground identity retries
+
+- The first all-class foreground pilot completed with 128 images (8/class).
+  Structural QC passed: all 128 images are 1024x1024, hashes are unique and
+  match the manifest. One Screwdriver candidate was automatically rejected for
+  person detection; all other rows remain pending researcher review.
+- Visual review found malformed Scissors, Pliers, Saw and PP3 Battery geometry,
+  plus unreliable Aerosol identity. A synthetic filled-shape Canny retry with
+  class-specific prompts and 0.55–0.65 ControlNet scales added four candidates
+  each for those five classes (20 total) on GPU 2. Scissors, Pliers, Saw and
+  Battery now have recognizable pilot candidates. The four controlled Aerosol
+  outputs still lacked a dependable spray actuator and remain unapproved.
+- A four-image `spray-paint aerosol` text retry produced extinguisher-like
+  heads and failed visual screening as a prompt route. A four-image `deodorant body-spray`
+  text retry produced two clear spray-can candidates (`fg_c11_retry_0009` and
+  `fg_c11_retry_0012`); the other two have a cap or multiple containers.
+- The foreground pool now has 156 manifest/review rows, 156 unique matching
+  file hashes, valid 1024x1024 images, 155 pending decisions and one automatic
+  rejection. No candidate was accepted for segmentation or training. The
+  production lock remains active.
+- Review sheets: `data/synthetic/sdxl_fb2048_v2/pilot/foregrounds/review_sheets/`.
+
 ## 2026-11-18 — GenAI image reset and isolated shape-guided foreground pilot
 
 - The researcher requested removal of all current GenAI synthetic image

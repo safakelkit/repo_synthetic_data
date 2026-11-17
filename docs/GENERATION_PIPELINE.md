@@ -201,15 +201,17 @@ background dHash checks, immutable file hashes, and structured manual acceptance
 all gate composition. Production output is interleaved by class and writes
 balanced 512/1,024/1,536/2,048 subset manifests.
 
-For geometry-sensitive classes that failed text-only retries, the experimental controlled
-runner is `src/generation/generate_sdxl_fb2048_controlled_retries.py`. It draws
-filled proxy silhouettes and derives non-photographic Canny geometry for
-Scissors, Cigarettes, Saw, and Battery. It
-uses SDXL ControlNet to generate all final pixels. No real object pixels or real
-silhouettes enter these controls. Outputs append to the same immutable candidate
-manifest and remain pending review. Because the earlier line-control version
-failed several identity checks, this path requires an explicit separate pilot
-and the `--allow-experimental` flag; it is not production-approved.
+For geometry-sensitive classes, the experimental controlled runner is
+`src/generation/generate_sdxl_fb2048_controlled_retries.py`. Its current retry
+schedule draws synthetic filled shapes and Canny edges for Scissors, Pliers,
+Saw, Aerosol and PP3 Battery, with a short class-specific identity prompt and
+class-specific ControlNet scale. No real object pixels or silhouettes enter
+these controls. The first 20-image retry improved Scissors, Pliers, Saw and
+Battery identity; controlled Aerosol still failed. A separate text-only
+deodorant body-spray retry yielded two recognizable Aerosol candidates. These
+are candidate observations, not accepted sources. All outputs append to the
+immutable pilot manifest as pending review rows. The controlled runner requires
+`--allow-experimental` and is not approved for production.
 
 After every final review row is accepted with all required checks, run the
 `finalize` stage. It revalidates image hashes, labels, class identity, perceptual

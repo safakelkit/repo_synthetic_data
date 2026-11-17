@@ -19,8 +19,12 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
   revised Pliers images. Scissors and 9V Battery improve in object count and
   broad silhouette; Pliers improves in the revised pilot but still has
   geometry/artifact defects.
-- [ ] Refine and visually approve the three difficult foreground classes;
-  regenerate a revised all-class pilot only after they pass.
+- [x] Generate the revised all-class 128-image foreground pilot and 28 focused
+  retry candidates; verify all 156 image hashes, dimensions and review rows.
+  Shape-guided retries improved Scissors, Pliers, Saw and Battery; the
+  deodorant body-spray prompt yielded two identifiable Aerosol candidates.
+- [ ] Researcher-review one valid foreground per class, including the five
+  difficult classes, before launching SAM3 segmentation.
 - [x] Replace the production background prompt schedule with explicit support,
   layout, wear, occupancy, camera, and lighting axes; add a same-policy organic
   all-class retry before freezing production.
