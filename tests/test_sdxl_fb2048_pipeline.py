@@ -60,14 +60,16 @@ class PipelineStructureTests(unittest.TestCase):
         routed = [int(class_id) for class_ids in routes.values() for class_id in class_ids]
         self.assertEqual(list(range(16)), sorted(routed))
 
-    def test_controlled_pilot_has_geometry_for_every_routed_class(self) -> None:
+    def test_controlled_retry_has_geometry_and_prompt_for_each_target_class(self) -> None:
         controlled = load_controlled()
-        routed = set(self.config["foreground_generation"]
-                     ["generation_routes"]["controlled_geometry_pilot"])
-        configured = set(self.config["foreground_generation"]["controlled_retry"]["class_ids"])
-        self.assertEqual(routed, configured)
-        self.assertTrue(routed.issubset(controlled.DRAWERS))
-        for class_id in routed:
+        retry = self.config["foreground_generation"]["controlled_retry"]
+        configured = set(retry["class_ids"])
+        self.assertEqual(configured, set(retry["identity_prompts"]))
+        self.assertEqual(configured, set(retry["controlnet_conditioning_scale_by_class"]))
+        self.assertTrue(configured.issubset(controlled.DRAWERS))
+        for class_id in configured:
+            self.assertIn("one", retry["identity_prompts"][class_id].lower())
+            self.assertLessEqual(retry["controlnet_conditioning_scale_by_class"][class_id], 0.65)
             control = controlled.make_control(class_id, 0, (1024, 1024))
             self.assertEqual((1024, 1024), control.size)
             extrema = control.convert("L").getextrema()

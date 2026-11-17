@@ -369,17 +369,38 @@ foreground_generation:
     7: all visible cigarettes remain seated inside the open pack
   controlled_retry:
     status: experimental_requires_separate_pilot
-    class_ids: [2, 7]
+    class_ids: [2, 3, 8, 11, 12]
     candidates_per_class: 4
-    controlnet_conditioning_scale: 0.95
-    prompt_template: >-
-      Realistic studio product photo of exactly {target}. One complete isolated
-      object matching the supplied geometry, centered on a plain light-gray
-      background with natural material and minor wear. {guidance}.
+    controlnet_conditioning_scale_by_class:
+      2: 0.55
+      3: 0.60
+      8: 0.65
+      11: 0.55
+      12: 0.60
+    identity_prompts:
+      2: >-
+        Product photo of one ordinary household scissors, closed. Two straight
+        steel cutting blades extend upward from one pivot. Two separate oval
+        finger holes on the handles below. One intact tool on gray.
+      3: >-
+        Product photo of one ordinary combination pliers. Two short serrated
+        metal jaws at the top, one central pivot, two long red rubber handles
+        below. One intact tool on gray.
+      8: >-
+        Product photo of one manual hacksaw. A rigid C-shaped metal frame joins
+        a thin straight toothed blade at both ends. One pistol grip at the rear.
+        One intact hand tool on gray.
+      11: >-
+        Product photo of one pressurized aerosol spray can standing upright.
+        Straight cylindrical metal body, flat round base, domed shoulder and
+        exposed push-button spray nozzle with a tiny side opening. No cap.
+      12: >-
+        Product photo of one ordinary PP3 nine-volt alkaline battery standing
+        upright. Compact rectangular battery body, flat top, exactly two
+        unequal circular snap terminals side by side on that top. On gray.
     negative_prompt: >-
-      multiple objects, duplicate, extra parts, disconnected parts, wrong
-      object, malformed, cropped, hand, person, furniture, clutter, text, logo,
-      watermark, cartoon, illustration, CGI, blur
+      duplicate, extra parts, disconnected parts, wrong object, malformed,
+      cropped, hand, person, text, logo, cartoon, illustration, CGI, blur
 
 segmentation:
   model_id: facebook/sam3

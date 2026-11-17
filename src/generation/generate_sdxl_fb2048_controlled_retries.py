@@ -49,25 +49,26 @@ def load_control_pipeline(models: dict[str, Any], gpu: int):
 
 
 def draw_scissors(canvas: np.ndarray) -> None:
-    cv2.fillConvexPoly(canvas, np.array([[505, 520], [305, 220], [485, 500]], np.int32), 255)
-    cv2.fillConvexPoly(canvas, np.array([[530, 520], [720, 225], [550, 505]], np.int32), 255)
-    for center, angle in (((390, 690), -25), ((590, 690), 25)):
-        cv2.ellipse(canvas, center, (120, 82), angle, 0, 360, 255, -1)
-        cv2.ellipse(canvas, center, (78, 43), angle, 0, 360, 0, -1)
-    cv2.line(canvas, (455, 625), (510, 515), 255, 45)
-    cv2.line(canvas, (535, 515), (525, 625), 255, 45)
-    cv2.circle(canvas, (520, 515), 25, 255, -1)
+    # Closed, joined blades above the pivot; two distinct lower finger loops.
+    cv2.fillConvexPoly(canvas, np.array([[510, 490], [470, 210], [485, 205], [530, 490]], np.int32), 255)
+    cv2.fillConvexPoly(canvas, np.array([[525, 490], [535, 210], [550, 205], [540, 490]], np.int32), 255)
+    cv2.line(canvas, (510, 500), (420, 660), 255, 34)
+    cv2.line(canvas, (535, 500), (605, 660), 255, 34)
+    for center, angle in (((390, 730), -25), ((630, 730), 25)):
+        cv2.ellipse(canvas, center, (88, 112), angle, 0, 360, 255, -1)
+        cv2.ellipse(canvas, center, (50, 70), angle, 0, 360, 0, -1)
+    cv2.circle(canvas, (522, 500), 23, 255, -1)
+    cv2.circle(canvas, (522, 500), 9, 0, -1)
 
 
 def draw_pliers(canvas: np.ndarray) -> None:
-    pivot = (512, 480)
-    cv2.line(canvas, pivot, (355, 800), 255, 72)
-    cv2.line(canvas, pivot, (670, 800), 255, 72)
-    left_jaw = np.array([[500, 485], [350, 250], [405, 205], [535, 455]], np.int32)
-    right_jaw = np.array([[525, 485], [675, 250], [620, 205], [490, 455]], np.int32)
-    cv2.fillConvexPoly(canvas, left_jaw, 255)
-    cv2.fillConvexPoly(canvas, right_jaw, 255)
-    cv2.circle(canvas, pivot, 46, 255, -1)
+    pivot = (512, 455)
+    cv2.fillConvexPoly(canvas, np.array([[497, 455], [475, 285], [497, 255], [511, 385]], np.int32), 255)
+    cv2.fillConvexPoly(canvas, np.array([[527, 455], [527, 385], [540, 255], [562, 285]], np.int32), 255)
+    cv2.line(canvas, (501, 465), (365, 810), 255, 66)
+    cv2.line(canvas, (523, 465), (660, 810), 255, 66)
+    cv2.circle(canvas, pivot, 27, 255, -1)
+    cv2.circle(canvas, pivot, 10, 0, -1)
 
 
 def draw_cigarette_pack(canvas: np.ndarray) -> None:
@@ -80,25 +81,34 @@ def draw_cigarette_pack(canvas: np.ndarray) -> None:
 
 
 def draw_hacksaw(canvas: np.ndarray) -> None:
-    cv2.line(canvas, (280, 300), (735, 300), 255, 45)
-    cv2.line(canvas, (280, 300), (230, 650), 255, 45)
-    cv2.line(canvas, (735, 300), (785, 625), 255, 45)
-    cv2.line(canvas, (235, 650), (780, 650), 255, 18)
-    handle = np.array([[700, 545], [865, 575], [850, 770], [705, 735]], np.int32)
+    cv2.line(canvas, (265, 360), (745, 360), 255, 42)
+    cv2.line(canvas, (265, 360), (245, 650), 255, 42)
+    cv2.line(canvas, (745, 360), (745, 650), 255, 42)
+    cv2.line(canvas, (245, 650), (745, 650), 255, 13)
+    handle = np.array([[706, 510], [852, 570], [845, 770], [710, 720]], np.int32)
     cv2.fillConvexPoly(canvas, handle, 255)
-    hole = np.array([[750, 605], [820, 620], [812, 710], [752, 700]], np.int32)
+    hole = np.array([[748, 590], [815, 615], [810, 705], [750, 685]], np.int32)
     cv2.fillConvexPoly(canvas, hole, 0)
 
 
 def draw_battery(canvas: np.ndarray) -> None:
-    cv2.rectangle(canvas, (390, 275), (635, 790), 255, -1)
-    cv2.rectangle(canvas, (410, 250), (615, 305), 255, -1)
-    cv2.ellipse(canvas, (455, 247), (42, 24), 0, 0, 360, 255, -1)
-    cv2.ellipse(canvas, (570, 247), (30, 18), 0, 0, 360, 255, -1)
+    cv2.rectangle(canvas, (390, 345), (635, 735), 255, -1)
+    cv2.rectangle(canvas, (395, 325), (630, 355), 180, -1)
+    cv2.circle(canvas, (455, 313), 32, 255, -1)
+    cv2.circle(canvas, (565, 313), 23, 255, -1)
+    cv2.circle(canvas, (455, 313), 17, 0, -1)
+
+
+def draw_aerosol(canvas: np.ndarray) -> None:
+    cv2.rectangle(canvas, (405, 345), (620, 805), 255, -1)
+    cv2.ellipse(canvas, (512, 345), (108, 45), 0, 180, 360, 255, -1)
+    cv2.rectangle(canvas, (485, 260), (540, 335), 255, -1)
+    cv2.circle(canvas, (538, 284), 8, 0, -1)
+    cv2.line(canvas, (410, 795), (615, 795), 90, 5)
 
 
 DRAWERS = {2: draw_scissors, 3: draw_pliers, 7: draw_cigarette_pack,
-           8: draw_hacksaw, 12: draw_battery}
+           8: draw_hacksaw, 11: draw_aerosol, 12: draw_battery}
 
 
 def make_control(class_id: int, attempt: int, size: tuple[int, int]) -> Image.Image:
@@ -140,16 +150,18 @@ def main() -> None:
         raise ValueError("A controlled retry class lacks a frozen geometry drawer")
     count = int(settings["candidates_per_class"])
     names = {int(key): value for key, value in scenes["class_policy"]["names"].items()}
-    targets = {int(key): value for key, value in config["foreground_generation"]["class_prompts"].items()}
+    identity_prompts = {int(key): value for key, value in settings["identity_prompts"].items()}
     class_negatives = {
         int(key): value
         for key, value in config["foreground_generation"]["class_negative_prompts"].items()
     }
-    guidance = {int(key): value for key, value in config["foreground_generation"]["retry_guidance"].items()}
-    prompts = [
-        settings["prompt_template"].format(target=targets[class_id], guidance=guidance[class_id])
-        for class_id in class_ids for _ in range(count)
-    ]
+    control_scales = {int(key): float(value) for key, value in
+                      settings["controlnet_conditioning_scale_by_class"].items()}
+    if set(class_ids) != set(identity_prompts) or set(class_ids) != set(control_scales):
+        raise ValueError("Each controlled retry class needs its own prompt and Canny scale")
+    if any(not 0.0 < control_scales[class_id] <= 1.0 for class_id in class_ids):
+        raise ValueError("Controlled retry Canny scales must be in (0, 1]")
+    prompts = [identity_prompts[class_id] for class_id in class_ids]
     if fb.git_state()["dirty"]:
         raise RuntimeError("Commit controlled retry code/config before launch")
     if not torch.cuda.is_available() or not 0 <= args.gpu < torch.cuda.device_count():
@@ -163,7 +175,7 @@ def main() -> None:
     if args.preflight_only:
         fb.release(pipe)
         print(json.dumps({"status": "ready", "class_ids": class_ids,
-                          "new_candidates": len(prompts), "synthetic_canny_only": True,
+                          "new_candidates": len(class_ids) * count, "synthetic_canny_only": True,
                           "runtime_prompts_validated": True}, indent=2))
         return
 
@@ -184,8 +196,7 @@ def main() -> None:
         for class_id in class_ids:
             for attempt in attempts_by_class[class_id]:
                 candidate_id = f"fg_c{class_id:02d}_control_{attempt:04d}"
-                prompt = settings["prompt_template"].format(
-                    target=targets[class_id], guidance=guidance[class_id])
+                prompt = identity_prompts[class_id]
                 seed = int(config["seed"]) + 700000 + class_id * 10000 + attempt
                 image_path = root / "images" / f"{candidate_id}.png"
                 control_path = root / "controls" / f"{candidate_id}.png"
@@ -197,7 +208,7 @@ def main() -> None:
                     "size": [width, height], "steps": int(config["inference_steps"]),
                     "prompt": prompt, "negative_prompt": negative_by_class[class_id],
                     "guidance_scale": foreground_guidance,
-                    "controlnet_conditioning_scale": float(settings["controlnet_conditioning_scale"]),
+                    "controlnet_conditioning_scale": control_scales[class_id],
                 }
                 resumed = fb.verified_existing_image(image_path, (width, height), generation_spec)
                 started = time.monotonic()
@@ -207,7 +218,7 @@ def main() -> None:
                         prompt=prompt, negative_prompt=negative_by_class[class_id], image=control,
                         width=width, height=height, num_inference_steps=int(config["inference_steps"]),
                         guidance_scale=foreground_guidance,
-                        controlnet_conditioning_scale=float(settings["controlnet_conditioning_scale"]),
+                        controlnet_conditioning_scale=control_scales[class_id],
                         generator=torch.Generator(device="cpu").manual_seed(seed),
                     ).images[0]
                     fb.save_image_atomic(result, image_path, generation_spec)
@@ -222,11 +233,12 @@ def main() -> None:
                     "real_pixels_reused": False, "controlled_retry": True, "retry": True,
                     "negative_prompt": negative_by_class[class_id],
                     "guidance_scale": foreground_guidance,
+                    "controlnet_conditioning_scale": control_scales[class_id],
                     "generation_fingerprint": fb.generation_fingerprint(generation_spec),
                     "seconds": 0.0 if resumed else round(time.monotonic() - started, 3),
                     "resumed_existing": resumed,
                 })
-                print(f"[controlled retry {len(added)}/{len(prompts)}] {candidate_id}", flush=True)
+                print(f"[controlled retry {len(added)}/{len(class_ids) * count}] {candidate_id}", flush=True)
         fb.release(pipe)
         fb.apply_person_screen(config, added, args.gpu)
         records.extend(added)

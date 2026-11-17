@@ -311,8 +311,13 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
         int(class_id) for class_id in foreground["generation_routes"]["controlled_geometry_pilot"]
     }
     retry_guidance_classes = {int(class_id) for class_id in foreground["retry_guidance"]}
-    if controlled_classes != routed_controlled or retry_guidance_classes != routed_controlled:
-        raise ValueError("Controlled routes, class IDs, and retry guidance must agree")
+    retry_settings = foreground["controlled_retry"]
+    identity_classes = {int(class_id) for class_id in retry_settings["identity_prompts"]}
+    scale_classes = {int(class_id) for class_id in retry_settings["controlnet_conditioning_scale_by_class"]}
+    if (not controlled_classes.issubset(expected_classes)
+            or controlled_classes != identity_classes or controlled_classes != scale_classes
+            or retry_guidance_classes != routed_controlled):
+        raise ValueError("Controlled retry prompts/scales and primary routes must cover their configured classes")
     strict_text_classes = {
         int(class_id) for class_id in foreground["generation_routes"]["text_to_image_strict_review"]
     }
