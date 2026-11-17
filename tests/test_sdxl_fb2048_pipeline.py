@@ -69,11 +69,22 @@ class PipelineStructureTests(unittest.TestCase):
         self.assertTrue(configured.issubset(controlled.DRAWERS))
         for class_id in configured:
             self.assertIn("one", retry["identity_prompts"][class_id].lower())
-            self.assertLessEqual(retry["controlnet_conditioning_scale_by_class"][class_id], 0.65)
+            self.assertLessEqual(retry["controlnet_conditioning_scale_by_class"][class_id], 0.70)
             control = controlled.make_control(class_id, 0, (1024, 1024))
             self.assertEqual((1024, 1024), control.size)
             extrema = control.convert("L").getextrema()
             self.assertEqual((0, 255), extrema)
+
+    def test_saw_blade_teeth_and_battery_label_are_in_synthetic_control(self) -> None:
+        import numpy as np
+
+        controlled = load_controlled()
+        saw = np.zeros((1024, 1024), dtype=np.uint8)
+        battery = np.zeros((1024, 1024), dtype=np.uint8)
+        controlled.draw_hacksaw(saw)
+        controlled.draw_battery(battery)
+        self.assertGreater(np.count_nonzero(saw[671:681, 265:730]), 100)
+        self.assertGreater(len(np.unique(battery[410:672, 412:613])), 2)
 
     def test_failed_control_fallback_plan_targets_strict_text_classes(self) -> None:
         settings = self.config["foreground_generation"]

@@ -217,11 +217,11 @@ foreground_generation:
     5: The broad cartridge head is firmly joined to its short handle.
     6: The claw head is firmly mounted on one straight handle.
     7: All visible cigarettes remain seated vertically inside the opened pack.
-    8: The rigid bow frame, grip and thin toothed blade form one assembled hand tool.
+    8: The rigid frame holds one thin toothed blade at both ends, beside a single grip.
     9: The shaped handle and straight metal shaft form one intact hand tool.
     10: The shaft and working end form one solid forged hand tool.
     11: Straight metal cylinder, flat base and small plastic push-button nozzle on top.
-    12: The compact rectangular casing has its two snap terminals together on top.
+    12: Printed wrapper on a compact casing; one hollow and one solid snap terminal on top.
     13: The narrow neck, sealed cap and glass body form one intact bottle.
     14: The flat display body and camera hardware form one intact handset.
     15: The hinged screen and keyboard base form one open device.
@@ -234,11 +234,11 @@ foreground_generation:
     5: second razor, razor pack, replacement cartridge, electric shaver, toothbrush
     6: second hammer, hammer set, axe, hatchet, mallet, pickaxe, detached head
     7: second cigarette pack, loose cigarette, spilled cigarettes, cigarette pile, ashtray, lighter
-    8: second saw, saw set, folding knife, pruning saw, bow saw, power saw, drill, detached blade
+    8: second saw, saw set, folding knife, pruning saw, power saw, drill, detached blade, smooth wire, empty frame
     9: second screwdriver, screwdriver set, hand gripping tool, drill bit, pen, chisel
     10: second wrench, wrench set, crossed wrenches, pliers, bottle opener, carabiner
     11: fire extinguisher, hose, trigger, airbrush, loose cap, bottle, thermos, duplicate
-    12: second battery, battery pack, AA battery, AAA battery, charger, cable, adapter, electrical device
+    12: second battery, battery pack, AA battery, AAA battery, charger, cable, screw posts, plain box
     13: second bottle, bottle group, drinking glass, cup, decanter, open bottle, liquid spill
     14: second phone, phone stack, phone lineup, tablet, folding phone, case, charging cable
     15: second laptop, laptop lineup, stacked laptops, tablet, extra screen, detached keyboard, office scene
@@ -384,9 +384,9 @@ foreground_generation:
     controlnet_conditioning_scale_by_class:
       2: 0.55
       3: 0.60
-      8: 0.65
+      8: 0.70
       11: 0.55
-      12: 0.60
+      12: 0.55
     identity_prompts:
       2: >-
         Product photo of one ordinary household scissors, closed. Two straight
@@ -397,17 +397,18 @@ foreground_generation:
         metal jaws at the top, one central pivot, two long red rubber handles
         below. One intact tool on gray.
       8: >-
-        Product photo of one manual hacksaw. A rigid C-shaped metal frame joins
-        a thin straight toothed blade at both ends. One pistol grip at the rear.
-        One intact hand tool on gray.
+        Product photo of one manual hacksaw. A C-shaped steel frame with a
+        visibly thin serrated saw blade tensioned across its open bottom,
+        attached at both ends. One dark pistol grip. One complete tool on gray.
       11: >-
         Product photo of one pressurized aerosol spray can standing upright.
         Straight cylindrical metal body, flat round base, domed shoulder and
         exposed push-button spray nozzle with a tiny side opening. No cap.
       12: >-
-        Product photo of one ordinary PP3 nine-volt alkaline battery standing
-        upright. Compact rectangular battery body, flat top, exactly two
-        unequal circular snap terminals side by side on that top. On gray.
+        Product photo of one retail PP3 9V alkaline battery. Compact rectangular
+        body with rounded metal edges, printed colored label wrapped around its
+        front, flat top plate, one hollow female snap and one solid male snap
+        side by side. No screw threads. Standing on gray.
     negative_prompt: >-
       duplicate, extra parts, disconnected parts, wrong object, malformed,
       cropped, hand, person, text, logo, cartoon, illustration, CGI, blur

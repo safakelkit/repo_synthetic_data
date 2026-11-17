@@ -84,7 +84,12 @@ def draw_hacksaw(canvas: np.ndarray) -> None:
     cv2.line(canvas, (265, 360), (745, 360), 255, 42)
     cv2.line(canvas, (265, 360), (245, 650), 255, 42)
     cv2.line(canvas, (745, 360), (745, 650), 255, 42)
-    cv2.line(canvas, (245, 650), (745, 650), 255, 13)
+    # A separate thin blade with visible downward teeth, anchored at both ends.
+    cv2.line(canvas, (245, 662), (745, 662), 255, 9)
+    for x in range(265, 730, 18):
+        cv2.line(canvas, (x, 665), (x + 9, 678), 255, 3)
+    cv2.circle(canvas, (252, 647), 12, 180, -1)
+    cv2.circle(canvas, (739, 647), 12, 180, -1)
     handle = np.array([[706, 510], [852, 570], [845, 770], [710, 720]], np.int32)
     cv2.fillConvexPoly(canvas, handle, 255)
     hole = np.array([[748, 590], [815, 615], [810, 705], [750, 685]], np.int32)
@@ -94,8 +99,15 @@ def draw_hacksaw(canvas: np.ndarray) -> None:
 def draw_battery(canvas: np.ndarray) -> None:
     cv2.rectangle(canvas, (390, 345), (635, 735), 255, -1)
     cv2.rectangle(canvas, (395, 325), (630, 355), 180, -1)
+    # Face-wrap seams and a printed-label region give SDXL material cues.
+    cv2.rectangle(canvas, (412, 410), (613, 672), 170, -1)
+    cv2.rectangle(canvas, (412, 410), (613, 672), 255, 3)
+    cv2.line(canvas, (403, 365), (403, 715), 150, 4)
+    cv2.line(canvas, (622, 365), (622, 715), 150, 4)
+    cv2.putText(canvas, "9V", (443, 555), cv2.FONT_HERSHEY_SIMPLEX,
+                2.0, 90, 5, cv2.LINE_AA)
     cv2.circle(canvas, (455, 313), 32, 255, -1)
-    cv2.circle(canvas, (565, 313), 23, 255, -1)
+    cv2.circle(canvas, (565, 313), 21, 255, -1)
     cv2.circle(canvas, (455, 313), 17, 0, -1)
 
 
@@ -129,6 +141,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--class-id", type=int, action="append",
+                        help="Limit this retry to configured class IDs; repeat for multiple classes")
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--allow-experimental", action="store_true")
     args = parser.parse_args()
@@ -145,9 +159,12 @@ def main() -> None:
         raise RuntimeError(
             "Controlled retry is experimental; run its separate pilot with --allow-experimental"
         )
-    class_ids = [int(value) for value in settings["class_ids"]]
-    if not set(class_ids).issubset(DRAWERS):
+    configured_class_ids = {int(value) for value in settings["class_ids"]}
+    if not configured_class_ids.issubset(DRAWERS):
         raise ValueError("A controlled retry class lacks a frozen geometry drawer")
+    class_ids = sorted(set(args.class_id)) if args.class_id else sorted(configured_class_ids)
+    if not set(class_ids).issubset(configured_class_ids):
+        raise ValueError(f"Requested classes must be configured controlled retries: {class_ids}")
     count = int(settings["candidates_per_class"])
     names = {int(key): value for key, value in scenes["class_policy"]["names"].items()}
     identity_prompts = {int(key): value for key, value in settings["identity_prompts"].items()}
@@ -157,7 +174,7 @@ def main() -> None:
     }
     control_scales = {int(key): float(value) for key, value in
                       settings["controlnet_conditioning_scale_by_class"].items()}
-    if set(class_ids) != set(identity_prompts) or set(class_ids) != set(control_scales):
+    if configured_class_ids != set(identity_prompts) or configured_class_ids != set(control_scales):
         raise ValueError("Each controlled retry class needs its own prompt and Canny scale")
     if any(not 0.0 < control_scales[class_id] <= 1.0 for class_id in class_ids):
         raise ValueError("Controlled retry Canny scales must be in (0, 1]")
