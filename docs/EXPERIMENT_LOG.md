@@ -1,6 +1,27 @@
 # Experiment Log
 
-Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for missing facts and link raw artifacts instead of pasting terminal output. ADR fields are intentionally omitted from the active template because ADR is deferred.
+## 2026-11-18 — GenAI image reset and isolated shape-guided foreground pilot
+
+- The researcher requested removal of all current GenAI synthetic image
+  outputs. Local SDXL synthetic directories and GenAI conditioning previews
+  were deleted; `data/synthetic/cp_v1_seed42/`, detector checkpoints, and
+  evaluation results were retained. Historical SDXL manifest/image paths in
+  earlier entries below are no longer locally resolvable.
+- `src/generation/run_shape_guided_foreground_pilot.py` generated six images
+  for Scissors, Pliers, and 9V Battery with synthetic geometry, SDXL 1.0,
+  SDXL Canny ControlNet, 30 steps, guidance 5.0, Canny scale 0.55, seeds
+  83200–83201, 83300–83301, and 84200–84201 on physical GPU 2.
+  Outputs: `data/synthetic/sdxl_shape_guided_v1/`.
+- A revised short-jaw Pliers control and prompt generated two more images
+  with seeds 83300–83301 in `data/synthetic/sdxl_shape_guided_pliers_v2/`.
+- Visual result: Scissors are single assembled tools but have blunt blade
+  details; 9V Battery is a single box with two terminals but has imperfect
+  terminal/material detail. Revised Pliers is identifiable in one example,
+  but handle/jaw structure remains synthetic. None is approved for training.
+- Next action: improve these class-specific geometries and verify more than
+  one seed before regenerating the all-class FB2048 pilot.
+
+Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for missing facts and link raw artifacts instead of pasting terminal output.
 
 ## Active experiment registry
 
@@ -15,10 +36,20 @@ Add one entry per verified run. Do not overwrite earlier entries. Use `TBD` for 
 | SDXL-M1024 | SDXL + ControlNet, mixed degradation | 1,024 | Complete |
 | SDXL-M1536 | SDXL + ControlNet, mixed degradation | 1,536 | Complete |
 | SDXL-M2048 | SDXL + ControlNet, mixed degradation | 2,048 | Complete |
+| SDXL-C0512 | SDXL + ControlNet, clean only | 512 | Complete |
+| SDXL-C2048 | SDXL + ControlNet, clean only | 2,048 | Complete |
 | QW-B0512 | Qwen + ControlNet | 512 | Planned |
 | QW-B1024 | Qwen + ControlNet | 1,024 | Planned |
 | QW-B1536 | Qwen + ControlNet | 1,536 | Planned |
 | QW-B2048 | Qwen + ControlNet | 2,048 | Planned |
+
+The clean-only SDXL ablations completed on 2026-09-10 with detector seed 0.
+Their source-validation-selected checkpoints and three-domain evaluation files
+are recorded in `runs/evaluation/sdxl/clean_ablation_status.json` and
+`runs/evaluation/sdxl/clean/`. SDXL-C0512 achieved clean/easy/hard mAP50-95
+of 0.693644/0.432565/0.129857; SDXL-C2048 achieved
+0.687818/0.433054/0.115202. These are additional ablations, not part of the
+original 13-configuration baseline matrix.
 
 ## E000 - Real-only baseline
 
@@ -90,7 +121,6 @@ Checkpoint and evaluation evidence:
 - **Generator seed:** 42 for synthetic generators unless superseded by a versioned config
 - **Model and initialization:** pretrained `yolo11s.pt`
 - **Generator:** None / Cut-paste / Stable Diffusion + ControlNet / Qwen + ControlNet
-- **ADR:** No
 - **Allocation:** None / Class-balanced
 - **Real image count:** 2,215
 - **Synthetic image count:** TBD
@@ -119,10 +149,6 @@ Checkpoint and evaluation evidence:
 - **Main observation:** TBD
 - **Problems or validity concerns:** TBD
 - **Next action:** TBD
-
-## Deferred ADR note
-
-Do not add ADR runs to the active registry until all baseline experiments are complete and the researcher approves a finalized ADR protocol. The proposed score is preserved in `DECISIONS.md` and `PROJECT_CONTEXT.md`.
 
 ## Cut-paste matrix execution rule
 

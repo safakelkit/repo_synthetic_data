@@ -24,12 +24,15 @@ or artifact. These values establish motivation only.
 | SDXL-M1024 | SDXL mixed degradation | 1,024 | 0.684565 | -0.003843 | 0.420388 | +0.006066 | 0.118238 | +0.007217 |
 | SDXL-M1536 | SDXL mixed degradation | 1,536 | 0.673075 | -0.015333 | 0.433494 | +0.019172 | 0.099994 | -0.011027 |
 | SDXL-M2048 | SDXL mixed degradation | 2,048 | 0.664612 | -0.023796 | 0.428149 | +0.013827 | 0.090928 | -0.020093 |
+| SDXL-C0512 | SDXL clean only | 512 | 0.693644 | +0.005237 | 0.432565 | +0.018243 | 0.129857 | +0.018836 |
+| SDXL-C2048 | SDXL clean only | 2,048 | 0.687818 | -0.000589 | 0.433054 | +0.018732 | 0.115202 | +0.004181 |
 
 Evidence:
 
 - baseline: `runs/evaluation/baseline/`;
 - cut-paste: `runs/evaluation/cut_paste/`;
-- SDXL: `runs/evaluation/sdxl/mixed_degradation/`;
+- SDXL: `runs/evaluation/sdxl/mixed_degradation/` and
+  `runs/evaluation/sdxl/clean/` (clean ablations);
 - combined tables and plot: `runs/evaluation/comparisons/`.
 
 ## Quantity response
@@ -90,4 +93,3 @@ The complete 432-row method/quantity/domain/class table is
 - The initial matrix has one detector seed; variance and significance require
   additional predeclared seeds.
 - Missing hard-domain Lighter AP is unavailable, not zero.
-- ADR claims remain outside the current baseline phase.

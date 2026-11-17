@@ -11,6 +11,12 @@ guidance_scale: 6.0
 training_use_forbidden: true
 target_test_used: false
 
+workflow:
+  order: [foregrounds, segment, backgrounds, compose, finalize, light_degradation_experiment]
+  background_generation_requires_reviewed_foreground_masks: true
+  clean_final_images_are_immutable: true
+  optional_degradation_policy: configs/generation/fb_light25_experimental.yaml
+
 pilot:
   final_images: 16
   background_candidates: 64

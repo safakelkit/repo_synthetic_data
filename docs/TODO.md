@@ -13,9 +13,14 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
   final mask-derived labels; keep production mechanically locked.
 - [x] Generate the initial 32-background/32-foreground candidate pools; verify
   64/64 image integrity, unique hashes, resolution, and exact class counts.
-- [ ] Complete source-side visual acceptance with targeted retries for unsafe
-  support surfaces and malformed/duplicate foreground classes; then accept one
-  background and one segmented foreground per class.
+- [x] Delete the old local GenAI synthetic images on researcher request while
+  preserving cut-paste data and historical detector results.
+- [x] Run an isolated shape-guided SDXL pilot: six initial images and two
+  revised Pliers images. Scissors and 9V Battery improve in object count and
+  broad silhouette; Pliers improves in the revised pilot but still has
+  geometry/artifact defects.
+- [ ] Refine and visually approve the three difficult foreground classes;
+  regenerate a revised all-class pilot only after they pass.
 - [x] Replace the production background prompt schedule with explicit support,
   layout, wear, occupancy, camera, and lighting axes; add a same-policy organic
   all-class retry before freezing production.
@@ -25,8 +30,19 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
   hard review gates, automatic person screening, reviewed support rectangles,
   class-specific scale, unique foreground prompt schedules, perceptual duplicate
   checks, balanced nested manifests, and a finalizer integrity gate.
-- [ ] Execute the new 64-background/64-foreground v2 pilot; the preserved v1
-  outputs do not validate the revised prompts, controls, or quality gates.
+- [x] Add a read-only source review audit and reject review rows whose class,
+  scene, or image path differs from the immutable manifest.
+- [x] Order the revised stages foreground identity → reviewed segmentation →
+  diverse backgrounds → clean composition → optional light-only derivation.
+  Background generation is gated by all-class foreground acceptance; the
+  production scene schedule checks independent diversity axes.
+- [x] Implement a separate experimental 75% clean / 25% light derivation that
+  requires a reviewed 2,048-image clean release and preserves clean originals.
+- [ ] Visually review any derived degradation set and compare its detector
+  result against the clean set under a predeclared evaluation protocol.
+- [x] Generate and inspect the historical v2 pilot candidate pool: 64
+  backgrounds and 204 foregrounds. Its local files were subsequently deleted
+  on researcher request; no candidate was manually accepted.
 - [ ] Decide whether filled-proxy controlled retry earns approval from its
   separate experimental pilot; do not use it in production before approval.
 - [ ] Compose and review the 16-image all-class pilot before changing the
@@ -48,6 +64,8 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
 
 ## Completed — SDXL result analysis
 
+- [x] Train and evaluate the clean-only SDXL-C0512/C2048 ablations; record
+  their three-domain results alongside the mixed-degradation runs.
 - [x] Reset failed generation versions, outputs, and detailed failure logs while
   preserving successful profiles and reusable methodology decisions.
 - [x] Build and preflight the historical one-pass `sdxl_generation_v1` pilot (superseded by the canonical pipeline).
@@ -62,7 +80,7 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
 - [ ] Determine whether the additional detector-seed experiment should focus
   on E000, CP-B1536, and SDXL-M0512 before making stability claims.
 - [x] Analyze the hard-domain collapse for Matches, Pliers, Shaver, and Battery
-  without retuning the executed SDXL generator on target-test feedback; the
+  without retuning the executed SDXL generator using target-test results; the
   prospective remedy is broader source generation and is not selected from
   target-test outcomes.
 
@@ -93,15 +111,10 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
 - [ ] Numerical clean-domain mAP50-95 loss tolerance.
 - [ ] Additional detector seed count and compute budget.
 - [x] Candidate surplus: 25% standard; 50% Aerosol until measured production yield.
-- [ ] Exact annotation implementation and finalizer integrity checks.
+- [x] Implement mask-derived annotations and the FB2048 finalizer integrity
+  checks; validate them on the composition pilot before production.
 - [ ] Capture physical GPU assignment, NVIDIA driver, CUDA/software environment,
   and wall time for every remaining paper run.
-
-## Deferred ADR
-
-- [ ] Revisit validation/feedback data, score definition, allocation, cycle
-  design, generators, and quantities only after all non-ADR baselines finish.
-- [ ] Do not restore or run ADR without explicit researcher approval.
 
 ## Completed milestone summary
 
@@ -120,5 +133,4 @@ values are in `METHODOLOGY_TRACEABILITY.md`.
   evaluations are complete.
 - Evaluation artifacts are grouped by baseline, cut-paste, SDXL, and combined
   comparisons under `runs/evaluation/`.
-- Obsolete active ADR code and superseded dataset/config paths were removed;
-  recoverability and historical decisions remain documented.
+- Superseded dataset/config paths were removed.

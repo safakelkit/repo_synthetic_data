@@ -1,8 +1,8 @@
 """Generate the review-gated SDXL-FB2048 foreground/background pipeline.
 
-Stages deliberately stop at human review boundaries.  Run ``backgrounds`` and
-``foregrounds``, mark their review CSV rows accepted, run ``segment``, review
-the masks, and only then run ``compose``.  Production stays locked until the
+Stages deliberately stop at human review boundaries. Run ``foregrounds``,
+review them, run ``segment``, review the masks, then run ``backgrounds`` and
+review their scene diversity before ``compose``. Production stays locked until the
 all-class pilot is approved and the config is explicitly revised.
 """
 
@@ -142,6 +142,41 @@ def scheduled_background_conditionings(
     ]
 
 
+def require_background_schedule_diversity(
+    config: dict[str, Any], scenes: dict[str, Any], count: int,
+) -> None:
+    """Reject a production prompt schedule that collapses on any scene axis."""
+    if count != int(config["production"]["background_candidates"]):
+        return
+    settings = config["background_generation"]
+    assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
+    per_class = count // CLASS_COUNT
+    for class_id in range(CLASS_COUNT):
+        rows = [background_conditioning(
+            config, assignments[class_id][attempt % len(assignments[class_id])], class_id, attempt,
+        ) for attempt in range(per_class)]
+        for axis in ("support", "composition", "capture", "lighting", "materials"):
+            profile_key = "material_profiles" if axis == "materials" else f"{axis}_profiles"
+            available = len(settings[profile_key])
+            if available < 6:
+                raise ValueError(f"Background schedule collapses: {profile_key} has only {available} variants")
+            distinct = {row["variation_indices"][axis] for row in rows}
+            if len(distinct) < min(6, available):
+                raise ValueError(
+                    f"Background schedule collapses for class {class_id}, axis {axis}: "
+                    f"{len(distinct)}/{available} variants"
+                )
+        for scene_name in assignments[class_id]:
+            scene_rows = [background_conditioning(config, scene_name, class_id, attempt)
+                          for attempt in range(per_class)
+                          if assignments[class_id][attempt % len(assignments[class_id])] == scene_name]
+            distinct_recipes = {row["variation_indices"]["scene_recipe"] for row in scene_rows}
+            if len(distinct_recipes) < 4:
+                raise ValueError(
+                    f"Background schedule lacks recipes for class {class_id}, scene {scene_name}"
+                )
+
+
 def validate_background_conditionings(pipe: Any, conditionings: list[dict[str, Any]]) -> None:
     for tokenizer_name, positive_key, negative_key in (
         ("tokenizer", "prompt", "negative_prompt"),
@@ -245,6 +280,14 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
         raise ValueError("SDXL-FB2048 config is not released for the all-class pilot")
     if config.get("training_use_forbidden") is not True or config.get("target_test_used") is not False:
         raise ValueError("Pilot must be training-forbidden and target-test independent")
+    workflow = config.get("workflow", {})
+    expected_order = ["foregrounds", "segment", "backgrounds", "compose", "finalize",
+                      "light_degradation_experiment"]
+    if (workflow.get("order") != expected_order
+            or workflow.get("background_generation_requires_reviewed_foreground_masks") is not True
+            or workflow.get("clean_final_images_are_immutable") is not True
+            or not repo_path(workflow.get("optional_degradation_policy", "missing")).is_file()):
+        raise ValueError("FB2048 workflow must preserve the reviewed clean-first stage order")
     foreground = config["foreground_generation"]
     expected_classes = set(range(CLASS_COUNT))
     for key in ("class_prompts", "class_constraints", "class_variants"):
@@ -304,6 +347,9 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
     prompt_pairs = {(row["prompt"], row["prompt_2"]) for row in production_conditionings}
     if len(prompt_pairs) < int(0.99 * len(production_conditionings)):
         raise ValueError("Production background schedule has insufficient prompt-pair diversity")
+    require_background_schedule_diversity(
+        config, scenes, int(config["production"]["background_candidates"]),
+    )
     assignments = {int(key): value for key, value in scenes["class_to_scene_families"].items()}
     pilot_per_class = int(config["pilot"]["background_candidates"]) // CLASS_COUNT
     uncovered = {
@@ -531,6 +577,15 @@ def accepted_records(
     review_ids = [row["candidate_id"] for row in review]
     if len(set(review_ids)) != len(review_ids) or set(review_ids) != set(by_id):
         raise ValueError("Review candidate IDs must match the immutable manifest exactly")
+    immutable_fields = ("class_id", "class_name", "scene_name", "image_path")
+    for review_row in review:
+        original = by_id[review_row["candidate_id"]]
+        changed = [key for key in immutable_fields
+                   if review_row.get(key, "") != str(original.get(key, ""))]
+        if changed:
+            raise ValueError(
+                f"Review metadata differs from manifest for {review_row['candidate_id']}: {changed}"
+            )
     allowed_statuses = {"pending", "accepted", "rejected"}
     invalid_statuses = {
         row["candidate_id"]: row.get("review_status", "") for row in review
@@ -555,6 +610,62 @@ def accepted_records(
         record["review"] = dict(review_row)
         accepted.append(record)
     return accepted
+
+
+def audit_source_reviews(config: dict[str, Any], counts: dict[str, int], root: Path) -> dict[str, Any]:
+    """Report the source review gate without loading models or changing pilot files."""
+    report: dict[str, Any] = {"stage": "source_review_audit", "pools": {}}
+    for pool in ("foregrounds", "segmented_foregrounds", "backgrounds"):
+        directory = root / pool
+        manifest_path, review_path = directory / "manifest.json", directory / "review.csv"
+        if not manifest_path.is_file() or not review_path.is_file():
+            report["pools"][pool] = {"status": "missing"}
+            continue
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        with review_path.open("r", encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        accepted = accepted_records(
+            manifest_path, review_path,
+            config["quality_gates"]["required_manual_checks"][pool],
+        )
+        status_counts = Counter(row["review_status"].strip().lower() for row in rows)
+        per_class = Counter(int(row["class_id"]) for row in accepted)
+        needed = (counts["accepted_backgrounds"] // CLASS_COUNT if pool == "backgrounds"
+                  else counts["accepted_foregrounds_per_class"])
+        report["pools"][pool] = {
+            "total": len(manifest["records"]), "review_status": dict(status_counts),
+            "accepted_per_class": {str(i): per_class[i] for i in range(CLASS_COUNT)},
+            "missing_per_class": {str(i): max(0, needed - per_class[i])
+                                  for i in range(CLASS_COUNT)},
+            "ready": len(accepted) == needed * CLASS_COUNT
+                     and all(per_class[i] == needed for i in range(CLASS_COUNT)),
+        }
+    report["ready_for_segmentation"] = report["pools"]["foregrounds"].get("ready", False)
+    report["ready_for_background_generation"] = report["pools"]["segmented_foregrounds"].get("ready", False)
+    report["source_pools_ready"] = (report["ready_for_background_generation"]
+                                     and report["pools"]["backgrounds"].get("ready", False))
+    return report
+
+
+def require_foreground_gate_before_backgrounds(
+    config: dict[str, Any], counts: dict[str, int], root: Path,
+) -> None:
+    """Prevent scene generation while source foreground identity is unresolved."""
+    directory = root / "segmented_foregrounds"
+    accepted = accepted_records(
+        directory / "manifest.json", directory / "review.csv",
+        config["quality_gates"]["required_manual_checks"]["segmented_foregrounds"],
+    )
+    require_manifest_hashes(accepted, "mask_path", "mask_sha256", "accepted foreground masks")
+    require_manifest_hashes(accepted, "rgba_path", "rgba_sha256", "accepted foreground RGBA")
+    if any(not row["automatic_geometry_valid"] for row in accepted):
+        raise ValueError("Accepted foreground masks failed automatic geometry checks")
+    per_class = Counter(int(row["class_id"]) for row in accepted)
+    needed = counts["accepted_foregrounds_per_class"]
+    missing = {class_id: needed - per_class[class_id] for class_id in range(CLASS_COUNT)
+               if per_class[class_id] != needed}
+    if missing:
+        raise ValueError(f"Foreground identity/mask gate must pass before backgrounds: {missing}")
 
 
 def require_unique_files(records: list[dict[str, Any]], path_key: str, label: str) -> None:
@@ -872,6 +983,7 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
                         "class_name": row["class_name"], "source_path": row["image_path"],
                         "mask_path": str(mask_path.relative_to(REPO_ROOT)),
                         "rgba_path": str(rgba_path.relative_to(REPO_ROOT)),
+                        "image_path": str(rgba_path.relative_to(REPO_ROOT)),
                         "mask_sha256": sha256(mask_path), "rgba_sha256": sha256(rgba_path),
                         "sam_score": score,
                         "mask_area_ratio": area_ratio, "automatic_geometry_valid": valid})
@@ -1196,7 +1308,7 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--mode", choices=("pilot", "production"), default="pilot")
     parser.add_argument(
-        "--stage", choices=("backgrounds", "foregrounds", "segment", "compose", "finalize"), required=True,
+        "--stage", choices=("backgrounds", "foregrounds", "audit", "segment", "compose", "finalize"), required=True,
     )
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--preflight-only", action="store_true")
@@ -1208,6 +1320,11 @@ def main() -> None:
     scenes = load_yaml(repo_path(config["scene_policy"]))
     counts = validate_config(config, scenes, args.mode)
     root = repo_path(config["output_root"]) / args.mode
+    if args.stage == "audit":
+        print(json.dumps(audit_source_reviews(config, counts, root), indent=2))
+        return
+    if args.stage == "backgrounds":
+        require_foreground_gate_before_backgrounds(config, counts, root)
     report = {"status": "ready", "pipeline_id": config["pipeline_id"], "mode": args.mode,
               "stage": args.stage, "counts": counts, "output_root": str(root.relative_to(REPO_ROOT)),
               "config_sha256": sha256(config_path), "git": git_state(),

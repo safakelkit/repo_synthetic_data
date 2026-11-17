@@ -333,7 +333,7 @@ SAM3 candidate source: https://huggingface.co/facebook/sam3 . The repository
 records its dedicated SAM License from
 https://huggingface.co/facebook/sam3/blob/main/LICENSE .
 
-## Prospective SDXL-FB2048 protocol (not executed)
+## SDXL-FB2048 protocol (candidate pilot generated; composition not executed)
 
 D031 defines a future foreground/background-separated full-synthetic method.
 The fixed target is 2,048 final 1024x1024 images, 128 per class, with nested

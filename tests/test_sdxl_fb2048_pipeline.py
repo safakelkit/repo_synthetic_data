@@ -121,6 +121,25 @@ class PipelineStructureTests(unittest.TestCase):
             self.config, self.scenes, count,
         )))
 
+    def test_production_background_schedule_covers_independent_axes(self) -> None:
+        count = int(self.config["production"]["background_candidates"])
+        self.fb.require_background_schedule_diversity(self.config, self.scenes, count)
+        altered = dict(self.config)
+        altered["background_generation"] = dict(self.config["background_generation"])
+        altered["background_generation"]["support_profiles"] = [
+            self.config["background_generation"]["support_profiles"][0]
+        ]
+        with self.assertRaisesRegex(ValueError, "collapses"):
+            self.fb.require_background_schedule_diversity(altered, self.scenes, count)
+
+    def test_backgrounds_require_accepted_segmented_foregrounds(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(FileNotFoundError):
+                self.fb.require_foreground_gate_before_backgrounds(
+                    self.config, self.fb.validate_config(self.config, self.scenes, "pilot"),
+                    Path(directory),
+                )
+
     def test_resume_requires_matching_generation_fingerprint(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "candidate.png"
@@ -159,6 +178,39 @@ class PipelineStructureTests(unittest.TestCase):
                 writer.writeheader(); writer.writerow(row)
             with self.assertRaisesRegex(ValueError, "cannot override automatic person rejection"):
                 self.fb.accepted_records(manifest, review, ["identity_correct", "no_human"])
+
+    def test_review_cannot_change_manifest_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "manifest.json"
+            review = root / "review.csv"
+            record = {"candidate_id": "fg_0", "class_id": 2,
+                      "class_name": "Scissors", "scene_name": "", "image_path": "original.png"}
+            manifest.write_text(json.dumps({"records": [record]}), encoding="utf-8")
+            row = {field: "" for field in self.fb.REVIEW_FIELDS}
+            row.update({"candidate_id": "fg_0", "class_id": "2", "class_name": "Scissors",
+                        "image_path": "other.png", "review_status": "pending"})
+            with review.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=self.fb.REVIEW_FIELDS)
+                writer.writeheader(); writer.writerow(row)
+            with self.assertRaisesRegex(ValueError, "metadata differs from manifest"):
+                self.fb.accepted_records(manifest, review)
+
+    def test_segmented_review_uses_rgba_manifest_image_path(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, review = root / "manifest.json", root / "review.csv"
+            record = {"candidate_id": "fg_0", "class_id": 2,
+                      "class_name": "Scissors", "image_path": "rgba/fg_0.png"}
+            manifest.write_text(json.dumps({"records": [record]}), encoding="utf-8")
+            row = {field: "" for field in self.fb.REVIEW_FIELDS}
+            row.update({"candidate_id": "fg_0", "class_id": "2", "class_name": "Scissors",
+                        "image_path": "rgba/fg_0.png", "review_status": "accepted",
+                        "mask_correct": "yes"})
+            with review.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=self.fb.REVIEW_FIELDS)
+                writer.writeheader(); writer.writerow(row)
+            self.assertEqual(1, len(self.fb.accepted_records(manifest, review, ["mask_correct"])))
 
     def test_reviewed_support_region_is_validated(self) -> None:
         row = {"candidate_id": "bg_0", "review": {

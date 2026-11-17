@@ -3,26 +3,33 @@
 This repository studies whether class-balanced synthetic training data improves
 YOLO11s mAP50-95 on both INSP-MOT-DET easy and hard while limiting performance
 loss on clean INSP-DET. The active comparison is real-only versus cut-paste,
-Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
+Stable Diffusion + ControlNet, and Qwen + ControlNet.
 
 ## Current status
 
-- E000, four cut-paste runs, and four mixed-degradation SDXL runs are complete
-  for detector seed 0.
-- The accepted SDXL dataset contains 2,048 class-balanced 1024x1024 images and
-  nested 512/1,024/1,536/2,048 manifests. Its permanent degradation schedule is
-  25% clean, 37.5% light, 25% medium, and 12.5% heavy.
+- E000, four cut-paste runs, four mixed-degradation SDXL runs, and two
+  clean-only SDXL ablations are complete for detector seed 0.
+- The historical accepted SDXL dataset contained 2,048 class-balanced
+  1024x1024 images with nested manifests and a 25/37.5/25/12.5% degradation
+  schedule. Its local generated images were removed on researcher request;
+  training and evaluation results remain recorded.
 - SDXL-M0512 is the only SDXL quantity that improves both clean and hard over
   E000. Increasing SDXL quantity reduces clean and hard performance; easy peaks
   at SDXL-M1536 but remains below every cut-paste run.
 - SDXL improves Aerosol can across all three domains at several quantities, but
   does not resolve the hard-domain collapse for Matches, Pliers, Shaver, and
   Battery. Qwen remains pending.
-- A prospective SDXL-FB2048 follow-up is now specified: generate 2,048 unique
+- A prospective SDXL-FB2048 follow-up is specified: generate 2,048 unique
   backgrounds and 2,048 isolated foreground objects from scratch, then use
   retained masks for one-to-one composition, localized harmonization, and exact
-  annotation. Its review-gated all-class pilot runner is implemented, but no
-  pilot or production result has been accepted yet.
+  annotation. Its review-gated all-class pilot runner is implemented. The
+  candidate pools did not pass manual review or composition and were removed
+  on researcher request. Production remains locked. A separate shape-guided
+  foreground pilot is testing Scissors, Pliers, and 9V Battery.
+- The revised FB2048 workflow gates background generation on reviewed
+  foreground masks, checks background schedule diversity, and preserves a clean
+  final set before any optional 75% clean / 25% light degradation experiment.
+  That degradation policy is experimental and has no training result yet.
 
 | Run | Synthetic | Clean | Easy | Hard |
 |---|---:|---:|---:|---:|
@@ -35,6 +42,8 @@ Stable Diffusion + ControlNet, and Qwen + ControlNet. ADR is deferred.
 | SDXL-M1024 | 1,024 | 0.6846 | 0.4204 | 0.1182 |
 | SDXL-M1536 | 1,536 | 0.6731 | 0.4335 | 0.1000 |
 | SDXL-M2048 | 2,048 | 0.6646 | 0.4281 | 0.0909 |
+| SDXL-C0512 | 512 | 0.6936 | 0.4326 | 0.1299 |
+| SDXL-C2048 | 2,048 | 0.6878 | 0.4331 | 0.1152 |
 
 ## Documentation
 

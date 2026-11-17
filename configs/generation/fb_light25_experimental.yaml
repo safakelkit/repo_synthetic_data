@@ -1,0 +1,16 @@
+format_version: 1
+status: experimental_pending_visibility_review
+source: accepted_clean_fb2048_production_only
+seed: 96002
+clean_fraction: 0.75
+light_fraction: 0.25
+light_profile:
+  probabilities: {blur: 0.25, resolution: 0.35, photometric: 0.55, jpeg: 0.30, noise: 0.15}
+  gaussian_kernel: 3
+  gaussian_sigma: [0.3, 0.8]
+  motion_kernel_choices: [3, 5]
+  resolution_scale: [0.75, 0.90]
+  contrast_multiplier: [0.90, 1.10]
+  brightness_offset: [-12, 10]
+  jpeg_quality: [75, 92]
+  noise_sigma: [1.0, 4.0]

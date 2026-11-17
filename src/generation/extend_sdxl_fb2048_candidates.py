@@ -130,6 +130,9 @@ def main() -> None:
     if not manifest_path.is_file() or not review_path.is_file():
         raise FileNotFoundError(f"Complete the initial {args.pool} stage first")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if args.plan and any(extension.get("plan") == args.plan
+                         for extension in manifest.get("extensions", [])):
+        raise ValueError(f"Focused retry plan already executed: {args.plan}")
     records = manifest["records"]
     fields, review_rows = read_review(review_path)
     if set(row["candidate_id"] for row in review_rows) != set(row["candidate_id"] for row in records):

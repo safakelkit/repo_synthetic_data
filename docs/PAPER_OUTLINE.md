@@ -2,7 +2,7 @@
 
 ## Current writing boundary
 
-The current experimental phase covers the real-only, cut-paste, Stable Diffusion + ControlNet, and Qwen + ControlNet baselines without ADR. Keep ADR as a planned later method; do not write ADR results or claims before its protocol is approved and experiments are complete.
+The experimental scope covers real-only, cut-paste, Stable Diffusion + ControlNet, Qwen + ControlNet, and the prospective SDXL-FB2048 follow-up. Report only completed experiments.
 
 ## 1. Introduction
 
@@ -20,7 +20,6 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 - Stable Diffusion, Qwen, and controlled image generation.
 - ControlNet and spatial conditioning.
 - Domain generalization under image/video degradation.
-- Active Domain Randomization as planned later work.
 
 ## 3. Data and Problem Definition
 
@@ -95,7 +94,6 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 
 ### 5.5 Class-balanced allocation
 
-- No detector feedback.
 - Deterministic balanced ordering across 16 classes; divisible quantities require no remainder allocation.
 - Quantities: 512, 1,024, 1,536, and 2,048, giving exactly 32, 64, 96, and 128 images per class.
 
@@ -133,28 +131,17 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 - Qualitative successes and failures.
 - Synthetic realism, annotation quality, and placement limitations.
 
-## 9. Deferred ADR Method
-
-- ADR will be discussed only after baseline experiments are complete.
-- Preserve the proposed class-wise difficulty function from `DECISIONS.md`.
-- Resolve validation/feedback data, weights, normalization, probability conversion, cycle design, and scientific validity before implementation.
-- Do not claim detector-feedback-driven condition selection, VLM failure
-  interpretation, or scene-aware ADR. Predeclared MAIJA scene prompting in the
-  non-adaptive GenAI baselines is allowed and must be documented separately.
-
-## 10. Limitations and Validity
+## 9. Limitations and Validity
 
 - Synthetic label noise and realism.
 - GenAI placement and conditioning reliability.
 - Dataset size and class imbalance.
 - Multiple-seed and compute limitations.
 - Target test sets must not tune the active baseline methods.
-- ADR validity questions remain deferred.
 
-## 11. Conclusion
+## 10. Conclusion
 
 - State only supported baseline findings.
-- Separate demonstrated results from the planned ADR phase.
 
 ## Planned tables and figures
 
@@ -165,4 +152,3 @@ The current experimental phase covers the real-only, cut-paste, Stable Diffusion
 - Quantity-response plots per generator.
 - Per-class clean/easy/hard comparison.
 - Target gain versus clean-domain change.
-- ADR diagram only when the later protocol is approved.

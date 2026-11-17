@@ -95,23 +95,45 @@ real INSP-DET and Places365 pixels are not pasted into this method.
 ### Implemented pilot workflow
 
 The pilot configuration is `configs/generation/sdxl_fb2048_v2.yaml`; the runner
-is `src/generation/run_sdxl_fb2048_pipeline.py`. It generates 64 background and
-128 foreground candidates (8 per class, stratified across every viewpoint,
-condition profile, and class-specific variant), then requires explicit review
-decisions before SAM3
+is `src/generation/run_sdxl_fb2048_pipeline.py`. The initial schedule generates
+64 background and 128 foreground candidates;
+targeted extensions brought the historical v2 pilot to 64 backgrounds and
+204 foreground candidates in the historical pilot (removed on researcher
+request). A revised pilot requires explicit review decisions before SAM3
 segmentation and again before the 16-image composition stage. Exact duplicate
 files, invalid mask geometry, incorrect class counts, review/manifest drift,
 and existing output directories stop the run. Production is locked in config.
 The 64-background pilot covers all four scene assignments for every class.
+
+The revised stage order is foreground candidates → source identity review →
+SAM3 masks and mask review → background candidates and diversity review →
+composition and final review → optional light-degradation experiment. The
+`backgrounds` command now refuses to launch until accepted segmented
+foreground quotas are complete for all 16 classes. Production background
+prompts must also cover at least six support, composition, camera, lighting,
+and material variants per class and four recipes per assigned scene. Generated
+background images still require perceptual and visual uniqueness review.
+
+An isolated shape-guided SDXL experiment is available in
+`src/generation/run_shape_guided_foreground_pilot.py`. It draws non-photographic
+object topology for Scissors, Pliers, and 9V Battery, uses a lower Canny scale
+of 0.55, and generates two candidates per class in a separately named output
+directory. The first eight images across two runs improve single-object
+readability but retain visible shape/material errors. They are experimental,
+not approved foregrounds for FB2048, and cannot unlock production.
 
 Run each preflight on its assigned GPU. Unlike a structural dry run, this loads
 the real model/tokenizers and checks every scheduled prompt against both CLIP
 77-token limits before creating output directories:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 ../env_sam3/bin/python src/generation/run_sdxl_fb2048_pipeline.py --stage backgrounds --gpu 0 --preflight-only
 CUDA_VISIBLE_DEVICES=1 ../env_sam3/bin/python src/generation/run_sdxl_fb2048_pipeline.py --stage foregrounds --gpu 0 --preflight-only
+# After foreground and segmentation review:
+CUDA_VISIBLE_DEVICES=0 ../env_sam3/bin/python src/generation/run_sdxl_fb2048_pipeline.py --stage backgrounds --gpu 0 --preflight-only
 ```
+
+Run foreground generation and segmentation review before the background
+preflight; the background command uses the same source acceptance gate.
 
 Remove `--preflight-only` only for the current stage. After background and
 foreground generation, fill the required manual check columns and edit
@@ -119,6 +141,19 @@ foreground generation, fill the required manual check columns and edit
 also require a normalized safe support rectangle (`support_x1`, `support_y1`,
 `support_x2`, `support_y2`). After segmentation, review the RGBA/mask rows in
 the same way. Every generated final remains training-forbidden pending final review.
+
+Before segmentation, run the read-only source review audit:
+
+```bash
+../env_sam3/bin/python src/generation/run_sdxl_fb2048_pipeline.py --stage audit
+```
+
+It reports accepted, pending, rejected, and missing counts for each class and
+checks that review metadata still matches the immutable candidate manifests.
+`ready_for_segmentation` requires the foreground quota;
+`ready_for_background_generation` requires accepted masks; `source_pools_ready`
+requires both accepted masks and backgrounds. It does not load a model,
+change review decisions, or release production.
 Background and foreground generation use separate stage locks, atomically write
 images, and reuse partial images only when their embedded generation fingerprint
 matches the exact config, model, seed, prompt, and inference parameters. They can
@@ -150,6 +185,8 @@ seeds, and add only the new candidates as `pending`. Background retries use an
 explicit lower-third support-surface prompt; foreground retries may use frozen
 class-specific corrective wording. The extension preflight loads the real SDXL
 tokenizers before producing any image.
+Named focused retry plans are single-use; a repeated invocation fails before
+loading the generation model. Further attempts need a separately named plan.
 
 Background diversity is not seed-only. Scene-specific recipes cross independent
 support, composition, camera, lighting, material, and guidance axes. Foreground
@@ -177,3 +214,22 @@ and the `--allow-experimental` flag; it is not production-approved.
 After every final review row is accepted with all required checks, run the
 `finalize` stage. It revalidates image hashes, labels, class identity, perceptual
 uniqueness, and review completeness before writing `release_manifest.json`.
+
+Only after a 2,048-image clean production release, an optional experiment may
+derive a separate 75% clean / 25% light set using
+`src/augmentation/derive_fb_light_degradation.py` and
+`configs/generation/fb_light25_experimental.yaml`. The clean files stay
+untouched. Every 512/1,024/1,536/2,048 prefix has exact class and severity
+balance. The derived set remains training-forbidden pending visibility review;
+the historical medium/heavy mix is not silently reused.
+
+```bash
+../env_sam3/bin/python src/augmentation/derive_fb_light_degradation.py \
+  --source-release data/synthetic/sdxl_fb2048_v2/production/final/release_manifest.json \
+  --output-root data/synthetic/sdxl_fb2048_v2/production/light25_experiment \
+  --preflight-only
+```
+
+Remove `--preflight-only` only after the clean production release exists and
+the derived experiment is scheduled. Its image/label manifest and operation
+parameters are written independently of the clean release.

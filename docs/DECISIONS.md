@@ -2,26 +2,18 @@
 
 This file records decisions that Codex must preserve unless the researcher explicitly revises them.
 
-## D001 - Current phase excludes ADR implementation
-
-- **Status:** Accepted
-- **Date:** 2026-08-10
-- **Decision:** Complete all non-ADR baseline experiments before discussing or implementing ADR.
-- **Current scope:** real-only, cut-paste, Stable Diffusion + ControlNet, and Qwen + ControlNet experiments.
-- **Deferred scope:** ADR design, validation protocol, implementation, and experiments.
-
 ## D002 - Active experiment matrix
 
 - **Status:** Accepted
-- **Decision:** Run one real-only baseline and four synthetic-data quantities for each of three non-ADR generators.
+- **Decision:** Run one real-only baseline and four synthetic-data quantities for each of three generators.
 - **Synthetic quantities:** 512, 1,024, 1,536, and 2,048 images.
 - **Generators:** existing cut-paste pipeline, Stable Diffusion + ControlNet, and Qwen + ControlNet.
 - **Total active configurations:** 13 per seed: one real-only plus 12 synthetic configurations.
 
-## D003 - Non-ADR generation is class-balanced
+## D003 - Generation is class-balanced
 
 - **Status:** Accepted
-- **Decision:** Generate exactly the same number of primary-target images for each of the 16 classes, with no model-feedback mechanism.
+- **Decision:** Generate exactly the same number of primary-target images for each of the 16 classes.
 - **Allocation:** Use budgets divisible by 16: 32, 64, 96, and 128 primary-target images per class, producing totals of 512, 1,024, 1,536, and 2,048.
 - **Ordering:** Generate one image per class in each deterministically shuffled block of 16. The smaller quantities are nested prefixes of one canonical 2,048-image dataset.
 - **Multi-class images:** The quota refers to the requested primary target class; all visible objects must still be annotated.
@@ -51,7 +43,7 @@ This file records decisions that Codex must preserve unless the researcher expli
 
 - **Status:** Accepted
 - **Decision:** Use Ultralytics `best.pt` selected by INSP-DET validation.
-- **Reason:** INSP-MOT-DET easy and hard are target test sets, not checkpoint-selection sets during the active non-ADR phase.
+- **Reason:** INSP-MOT-DET easy and hard are target test sets, not checkpoint-selection sets during the active baseline phase.
 
 ## D008 - Metrics and fair comparison
 
@@ -60,31 +52,6 @@ This file records decisions that Codex must preserve unless the researcher expli
 - **Decision:** Use mAP50-95 as the primary metric and report mAP50, precision, recall, and class-wise AP.
 - **Decision:** Evaluate every official checkpoint on INSP-DET test, INSP-MOT-DET easy test, and INSP-MOT-DET hard test.
 - **Fairness:** Paired comparisons must use equivalent initialization, seed policy, training budget, evaluation protocol, and synthetic-image count.
-
-## D009 - Remove inactive ADR implementation files
-
-- **Status:** Accepted for repository cleanup
-- **Decision:** Remove existing ADR implementation files from the active codebase before baseline reruns because ADR is not part of the current experimental phase.
-- **Safety procedure:** First inventory exact ADR-only files and references, preserve the score specification below, create a recoverable version-control checkpoint, verify that no shared baseline utility will be removed, then delete the ADR-only implementation and clean its imports, configuration entries, commands, tests, and documentation references.
-- **Do not delete:** baseline code, synthetic generators, shared evaluation utilities, verified experiment results, or this preserved ADR specification.
-- **Verification:** Run the baseline pipeline checks after cleanup and report every deleted path.
-
-## D010 - Preserved ADR score for later discussion
-
-- **Status:** Preserved; deferred and not approved for current implementation
-- **Decision:** Keep the following proposed class-wise difficulty function in documentation so it is not lost:
-
-```text
-difficulty(c) = alpha * (1 - S_hard(c))
-              + beta  * (S_clean(c) - S_hard(c))
-              + gamma * (S_clean(c) - S_easy(c))
-```
-
-- `S_clean(c)`: proposed class-wise score for class `c` on the clean domain.
-- `S_easy(c)`: proposed class-wise score for class `c` on the easy domain.
-- `S_hard(c)`: proposed class-wise score for class `c` on the hard domain.
-- **Unresolved:** exact metric, score scale, weights, normalization, probability conversion, target-feedback protocol, and test-set validity.
-- **Restriction:** Codex must not implement or run ADR until the baseline experiments are complete and the researcher explicitly approves a finalized protocol.
 
 ## D011 - Clean-domain preservation
 
@@ -197,7 +164,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Order:** CP-B0512, CP-B1024, CP-B1536, CP-B2048.
 - **Execution:** Train each run to completion, evaluate its source-validation `best.pt` on the three frozen test domains, render plots, then start the next quantity.
 - **Safety:** Preflight validates all selected runs before the first starts. Existing train/evaluation outputs cause an error. Any training, evaluation, or plotting failure stops the matrix and records state in `runs/evaluation/cut_paste/matrix_status.json`.
-- **Validity:** The pipeline does not inspect metrics or change later configurations; sequential evaluation is reporting only and does not create detector feedback.
+- **Validity:** The pipeline does not inspect metrics or change later configurations; sequential evaluation is reporting only and does not adapt generation.
 - **Implementation:** `src/training/train_copypaste_baselines.py --experiment all --evaluate`.
 
 ## D023 - Dataset manifests must be validated with Ultralytics path semantics
@@ -230,7 +197,6 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - Freeze SAM3 annotation thresholds and quality-control acceptance criteria.
 - Seed count and compute budget.
 - Clean-domain tolerance.
-- All ADR design and evaluation questions, after the active baseline phase is complete.
 
 ## D025 - Frozen GenAI scene taxonomy and balanced context matrix
 
@@ -242,7 +208,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Domain weighting:** Five families represent detention living spaces, one is a controlled property-inspection reference, and two are supervised operational spaces. Assignment frequency gives each 512-image block 272/128/112 images from these three groups respectively.
 - **Semantic matrix:** Every class is assigned exactly four compatible scene families. The property-inspection station is shared by all 16 classes; other families overlap across 4--8 classes. Each 32-image class block allocates eight images to each assigned family. Exact class balance is mandatory, but equal scene totals are deliberately not forced when that would introduce implausible class-scene pairs.
 - **Class boundary:** Scene assignment never changes the existing class label. Subtype and appearance variation may be defined later only within the fixed semantic meaning of that class.
-- **Validity boundary:** This matrix was designed without easy/hard test feedback and accepted by the researcher before generation. It must not be revised using target-test results.
+- **Validity boundary:** This matrix was designed before easy/hard test evaluation and accepted by the researcher before generation. It must not be revised using target-test results.
 - **Sources:** https://cvl.tuwien.ac.at/project/maija/ and https://repositum.tuwien.at/bitstream/20.500.12708/224661/1/Bernhart%20Costin%20-%202025%20-%20Real-Time%20Multi-Object%20Tracking%20under%20Resource...pdf
 
 ## D026 - Parallel runs use one independent experiment per GPU
@@ -315,12 +281,12 @@ difficulty(c) = alpha * (1 - S_hard(c))
 - **Degradation:** Per class and 32-image block, retain 8 clean, 12 light, 8 medium, and 4 heavy images. Apply corruption to the complete rendered image.
 - **QC:** All 4,096 clean/mixed files decode as 1024x1024 RGB; paired annotations match; every non-clean image changed; every clean member remained unchanged; class, severity, and nested-subset counts are exact. Researcher visual review and independent stratified review passed.
 - **Result:** More SDXL data did not monotonically improve detector generalization. SDXL-M0512 was strongest overall among SDXL runs; M1536/M2048 reduced clean and hard performance. The Aerosol intervention improved over E000 in every domain at all four quantities, while several other classes retained hard-domain failure.
-- **Validity boundary:** Preserve and report the complete executed matrix. Do not revise this generator version using easy/hard test feedback. Additional causal or variance claims require predeclared follow-up experiments and detector seeds.
+- **Validity boundary:** Preserve and report the complete executed matrix. Do not revise this generator version using easy/hard test results. Additional causal or variance claims require predeclared follow-up experiments and detector seeds.
 - **Artifacts:** `runs/evaluation/sdxl/mixed_degradation/` and `runs/evaluation/comparisons/`.
 
 ## D031 - Separate fully generated foreground/background follow-up
 
-- **Status:** Accepted design; review-gated pilot implemented, execution and production pending
+- **Status:** Accepted design; candidate pilot generated, manual review and production pending
 - **Date:** 2026-09-13
 - **Decision:** Preserve the executed SDXL matrix unchanged. The next SDXL
   follow-up generates background and isolated foreground pools independently,
@@ -352,7 +318,8 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D032 - SDXL-FB2048 v2 hardening after pilot audit
 
-- **Status:** Implemented; fresh pilot execution pending
+- **Status:** Implemented; v2 candidate pools generated and subsequently removed
+  on researcher request before manual acceptance
 - **Date:** 2026-09-14
 - **Reason:** The first generated pools exposed people, irrelevant content,
   render-like objects, incomplete scene coverage, fixed-coordinate placement,
@@ -375,7 +342,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D033 - Route foreground classes by observed generation failure
 
-- **Status:** Implemented for a focused foreground retry pilot; execution pending
+- **Status:** Implemented; focused foreground retry candidates generated, manual review pending
 - **Date:** 2026-09-15
 - **Evidence:** The v2 pilot produced complete, unique files and broader prompt
   coverage, but exact single-unit compliance remained weak. Failures clustered
@@ -400,7 +367,7 @@ difficulty(c) = alpha * (1 - S_hard(c))
 
 ## D034 - Fall back from over-constrained controls for three foreground classes
 
-- **Status:** Focused fallback pilot implemented; execution pending
+- **Status:** Focused fallback candidates generated; manual review pending
 - **Date:** 2026-09-15
 - **Evidence:** The controlled v2 retry suppressed duplicate instances for all
   five routed classes. Scissors retained usable identity and Cigarettes became

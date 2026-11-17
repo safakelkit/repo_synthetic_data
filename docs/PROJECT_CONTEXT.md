@@ -6,15 +6,12 @@ The INSP-MOT-DET project within MAIJA evaluates whether class-balanced
 synthetic data can improve pretrained YOLO11s mAP50-95 on both video-derived
 INSP-MOT-DET easy and hard without unacceptable loss on clean INSP-DET.
 
-Active non-ADR generators:
+Generators:
 
 1. context-constrained cut-paste;
 2. Stable Diffusion XL + Canny ControlNet full-scene generation;
 3. Qwen-Image + ControlNet full-scene generation;
 4. the planned SDXL foreground/background-separated full-synthetic follow-up.
-
-ADR and detector-feedback-driven generation are deferred until all baselines
-are complete.
 
 ## Data and taxonomy
 
@@ -55,6 +52,7 @@ with E000 this gives 13 configurations per detector seed.
 | E000 | real only | complete, seed 0 |
 | CP-B* | cut-paste | four quantities complete, seed 0 |
 | SDXL-M* | SDXL + ControlNet, mixed degradation | four quantities complete, seed 0 |
+| SDXL-C0512/C2048 | SDXL + ControlNet, clean only | two ablations complete, seed 0 |
 | QW-B* | Qwen + ControlNet | canonical data not generated |
 
 ## Cut-paste baseline
@@ -87,9 +85,12 @@ model feasibility is established, but its canonical work remains pending.
 
 1. Preserve the complete SDXL-M seed-0 result matrix without test-driven
    generator retuning.
-2. Run and review the implemented 16-class SDXL-FB2048 pilot. Only after it
-   passes, unlock production of 2,048 unique generated background/foreground
-   pairs, mask-derived composition, and local harmonization.
+2. Review the new isolated shape-guided SDXL pilot for Scissors, Pliers, and
+   9V Battery. The earlier FB2048 v2 candidate images were removed on researcher
+   request after failing visual review. Regenerate an all-class pilot only once
+   the difficult foreground classes have a reliable source route. Then test
+   segmentation, 16-image composition, and local harmonization before any
+   2,048-image production release.
 3. Complete the planned Qwen baseline under the same detector protocol.
 4. Decide additional detector seeds and the numerical clean-loss tolerance.
 
