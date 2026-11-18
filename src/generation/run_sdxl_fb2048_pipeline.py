@@ -297,6 +297,11 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
     negative_classes = {int(class_id) for class_id in foreground["class_negative_prompts"]}
     if negative_classes != expected_classes:
         raise ValueError("Foreground class_negative_prompts must cover all 16 classes")
+    segment_prompts = {
+        int(class_id): prompt for class_id, prompt in config["segmentation"]["class_text_prompts"].items()
+    }
+    if set(segment_prompts) != expected_classes or any(not prompt.strip() for prompt in segment_prompts.values()):
+        raise ValueError("SAM3 text prompts must cover all 16 classes")
     route_classes = [
         int(class_id)
         for class_ids in foreground["generation_routes"].values()
@@ -948,6 +953,7 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
     (output / "masks").mkdir(parents=True)
     (output / "rgba").mkdir()
     settings = config["segmentation"]
+    text_prompts = {int(key): value for key, value in settings["class_text_prompts"].items()}
     processor = Sam3Processor.from_pretrained(settings["model_id"])
     model = Sam3Model.from_pretrained(settings["model_id"]).to(f"cuda:{gpu}").eval()
     records = []
@@ -956,9 +962,9 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
         with Image.open(path).convert("RGB") as image:
             rgb = image.copy()
         width, height = rgb.size
-        margin = int(settings["prompt_box_margin_px"])
-        inputs = processor(images=rgb, input_boxes=[[[margin, margin, width-margin, height-margin]]],
-                           input_boxes_labels=[[1]], return_tensors="pt").to(f"cuda:{gpu}")
+        inputs = processor(
+            images=rgb, text=text_prompts[int(row["class_id"])], return_tensors="pt",
+        ).to(f"cuda:{gpu}")
         with torch.no_grad():
             outputs = model(**inputs)
         processed = processor.post_process_instance_segmentation(
@@ -975,9 +981,11 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
         ys, xs = np.where(mask > 0)
         area_ratio = float(mask.mean())
         clearance = int(settings["border_clearance_px"])
-        valid = (float(settings["min_mask_area_ratio"]) <= area_ratio <= float(settings["max_mask_area_ratio"])
-                 and xs.min() >= clearance and ys.min() >= clearance
-                 and xs.max() < width-clearance and ys.max() < height-clearance)
+        valid = bool(
+            float(settings["min_mask_area_ratio"]) <= area_ratio <= float(settings["max_mask_area_ratio"])
+            and xs.min() >= clearance and ys.min() >= clearance
+            and xs.max() < width - clearance and ys.max() < height - clearance
+        )
         candidate_id = row["candidate_id"]
         mask_path = output / "masks" / f"{candidate_id}.png"
         rgba_path = output / "rgba" / f"{candidate_id}.png"
@@ -991,6 +999,7 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
                         "image_path": str(rgba_path.relative_to(REPO_ROOT)),
                         "mask_sha256": sha256(mask_path), "rgba_sha256": sha256(rgba_path),
                         "sam_score": score,
+                        "sam_text_prompt": text_prompts[int(row["class_id"])],
                         "mask_area_ratio": area_ratio, "automatic_geometry_valid": valid})
         print(f"[segment {index + 1}/{len(accepted)}] {candidate_id} valid={valid}", flush=True)
     del model, processor

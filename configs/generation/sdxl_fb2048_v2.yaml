@@ -415,9 +415,25 @@ foreground_generation:
 
 segmentation:
   model_id: facebook/sam3
+  class_text_prompts:
+    0: a pocket lighter
+    1: a box of matches
+    2: a pair of scissors
+    3: pliers
+    4: a knife
+    5: razor
+    6: a hammer
+    7: a pack of cigarettes
+    8: a hacksaw with a toothed blade
+    9: a screwdriver
+    10: a wrench
+    11: an aerosol spray can
+    12: a battery
+    13: a glass bottle
+    14: a smartphone
+    15: a laptop computer
   score_threshold: 0.30
   mask_threshold: 0.50
-  prompt_box_margin_px: 24
   min_mask_area_ratio: 0.03
   max_mask_area_ratio: 0.80
   border_clearance_px: 8
