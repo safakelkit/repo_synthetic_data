@@ -441,23 +441,37 @@ segmentation:
 composition:
   require_reviewed_support_region: true
   support_edge_margin_fraction: 0.08
+  # Studio cutouts of hand tools often point upwards. Turn them to lie on a
+  # reviewed table before resizing and placing them.
+  class_rotation_degrees:
+    2: 90
+    5: 90
+    6: 45
+    8: 0
+    9: 45
+    10: -45
+    14: 90
+  contact_shadow_blur_px: 8
+  contact_shadow_opacity: 0.24
+  contact_shadow_offset_y_px: 4
+  flat_lay_class_ids: [1, 2, 4, 5, 6, 8, 9, 10, 14, 15]
   class_object_height_fraction:
-    0: [0.10, 0.16]
-    1: [0.10, 0.17]
-    2: [0.14, 0.24]
-    3: [0.14, 0.24]
+    0: [0.07, 0.11]
+    1: [0.06, 0.10]
+    2: [0.06, 0.10]
+    3: [0.10, 0.16]
     4: [0.14, 0.25]
-    5: [0.11, 0.18]
-    6: [0.18, 0.29]
-    7: [0.11, 0.17]
-    8: [0.20, 0.32]
-    9: [0.15, 0.25]
-    10: [0.15, 0.25]
-    11: [0.15, 0.25]
-    12: [0.08, 0.13]
+    5: [0.05, 0.09]
+    6: [0.07, 0.11]
+    7: [0.08, 0.13]
+    8: [0.09, 0.14]
+    9: [0.04, 0.07]
+    10: [0.05, 0.08]
+    11: [0.13, 0.20]
+    12: [0.05, 0.09]
     13: [0.13, 0.22]
-    14: [0.12, 0.20]
-    15: [0.19, 0.31]
+    14: [0.05, 0.09]
+    15: [0.15, 0.22]
 
 harmonization:
   mask_padding_px: 24

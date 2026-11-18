@@ -26,7 +26,7 @@ import cv2
 import numpy as np
 import torch
 import yaml
-from PIL import Image, PngImagePlugin
+from PIL import Image, ImageDraw, ImageFilter, PngImagePlugin
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -752,6 +752,33 @@ def reviewed_support_bbox(row: dict[str, Any], width: int, height: int) -> tuple
     return round(x1 * width), round(y1 * height), round(x2 * width), round(y2 * height)
 
 
+def add_contact_shadow(
+    background: Image.Image, foreground: Image.Image, x: int, y: int,
+    class_id: int, settings: dict[str, Any],
+) -> Image.Image:
+    """Darken the immediate support surface under a placed cutout."""
+    width, height = background.size
+    alpha = foreground.getchannel("A")
+    shadow = Image.new("L", (width, height), 0)
+    if class_id in set(map(int, settings["flat_lay_class_ids"])):
+        shadow.paste(alpha, (x, y + int(settings["contact_shadow_offset_y_px"])))
+    else:
+        radius_x = max(5, round(foreground.width * 0.43))
+        radius_y = max(3, round(foreground.width * 0.12))
+        center_x, center_y = x + foreground.width // 2, y + foreground.height
+        ImageDraw.Draw(shadow).ellipse(
+            (center_x-radius_x, center_y-radius_y, center_x+radius_x, center_y+radius_y),
+            fill=255,
+        )
+    shadow = shadow.filter(ImageFilter.GaussianBlur(float(settings["contact_shadow_blur_px"])))
+    shadow = shadow.point(lambda value: round(value * float(settings["contact_shadow_opacity"])))
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    overlay.putalpha(shadow)
+    canvas = background.convert("RGBA")
+    canvas.alpha_composite(overlay)
+    return canvas.convert("RGB")
+
+
 def apply_person_screen(config: dict[str, Any], records: list[dict[str, Any]], gpu: int | str) -> None:
     from ultralytics import YOLO
     settings = config["quality_gates"]["person_screen"]
@@ -1159,6 +1186,13 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         if bbox is None:
             raise ValueError(f"Empty accepted alpha: {segment['rgba_path']}")
         foreground = foreground.crop(bbox)
+        rotation = float(settings["class_rotation_degrees"].get(class_id, 0))
+        if rotation:
+            foreground = foreground.rotate(rotation, Image.Resampling.BICUBIC, expand=True)
+            rotated_bbox = foreground.getchannel("A").getbbox()
+            if rotated_bbox is None:
+                raise ValueError(f"Empty rotated alpha: {segment['rgba_path']}")
+            foreground = foreground.crop(rotated_bbox)
         low, high = map(float, size_ranges[class_id])
         target_h = round(height * rng.uniform(low, high))
         target_w = max(1, round(foreground.width * target_h / foreground.height))
@@ -1180,6 +1214,7 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
             foreground, background, x, y,
             float(harmonization["foreground_color_match_strength"]),
         )
+        background = add_contact_shadow(background, foreground, x, y, class_id, settings)
         canvas = background.convert("RGBA"); canvas.alpha_composite(foreground, dest=(x, y))
         initial = canvas.convert("RGB")
         mask_canvas = Image.new("L", (width, height), 0); mask_canvas.paste(foreground.getchannel("A"), (x, y))
@@ -1197,7 +1232,7 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         ).images[0]
         # Restore the color-matched accepted object exactly after diffusion;
         # only its generated-background neighborhood was allowed to change.
-        result_canvas = result.convert("RGBA")
+        result_canvas = add_contact_shadow(result, foreground, x, y, class_id, settings).convert("RGBA")
         result_canvas.alpha_composite(foreground, dest=(x, y))
         result = result_canvas.convert("RGB")
         final_bbox = mask_canvas.getbbox()
