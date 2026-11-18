@@ -334,10 +334,15 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
     }
     for plan_name, plan in foreground.get("focused_retry_plans", {}).items():
         plan_classes = [int(class_id) for class_id in plan.get("class_ids", [])]
+        prompt_overrides = {
+            int(class_id): prompt for class_id, prompt in plan.get("prompt_by_class", {}).items()
+        }
         if (plan.get("status") != "ready" or plan.get("pool") != "foregrounds"
                 or not plan_classes or len(plan_classes) != len(set(plan_classes))
                 or not set(plan_classes).issubset(strict_text_classes)
-                or int(plan.get("candidates_per_class", 0)) < 1):
+                or int(plan.get("candidates_per_class", 0)) < 1
+                or not set(prompt_overrides).issubset(set(plan_classes))
+                or any(not str(prompt).strip() for prompt in prompt_overrides.values())):
             raise ValueError(f"Invalid focused foreground retry plan: {plan_name}")
     if len(scenes["class_policy"]["names"]) != CLASS_COUNT:
         raise ValueError("Scene policy must contain exactly 16 classes")
@@ -657,7 +662,16 @@ def audit_source_reviews(config: dict[str, Any], counts: dict[str, int], root: P
                      and all(per_class[i] == needed for i in range(CLASS_COUNT)),
         }
     report["ready_for_segmentation"] = report["pools"]["foregrounds"].get("ready", False)
-    report["ready_for_background_generation"] = report["pools"]["segmented_foregrounds"].get("ready", False)
+    aligned = False
+    if (report["ready_for_segmentation"]
+            and report["pools"]["segmented_foregrounds"].get("ready", False)):
+        try:
+            require_segmented_source_alignment(config, root)
+            aligned = True
+        except ValueError as exc:
+            report["source_alignment_error"] = str(exc)
+    report["segmented_sources_current"] = aligned
+    report["ready_for_background_generation"] = aligned
     report["source_pools_ready"] = (report["ready_for_background_generation"]
                                      and report["pools"]["backgrounds"].get("ready", False))
     return report
@@ -682,6 +696,28 @@ def require_foreground_gate_before_backgrounds(
                if per_class[class_id] != needed}
     if missing:
         raise ValueError(f"Foreground identity/mask gate must pass before backgrounds: {missing}")
+    require_segmented_source_alignment(config, root)
+
+
+def require_segmented_source_alignment(config: dict[str, Any], root: Path) -> None:
+    """Reject accepted masks from candidates no longer selected as foregrounds."""
+    checks = config["quality_gates"]["required_manual_checks"]
+    source = accepted_records(
+        root / "foregrounds/manifest.json", root / "foregrounds/review.csv", checks["foregrounds"],
+    )
+    segmented = accepted_records(
+        root / "segmented_foregrounds/manifest.json",
+        root / "segmented_foregrounds/review.csv", checks["segmented_foregrounds"],
+    )
+    by_id = {row["candidate_id"]: row for row in source}
+    if set(by_id) != {row["candidate_id"] for row in segmented}:
+        raise ValueError("Accepted segmented candidates differ from current accepted foregrounds")
+    mismatches = [
+        row["candidate_id"] for row in segmented
+        if not segmented_source_matches(row, by_id[row["candidate_id"]])
+    ]
+    if mismatches:
+        raise ValueError(f"Segmented masks do not match current foreground pixels: {mismatches}")
 
 
 def require_unique_files(records: list[dict[str, Any]], path_key: str, label: str) -> None:
@@ -964,7 +1000,23 @@ def best_sam_mask(processed: dict[str, Any], shape: tuple[int, int]) -> tuple[np
     return (mask > 0).astype(np.uint8), float(scores[best]) if scores is not None and len(scores) else 0.0
 
 
-def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Path, gpu: int) -> None:
+def segmented_source_matches(record: dict[str, Any], source_row: dict[str, Any]) -> bool:
+    """Reuse a reviewed mask only when its RGB source is byte-equivalent in pixels."""
+    if record.get("source_path") != source_row["image_path"]:
+        return False
+    if record.get("source_sha256") == source_row["sha256"]:
+        return True
+    with Image.open(repo_path(record["rgba_path"])) as cutout:
+        prior_rgb = np.asarray(cutout.convert("RGB"))
+    with Image.open(repo_path(source_row["image_path"])) as image:
+        current_rgb = np.asarray(image.convert("RGB"))
+    return bool(np.array_equal(prior_rgb, current_rgb))
+
+
+def segment_foregrounds(
+    config: dict[str, Any], counts: dict[str, int], root: Path, gpu: int,
+    repair_existing: bool = False,
+) -> None:
     from transformers import Sam3Model, Sam3Processor
     source = root / "foregrounds"
     checks = config["quality_gates"]["required_manual_checks"]["foregrounds"]
@@ -982,15 +1034,44 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
     if wrong:
         raise ValueError(f"Require exactly {needed} accepted foregrounds per class: {wrong}")
     output = root / "segmented_foregrounds"
-    require_launch_ready(gpu, output)
-    (output / "masks").mkdir(parents=True)
-    (output / "rgba").mkdir()
+    prior_accepted: dict[str, dict[str, Any]] = {}
+    prior_reviews: dict[str, dict[str, str]] = {}
+    if repair_existing:
+        if not (output / "manifest.json").is_file() or not (output / "review.csv").is_file():
+            raise FileNotFoundError("Segment repair requires an existing complete manifest and review")
+        if git_state()["dirty"]:
+            raise RuntimeError("Commit the pipeline before GPU segment repair")
+        if not torch.cuda.is_available() or not 0 <= gpu < torch.cuda.device_count():
+            raise RuntimeError(f"Logical CUDA device {gpu} is unavailable")
+        previous = accepted_records(
+            output / "manifest.json", output / "review.csv",
+            config["quality_gates"]["required_manual_checks"]["segmented_foregrounds"],
+        )
+        require_manifest_hashes(previous, "mask_path", "mask_sha256", "prior masks")
+        require_manifest_hashes(previous, "rgba_path", "rgba_sha256", "prior cutouts")
+        prior_accepted = {row["candidate_id"]: row for row in previous}
+        with (output / "review.csv").open(newline="", encoding="utf-8") as handle:
+            prior_reviews = {row["candidate_id"]: row for row in csv.DictReader(handle)}
+    else:
+        require_launch_ready(gpu, output)
+    (output / "masks").mkdir(parents=True, exist_ok=repair_existing)
+    (output / "rgba").mkdir(exist_ok=repair_existing)
     settings = config["segmentation"]
     text_prompts = {int(key): value for key, value in settings["class_text_prompts"].items()}
     processor = Sam3Processor.from_pretrained(settings["model_id"])
     model = Sam3Model.from_pretrained(settings["model_id"]).to(f"cuda:{gpu}").eval()
     records = []
+    reused_ids: set[str] = set()
     for index, row in enumerate(accepted):
+        candidate_id = row["candidate_id"]
+        previous = prior_accepted.get(candidate_id)
+        if (previous and segmented_source_matches(previous, row)
+                and previous.get("sam_text_prompt") == text_prompts[int(row["class_id"])]
+                and previous["automatic_geometry_valid"]):
+            records.append({key: value for key, value in previous.items() if key != "review"})
+            reused_ids.add(candidate_id)
+            print(f"[segment {index + 1}/{len(accepted)}] reuse {candidate_id}", flush=True)
+            continue
         path = repo_path(row["image_path"])
         with Image.open(path).convert("RGB") as image:
             rgb = image.copy()
@@ -1019,7 +1100,6 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
             and xs.min() >= clearance and ys.min() >= clearance
             and xs.max() < width - clearance and ys.max() < height - clearance
         )
-        candidate_id = row["candidate_id"]
         mask_path = output / "masks" / f"{candidate_id}.png"
         rgba_path = output / "rgba" / f"{candidate_id}.png"
         Image.fromarray(mask * 255).save(mask_path)
@@ -1027,6 +1107,7 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
         Image.fromarray(rgba).save(rgba_path)
         records.append({"candidate_id": candidate_id, "class_id": int(row["class_id"]),
                         "class_name": row["class_name"], "source_path": row["image_path"],
+                        "source_sha256": row["sha256"],
                         "mask_path": str(mask_path.relative_to(REPO_ROOT)),
                         "rgba_path": str(rgba_path.relative_to(REPO_ROOT)),
                         "image_path": str(rgba_path.relative_to(REPO_ROOT)),
@@ -1041,6 +1122,17 @@ def segment_foregrounds(config: dict[str, Any], counts: dict[str, int], root: Pa
                "config_sha256": config["_config_sha256"], "models_sha256": config["_models_sha256"],
                "script_sha256": sha256(Path(__file__).resolve()), "records": records})
     write_review(output / "review.csv", [dict(row, image_path=row["rgba_path"], scene_name="") for row in records], "mask_and_rgba")
+    if prior_reviews:
+        with (output / "review.csv").open(newline="", encoding="utf-8") as handle:
+            current_reviews = list(csv.DictReader(handle))
+        for index, review_row in enumerate(current_reviews):
+            if review_row["candidate_id"] in reused_ids:
+                current_reviews[index] = prior_reviews[review_row["candidate_id"]]
+        temporary = output / ".review.csv.partial"
+        with temporary.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=REVIEW_FIELDS)
+            writer.writeheader(); writer.writerows(current_reviews)
+        temporary.replace(output / "review.csv")
 
 
 def target_controls(mask: Image.Image, padding: int) -> tuple[Image.Image, Image.Image]:
@@ -1107,6 +1199,7 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         root / "segmented_foregrounds/manifest.json", root / "segmented_foregrounds/review.csv",
         checks["segmented_foregrounds"],
     )
+    require_segmented_source_alignment(config, root)
     require_unique_files(backgrounds, "image_path", "backgrounds")
     require_unique_files(foregrounds, "rgba_path", "segmented foregrounds")
     require_manifest_hashes(backgrounds, "image_path", "sha256", "backgrounds")
@@ -1332,10 +1425,13 @@ def finalize_review(config: dict[str, Any], counts: dict[str, int], root: Path) 
 
 
 def runtime_preflight(
-    config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, int], stage: str, gpu: int,
+    config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, int],
+    stage: str, gpu: int, root: Path,
 ) -> None:
     if git_state()["dirty"]:
         raise RuntimeError("Commit the pipeline before runtime preflight")
+    if stage == "compose":
+        require_segmented_source_alignment(config, root)
     if not torch.cuda.is_available() or not 0 <= gpu < torch.cuda.device_count():
         raise RuntimeError(f"Logical CUDA device {gpu} is unavailable")
     models = load_yaml(repo_path(config["models_config"]))
@@ -1370,7 +1466,11 @@ def main() -> None:
     )
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--repair-existing", action="store_true",
+                        help="For segment, retain accepted unchanged masks and replace selected sources")
     args = parser.parse_args()
+    if args.repair_existing and args.stage != "segment":
+        parser.error("--repair-existing is only valid for --stage segment")
     config_path = repo_path(args.config)
     config = load_yaml(config_path)
     config["_config_sha256"] = sha256(config_path)
@@ -1390,7 +1490,7 @@ def main() -> None:
     if args.preflight_only and args.stage == "finalize":
         raise ValueError("Finalize has no model preflight; run it only after completing final review")
     if args.preflight_only:
-        runtime_preflight(config, scenes, counts, args.stage, args.gpu)
+        runtime_preflight(config, scenes, counts, args.stage, args.gpu, root)
         report["runtime_models_and_prompts_validated"] = True
         print(json.dumps(report, indent=2)); return
     with stage_lock(root, args.stage):
@@ -1399,7 +1499,7 @@ def main() -> None:
         elif args.stage == "foregrounds":
             generate_foregrounds(config, scenes, counts, root, args.gpu, args.mode)
         elif args.stage == "segment":
-            segment_foregrounds(config, counts, root, args.gpu)
+            segment_foregrounds(config, counts, root, args.gpu, args.repair_existing)
         elif args.stage == "compose":
             compose(config, scenes, counts, root, args.gpu)
         else:

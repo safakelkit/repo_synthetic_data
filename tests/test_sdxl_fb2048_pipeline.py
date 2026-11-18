@@ -96,6 +96,26 @@ class PipelineStructureTests(unittest.TestCase):
             settings["generation_routes"]["text_to_image_strict_review"]
         ))
 
+    def test_tabletop_saw_retry_requests_complete_blade_and_compatible_pose(self) -> None:
+        plan = self.config["foreground_generation"]["focused_retry_plans"]["tabletop_hacksaw_pose"]
+        prompt = plan["prompt_by_class"][8].lower()
+        self.assertEqual([8], plan["class_ids"])
+        self.assertIn("lying flat", prompt)
+        self.assertIn("serrated blade", prompt)
+        self.assertIn("both ends", prompt)
+
+    def test_segment_repair_reuses_only_unchanged_source_pixels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, rgba = root / "source.png", root / "rgba.png"
+            Image.new("RGB", (8, 8), (100, 120, 140)).save(source)
+            Image.new("RGBA", (8, 8), (100, 120, 140, 255)).save(rgba)
+            record = {"source_path": str(source), "rgba_path": str(rgba)}
+            source_row = {"image_path": str(source), "sha256": self.fb.sha256(source)}
+            self.assertTrue(self.fb.segmented_source_matches(record, source_row))
+            Image.new("RGB", (8, 8), (110, 120, 140)).save(source)
+            self.assertFalse(self.fb.segmented_source_matches(record, source_row))
+
     def test_pilot_foregrounds_cover_every_variation_axis(self) -> None:
         counts = self.fb.validate_config(self.config, self.scenes, "pilot")
         schedule = self.fb.foreground_schedule(self.config, counts, "pilot")

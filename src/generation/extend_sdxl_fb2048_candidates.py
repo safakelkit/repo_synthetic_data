@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from PIL import Image, ImageDraw
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -88,6 +89,22 @@ def append_review_rows(
     return rows
 
 
+def save_retry_sheet(records: list[dict[str, Any]], path: Path) -> None:
+    columns = min(3, len(records))
+    rows = (len(records) + columns - 1) // columns
+    sheet = Image.new("RGB", (columns * 400, rows * 430), "white")
+    draw = ImageDraw.Draw(sheet)
+    for index, record in enumerate(records):
+        with Image.open(REPO_ROOT / record["image_path"]) as source:
+            image = source.convert("RGB")
+            image.thumbnail((400, 400))
+        x, y = (index % columns) * 400, (index // columns) * 430
+        sheet.paste(image, (x, y))
+        draw.text((x + 8, y + 405), record["candidate_id"], fill="black")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(path, quality=92)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -116,11 +133,15 @@ def main() -> None:
             raise ValueError(f"Focused retry plan is not ready for {args.pool}: {args.plan}")
         class_ids = sorted({int(class_id) for class_id in plan["class_ids"]})
         count_per_class = int(plan["candidates_per_class"])
+        prompt_overrides = {
+            int(class_id): prompt for class_id, prompt in plan.get("prompt_by_class", {}).items()
+        }
     else:
         if not args.class_ids:
             raise ValueError("Provide --plan or at least one --class-id")
         class_ids = sorted(set(args.class_ids))
         count_per_class = 2 if args.count_per_class is None else args.count_per_class
+        prompt_overrides = {}
     if count_per_class < 1:
         raise ValueError("Candidate count per class must be positive")
     if any(class_id not in range(16) for class_id in class_ids):
@@ -151,7 +172,8 @@ def main() -> None:
             prompts.append(
                 fb.background_conditioning(config, scene_name, class_id, attempt)
                 if args.pool == "backgrounds"
-                else fb.foreground_prompt(config, class_id, attempt)
+                else (prompt_overrides[class_id] if class_id in prompt_overrides
+                      else fb.foreground_prompt(config, class_id, attempt))
             )
             if args.pool == "foregrounds":
                 negative_prompts.append(fb.foreground_negative_prompt(config, class_id))
@@ -249,6 +271,10 @@ def main() -> None:
         fb.write_json(manifest_path, manifest)
         reason = "review_retry_support_surface" if args.pool == "backgrounds" else "review_retry_object_identity"
         write_review_atomic(review_path, fields, append_review_rows(review_rows, added, reason, fields))
+        if args.plan:
+            sheet_path = root / "review_sheets" / f"{args.plan}.jpg"
+            save_retry_sheet(added, sheet_path)
+            print(f"Review sheet: {sheet_path.relative_to(REPO_ROOT)}", flush=True)
     fb.release(None)
 
 
