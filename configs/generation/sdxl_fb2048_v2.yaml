@@ -455,6 +455,23 @@ composition:
   contact_shadow_opacity: 0.24
   contact_shadow_offset_y_px: 4
   flat_lay_class_ids: [1, 2, 4, 5, 6, 8, 9, 10, 14, 15]
+  class_object_max_width_fraction:
+    0: 0.12
+    1: 0.22
+    2: 0.18
+    3: 0.15
+    4: 0.30
+    5: 0.20
+    6: 0.25
+    7: 0.14
+    8: 0.24
+    9: 0.28
+    10: 0.27
+    11: 0.12
+    12: 0.11
+    13: 0.12
+    14: 0.18
+    15: 0.36
   class_object_height_fraction:
     0: [0.07, 0.11]
     1: [0.06, 0.10]

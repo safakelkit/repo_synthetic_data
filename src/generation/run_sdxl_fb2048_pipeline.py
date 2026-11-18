@@ -302,6 +302,12 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
     }
     if set(segment_prompts) != expected_classes or any(not prompt.strip() for prompt in segment_prompts.values()):
         raise ValueError("SAM3 text prompts must cover all 16 classes")
+    width_caps = {
+        int(class_id): float(fraction)
+        for class_id, fraction in config["composition"]["class_object_max_width_fraction"].items()
+    }
+    if set(width_caps) != expected_classes or any(not 0 < fraction < 1 for fraction in width_caps.values()):
+        raise ValueError("Composition width caps must cover all 16 classes with fractions in (0, 1)")
     route_classes = [
         int(class_id)
         for class_ids in foreground["generation_routes"].values()
@@ -1198,7 +1204,10 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
         target_w = max(1, round(foreground.width * target_h / foreground.height))
         sx1, sy1, sx2, sy2 = reviewed_support_bbox(background_row, width, height)
         support_margin = round((sx2 - sx1) * float(settings["support_edge_margin_fraction"]))
-        maximum_width = max(1, sx2 - sx1 - 2 * support_margin)
+        class_maximum_width = round(
+            width * float(settings["class_object_max_width_fraction"][class_id])
+        )
+        maximum_width = max(1, min(sx2 - sx1 - 2 * support_margin, class_maximum_width))
         if target_w > maximum_width:
             target_w = maximum_width
             target_h = max(1, round(foreground.height * target_w / foreground.width))
