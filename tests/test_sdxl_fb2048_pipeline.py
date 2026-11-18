@@ -116,6 +116,13 @@ class PipelineStructureTests(unittest.TestCase):
             Image.new("RGB", (8, 8), (110, 120, 140)).save(source)
             self.assertFalse(self.fb.segmented_source_matches(record, source_row))
 
+    def test_tabletop_projection_preserves_alpha_and_foreshortens_saw(self) -> None:
+        source = Image.new("RGBA", (100, 80), (120, 120, 120, 255))
+        projected = self.fb.project_cutout_to_tabletop(source, 0.35)
+        self.assertEqual(100, projected.width)
+        self.assertLess(projected.height, 40)
+        self.assertIsNotNone(projected.getchannel("A").getbbox())
+
     def test_pilot_foregrounds_cover_every_variation_axis(self) -> None:
         counts = self.fb.validate_config(self.config, self.scenes, "pilot")
         schedule = self.fb.foreground_schedule(self.config, counts, "pilot")

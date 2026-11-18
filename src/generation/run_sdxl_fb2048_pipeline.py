@@ -308,6 +308,14 @@ def validate_config(config: dict[str, Any], scenes: dict[str, Any], mode: str) -
     }
     if set(width_caps) != expected_classes or any(not 0 < fraction < 1 for fraction in width_caps.values()):
         raise ValueError("Composition width caps must cover all 16 classes with fractions in (0, 1)")
+    projections = {
+        int(class_id): float(fraction) for class_id, fraction in
+        config["composition"].get("class_tabletop_projection_height_fraction", {}).items()
+    }
+    if not set(projections).issubset(expected_classes) or any(
+        not 0 < fraction < 1 for fraction in projections.values()
+    ):
+        raise ValueError("Tabletop projections need valid class IDs and fractions in (0, 1)")
     route_classes = [
         int(class_id)
         for class_ids in foreground["generation_routes"].values()
@@ -821,6 +829,32 @@ def add_contact_shadow(
     return canvas.convert("RGB")
 
 
+def project_cutout_to_tabletop(foreground: Image.Image, height_fraction: float) -> Image.Image:
+    """Foreshorten a reviewed flat tool cutout into an oblique tabletop view."""
+    if not 0 < height_fraction < 1:
+        raise ValueError("Tabletop height fraction must be in (0, 1)")
+    rgba = np.asarray(foreground.convert("RGBA"))
+    height, width = rgba.shape[:2]
+    output_height = max(2, round(height * height_fraction))
+    source = np.float32([[0, 0], [width-1, 0], [width-1, height-1], [0, height-1]])
+    target = np.float32([
+        [width * 0.025, output_height * 0.06],
+        [width * 0.94, 0],
+        [width-1, output_height-1],
+        [0, output_height * 0.95],
+    ])
+    matrix = cv2.getPerspectiveTransform(source, target)
+    warped = cv2.warpPerspective(
+        rgba, matrix, (width, output_height), flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0),
+    )
+    projected = Image.fromarray(warped, "RGBA")
+    bbox = projected.getchannel("A").getbbox()
+    if bbox is None:
+        raise ValueError("Tabletop projection emptied the foreground")
+    return projected.crop(bbox)
+
+
 def apply_person_screen(config: dict[str, Any], records: list[dict[str, Any]], gpu: int | str) -> None:
     from ultralytics import YOLO
     settings = config["quality_gates"]["person_screen"]
@@ -1292,6 +1326,9 @@ def compose(config: dict[str, Any], scenes: dict[str, Any], counts: dict[str, in
             if rotated_bbox is None:
                 raise ValueError(f"Empty rotated alpha: {segment['rgba_path']}")
             foreground = foreground.crop(rotated_bbox)
+        projection = settings.get("class_tabletop_projection_height_fraction", {}).get(class_id)
+        if projection is not None:
+            foreground = project_cutout_to_tabletop(foreground, float(projection))
         low, high = map(float, size_ranges[class_id])
         target_h = round(height * rng.uniform(low, high))
         target_w = max(1, round(foreground.width * target_h / foreground.height))

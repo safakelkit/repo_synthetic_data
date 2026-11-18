@@ -462,6 +462,9 @@ composition:
     8: 0
     9: 45
     10: -45
+  # Project the approved front-facing saw cutout into the tabletop plane.
+  class_tabletop_projection_height_fraction:
+    8: 0.35
   contact_shadow_blur_px: 8
   contact_shadow_opacity: 0.24
   contact_shadow_offset_y_px: 4
