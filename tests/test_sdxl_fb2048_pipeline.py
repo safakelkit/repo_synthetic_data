@@ -96,14 +96,6 @@ class PipelineStructureTests(unittest.TestCase):
             settings["generation_routes"]["text_to_image_strict_review"]
         ))
 
-    def test_tabletop_saw_retry_requests_complete_blade_and_compatible_pose(self) -> None:
-        plan = self.config["foreground_generation"]["focused_retry_plans"]["tabletop_hacksaw_pose"]
-        prompt = plan["prompt_by_class"][8].lower()
-        self.assertEqual([8], plan["class_ids"])
-        self.assertIn("lying flat", prompt)
-        self.assertIn("serrated blade", prompt)
-        self.assertIn("both ends", prompt)
-
     def test_segment_repair_reuses_only_unchanged_source_pixels(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

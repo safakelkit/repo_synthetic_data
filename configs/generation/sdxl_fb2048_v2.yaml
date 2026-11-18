@@ -247,18 +247,6 @@ foreground_generation:
     text_to_image_strict_review: [1, 3, 6, 8, 9, 10, 11, 12, 13, 14, 15]
     controlled_geometry_pilot: [2, 7]
   focused_retry_plans:
-    tabletop_hacksaw_pose:
-      status: ready
-      pool: foregrounds
-      class_ids: [8]
-      candidates_per_class: 6
-      prompt_by_class:
-        8: >-
-          Photorealistic catalog photo of one complete manual hacksaw lying flat
-          on a neutral gray tabletop, high oblique view. Thin serrated blade
-          tensioned across a rigid C-shaped steel frame, attached at both ends;
-          dark pistol grip. Entire tool visible with natural contact shadow.
-          No hand, text, or other objects.
     failed_control_text_fallback:
       status: ready
       pool: foregrounds
